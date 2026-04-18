@@ -115,7 +115,7 @@ def wl_check():
                 description="У тебя нет подписки.\nЗа покупкой пиши в ЛС: **davaidkatt**",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="ECLIPSED SQUAD")
+            embed.set_footer(text="☠️ ECLIPSED SQUAD")
             await ctx.send(embed=embed)
             return False
         return True
