@@ -604,8 +604,9 @@ async def list_cmd(ctx):
         return "\n".join(lines) if lines else "*пусто*"
 
     embed = discord.Embed(title="📋 Списки ECLIPSED", color=0x0a0a0a)
-    # Whitelist — только те кто не в Premium
-    wl_only = [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST]
+    # Whitelist — только те кто не в Premium и не в Owner Whitelist
+    protected = set(config.OWNER_WHITELIST) | {config.OWNER_ID}
+    wl_only = [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST and uid not in protected]
     embed.add_field(
         name=f"✅ Whitelist ({len(wl_only)})",
         value=await fmt(wl_only),
