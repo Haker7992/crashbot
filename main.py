@@ -607,13 +607,18 @@ async def list_cmd(ctx):
     # Whitelist — только те кто не в Premium
     wl_only = [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST]
     embed.add_field(
-        name=f"✅ Whitelist only ({len(wl_only)})",
+        name=f"✅ Whitelist ({len(wl_only)})",
         value=await fmt(wl_only),
         inline=False
     )
     embed.add_field(
         name=f"💎 Premium ({len(PREMIUM_LIST)})",
         value=await fmt(PREMIUM_LIST),
+        inline=False
+    )
+    embed.add_field(
+        name=f"👑 Owner Whitelist ({len(config.OWNER_WHITELIST)})",
+        value=await fmt(config.OWNER_WHITELIST),
         inline=False
     )
     embed.add_field(
