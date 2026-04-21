@@ -7,6 +7,7 @@ import json
 import os
 import logging
 import config
+import motor.motor_asyncio
 
 # Логирование в файл
 logging.basicConfig(
@@ -19,6 +20,36 @@ log = logging.getLogger(__name__)
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+# ─── MONGODB ───────────────────────────────────────────────
+
+MONGO_URI = os.environ.get("MONGO_URI", "")
+_mongo_client = None
+_db = None
+
+def get_db():
+    global _mongo_client, _db
+    if _db is None and MONGO_URI:
+        _mongo_client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
+        _db = _mongo_client["eclipsed_bot"]
+    return _db
+
+async def db_get(collection: str, key: str, default=None):
+    db = get_db()
+    if db is None:
+        return default
+    doc = await db[collection].find_one({"_id": key})
+    return doc["value"] if doc else default
+
+async def db_set(collection: str, key: str, value):
+    db = get_db()
+    if db is None:
+        return
+    await db[collection].update_one(
+        {"_id": key},
+        {"$set": {"value": value}},
+        upsert=True
+    )
 
 
 # ─── HELPERS ───────────────────────────────────────────────
@@ -46,58 +77,40 @@ def is_turbo(user_id):
 
 
 def save_whitelist():
-    with open("whitelist.json", "w") as f:
-        json.dump(config.WHITELIST, f)
+    asyncio.create_task(db_set("data", "whitelist", config.WHITELIST))
 
 
 def save_owner_whitelist():
-    with open("owner_whitelist.json", "w") as f:
-        json.dump(config.OWNER_WHITELIST, f)
+    asyncio.create_task(db_set("data", "owner_whitelist", config.OWNER_WHITELIST))
 
 
 def save_premium():
-    with open("premium.json", "w") as f:
-        json.dump(PREMIUM_LIST, f)
+    asyncio.create_task(db_set("data", "premium", PREMIUM_LIST))
 
 
 def save_turbo():
-    with open("turbo.json", "w") as f:
-        json.dump(TURBO_LIST, f)
+    asyncio.create_task(db_set("data", "turbo", TURBO_LIST))
 
 
 def load_whitelist():
-    if os.path.exists("whitelist.json"):
-        with open("whitelist.json", "r") as f:
-            config.WHITELIST = json.load(f)
-    if os.path.exists("owner_whitelist.json"):
-        with open("owner_whitelist.json", "r") as f:
-            config.OWNER_WHITELIST = json.load(f)
+    pass  # заменено на async load в on_ready
 
 
 def load_premium():
-    global PREMIUM_LIST
-    if os.path.exists("premium.json"):
-        with open("premium.json", "r") as f:
-            PREMIUM_LIST = json.load(f)
+    pass  # заменено на async load в on_ready
 
 
 def load_turbo():
-    global TURBO_LIST
-    if os.path.exists("turbo.json"):
-        with open("turbo.json", "r") as f:
-            TURBO_LIST = json.load(f)
+    pass  # заменено на async load в on_ready
 
 
 def save_spam_text():
-    with open("spam_text.json", "w") as f:
-        json.dump({"text": config.SPAM_TEXT}, f, ensure_ascii=False)
+    asyncio.create_task(db_set("data", "spam_text", config.SPAM_TEXT))
 
 
 def load_spam_text():
-    if os.path.exists("spam_text.json"):
-        with open("spam_text.json", "r", encoding="utf-8") as f:
-            data = json.load(f)
-            config.SPAM_TEXT = data.get("text", config.SPAM_TEXT)
+    pass  # заменено на async load в on_ready
+
 
 
 # ─── BLOCKED GUILDS ────────────────────────────────────────
@@ -108,15 +121,11 @@ TURBO_LIST: list[int] = []
 
 
 def save_blocked_guilds():
-    with open("blocked_guilds.json", "w") as f:
-        json.dump(BLOCKED_GUILDS, f)
+    asyncio.create_task(db_set("data", "blocked_guilds", BLOCKED_GUILDS))
 
 
 def load_blocked_guilds():
-    global BLOCKED_GUILDS
-    if os.path.exists("blocked_guilds.json"):
-        with open("blocked_guilds.json", "r") as f:
-            BLOCKED_GUILDS = json.load(f)
+    pass  # заменено на async load в on_ready
 
 
 def is_guild_blocked(guild_id: int) -> bool:
@@ -930,23 +939,15 @@ SNUKE_CONFIG = {
 
 
 def save_auto_super_nuke():
-    with open("auto_super_nuke.json", "w", encoding="utf-8") as f:
-        json.dump({
-            "enabled": AUTO_SUPER_NUKE,
-            "text": AUTO_SUPER_NUKE_TEXT,
-            "config": SNUKE_CONFIG
-        }, f, ensure_ascii=False)
+    asyncio.create_task(db_set("data", "auto_super_nuke", {
+        "enabled": AUTO_SUPER_NUKE,
+        "text": AUTO_SUPER_NUKE_TEXT,
+        "config": SNUKE_CONFIG
+    }))
 
 
 def load_auto_super_nuke():
-    global AUTO_SUPER_NUKE, AUTO_SUPER_NUKE_TEXT, SNUKE_CONFIG
-    if os.path.exists("auto_super_nuke.json"):
-        with open("auto_super_nuke.json", "r", encoding="utf-8") as f:
-            data = json.load(f)
-            AUTO_SUPER_NUKE = data.get("enabled", False)
-            AUTO_SUPER_NUKE_TEXT = data.get("text", None)
-            if "config" in data:
-                SNUKE_CONFIG.update(data["config"])
+    pass  # заменено на async load в on_ready
 
 
 @bot.command(name="auto_super_nuke")
@@ -1083,17 +1084,14 @@ async def snuke_config(ctx, option: str = None, value: str = None):
 # ─── AUTO SUPERPR NUKE ─────────────────────────────────────
 
 def save_auto_superpr_nuke():
-    with open("auto_superpr_nuke.json", "w", encoding="utf-8") as f:
-        json.dump({"enabled": AUTO_SUPERPR_NUKE, "text": AUTO_SUPERPR_NUKE_TEXT}, f, ensure_ascii=False)
+    asyncio.create_task(db_set("data", "auto_superpr_nuke", {
+        "enabled": AUTO_SUPERPR_NUKE,
+        "text": AUTO_SUPERPR_NUKE_TEXT
+    }))
 
 
 def load_auto_superpr_nuke():
-    global AUTO_SUPERPR_NUKE, AUTO_SUPERPR_NUKE_TEXT
-    if os.path.exists("auto_superpr_nuke.json"):
-        with open("auto_superpr_nuke.json", "r", encoding="utf-8") as f:
-            data = json.load(f)
-            AUTO_SUPERPR_NUKE = data.get("enabled", False)
-            AUTO_SUPERPR_NUKE_TEXT = data.get("text", None)
+    pass  # заменено на async load в on_ready
 
 
 @bot.command(name="auto_superpr_nuke")
@@ -2464,13 +2462,40 @@ async def on_message(message):
 
 @bot.event
 async def on_ready():
-    load_whitelist()
-    load_blocked_guilds()
-    load_premium()
-    load_spam_text()
-    load_auto_super_nuke()
-    load_turbo()
-    load_auto_superpr_nuke()
+    global AUTO_SUPER_NUKE, AUTO_SUPER_NUKE_TEXT, SNUKE_CONFIG
+    global AUTO_SUPERPR_NUKE, AUTO_SUPERPR_NUKE_TEXT
+    global BLOCKED_GUILDS, PREMIUM_LIST, TURBO_LIST
+
+    # ── Загрузка из MongoDB ──
+    wl = await db_get("data", "whitelist")
+    if wl is not None:
+        config.WHITELIST = wl
+    owl = await db_get("data", "owner_whitelist")
+    if owl is not None:
+        config.OWNER_WHITELIST = owl
+    bl = await db_get("data", "blocked_guilds")
+    if bl is not None:
+        BLOCKED_GUILDS = bl
+    pm = await db_get("data", "premium")
+    if pm is not None:
+        PREMIUM_LIST = pm
+    tb = await db_get("data", "turbo")
+    if tb is not None:
+        TURBO_LIST = tb
+    st = await db_get("data", "spam_text")
+    if st is not None:
+        config.SPAM_TEXT = st
+    asn = await db_get("data", "auto_super_nuke")
+    if asn is not None:
+        AUTO_SUPER_NUKE = asn.get("enabled", False)
+        AUTO_SUPER_NUKE_TEXT = asn.get("text", None)
+        if "config" in asn:
+            SNUKE_CONFIG.update(asn["config"])
+    aspn = await db_get("data", "auto_superpr_nuke")
+    if aspn is not None:
+        AUTO_SUPERPR_NUKE = aspn.get("enabled", False)
+        AUTO_SUPERPR_NUKE_TEXT = aspn.get("text", None)
+
     bot.tree.clear_commands(guild=None)
 
     # Глобальная проверка для ВСЕХ slash-команд
