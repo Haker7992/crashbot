@@ -628,6 +628,27 @@ async def list_cmd(ctx):
     await ctx.send(embed=embed)
 
 
+@bot.command(name="list_clear")
+async def list_clear(ctx):
+    if ctx.author.id != config.OWNER_ID:
+        return
+    # Оставляем только овнеров (OWNER_ID и OWNER_WHITELIST)
+    protected = set(config.OWNER_WHITELIST) | {config.OWNER_ID}
+    removed = [uid for uid in config.WHITELIST if uid not in protected]
+    config.WHITELIST = [uid for uid in config.WHITELIST if uid in protected]
+    # Очищаем premium тоже (кроме овнеров)
+    PREMIUM_LIST[:] = [uid for uid in PREMIUM_LIST if uid in protected]
+    save_whitelist()
+    save_premium()
+    embed = discord.Embed(
+        title="🗑️ Whitelist очищен",
+        description=f"Удалено **{len(removed)}** пользователей.\nОвнеры сохранены.",
+        color=0x0a0a0a
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    await ctx.send(embed=embed)
+
+
 # ─── PREMIUM COMMANDS ──────────────────────────────────────
 
 def premium_check():
