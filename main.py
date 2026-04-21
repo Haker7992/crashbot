@@ -598,25 +598,6 @@ async def pm_remove(ctx, user_id: int):
         await ctx.send("Не найден в Premium.")
 
 
-@bot.command(name="pm_list")
-async def pm_list(ctx):
-    if ctx.author.id != config.OWNER_ID:
-        return
-    if not PREMIUM_LIST:
-        await ctx.send("Premium список пуст.")
-        return
-    lines = []
-    for uid in PREMIUM_LIST:
-        try:
-            user = await bot.fetch_user(uid)
-            lines.append(f"`{uid}` — **{user}**")
-        except Exception:
-            lines.append(f"`{uid}` — *не найден*")
-    embed = discord.Embed(title="💎 Premium список", description="\n".join(lines), color=0x0a0a0a)
-    embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(PREMIUM_LIST)}")
-    await ctx.send(embed=embed)
-
-
 # ─── OWNER-ONLY: TURBO ─────────────────────────────────────
 
 @bot.command(name="turbo_add")
@@ -643,22 +624,47 @@ async def turbo_remove(ctx, user_id: int):
         await ctx.send("Не найден в Turbo.")
 
 
-@bot.command(name="turbo_list")
-async def turbo_list_cmd(ctx):
+@bot.command(name="list")
+async def list_cmd(ctx):
     if ctx.author.id != config.OWNER_ID:
         return
-    if not TURBO_LIST:
-        await ctx.send("Turbo список пуст.")
-        return
-    lines = []
-    for uid in TURBO_LIST:
-        try:
-            user = await bot.fetch_user(uid)
-            lines.append(f"`{uid}` — **{user}**")
-        except Exception:
-            lines.append(f"`{uid}` — *не найден*")
-    embed = discord.Embed(title="⚡ Turbo список", description="\n".join(lines), color=0x0a0a0a)
-    embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(TURBO_LIST)}")
+
+    async def fmt(ids):
+        lines = []
+        for uid in ids:
+            try:
+                user = await bot.fetch_user(uid)
+                lines.append(f"`{uid}` — **{user}**")
+            except Exception:
+                lines.append(f"`{uid}` — *не найден*")
+        return "\n".join(lines) if lines else "*пусто*"
+
+    embed = discord.Embed(title="📋 Списки ECLIPSED", color=0x0a0a0a)
+    embed.add_field(
+        name=f"✅ Whitelist ({len(config.WHITELIST)})",
+        value=await fmt(config.WHITELIST),
+        inline=False
+    )
+    embed.add_field(
+        name=f"💎 Premium ({len(PREMIUM_LIST)})",
+        value=await fmt(PREMIUM_LIST),
+        inline=False
+    )
+    embed.add_field(
+        name=f"⚡ Turbo ({len(TURBO_LIST)})",
+        value=await fmt(TURBO_LIST),
+        inline=False
+    )
+    embed.add_field(
+        name="📌 Управление",
+        value=(
+            "`!wl_add <id>` / `!wl_remove <id>` — whitelist\n"
+            "`!pm_add <id>` / `!pm_remove <id>` — premium\n"
+            "`!turbo_add <id>` / `!turbo_remove <id>` — turbo"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD")
     await ctx.send(embed=embed)
 
 
