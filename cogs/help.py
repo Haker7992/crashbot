@@ -1,4 +1,4 @@
-import discord
+﻿import discord
 from discord.ext import commands
 from discord import app_commands
 
@@ -10,7 +10,7 @@ class Help(commands.Cog):
     @app_commands.command(name="help", description="Список всех команд бота")
     async def help_command(self, interaction: discord.Interaction):
         embed = discord.Embed(
-            title="ArchAngels Bot — Команды",
+            title="Kanero — Команды",
             color=discord.Color.red()
         )
         embed.add_field(name="Краш", value="`/deleteall` - Запустить краш\n`/stop` - Остановить краш\n`/cleanup` - Очистить сервер", inline=False)

