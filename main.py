@@ -1091,6 +1091,27 @@ async def blocked_guilds_cmd(ctx):
     await ctx.send("🔒 Заблокированные серверы:\n" + "\n".join(lines))
 
 
+@bot.command(name="giverole")
+async def giverole(ctx, user: discord.Member, role: discord.Role):
+    """Выдать роль участнику. Только для овнера.
+    Использование: !giverole @юзер @роль  или  !giverole <user_id> <role_id>
+    """
+    if ctx.author.id != config.OWNER_ID:
+        return
+    try:
+        await user.add_roles(role)
+        embed = discord.Embed(
+            description=f"✅ Роль **{role.name}** выдана **{user}**.",
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ ECLIPSED SQUAD")
+        await ctx.send(embed=embed)
+    except discord.Forbidden:
+        await ctx.send("❌ Нет прав выдать эту роль (роль выше бота в иерархии).")
+    except Exception as e:
+        await ctx.send(f"❌ Ошибка: {e}")
+
+
 bot.remove_command("help")
 
 
