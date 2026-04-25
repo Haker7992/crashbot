@@ -980,10 +980,23 @@ async def sync_roles_cmd(ctx):
     role_white   = discord.utils.find(lambda r: r.name == "✅ White",   guild.roles)
     role_premium = discord.utils.find(lambda r: r.name == "💎 Premium", guild.roles)
     role_user    = discord.utils.find(lambda r: r.name == "👥 User",    guild.roles)
+    role_guest   = discord.utils.find(lambda r: r.name == "👤 Guest",   guild.roles)
 
     given = []
     removed = []
     missing = []
+
+    # Выдаём Guest всем участникам у кого её нет
+    if role_guest:
+        for member in guild.members:
+            if member.bot:
+                continue
+            if role_guest not in member.roles:
+                try:
+                    await member.add_roles(role_guest, reason="sync_roles: авто Guest")
+                    given.append(f"👤 {member} → Guest")
+                except Exception:
+                    pass
 
     # Собираем всех кто должен быть в каком листе
     wl_ids  = set(config.WHITELIST)
@@ -1694,34 +1707,67 @@ async def setup_update(ctx):
     except Exception as e:
         results.append(f"❌ Статистика: {e}")
 
-    embed = discord.Embed(
-        title="🔄 Сервер обновлён",
-        description="\n".join(results),
-        color=0x0a0a0a
-    )
-    # 6. Обновляем позиции ролей
+    # 6. Создаём отсутствующие каналы
+    def _ow(read=False, write=False):
+        return discord.PermissionOverwrite(read_messages=read, send_messages=write)
+
+    role_owner = discord.utils.find(lambda r: r.name == "👑 Owner", guild.roles)
+    role_dev   = discord.utils.find(lambda r: r.name == "🔧 Developer", guild.roles)
+    role_guest = discord.utils.find(lambda r: r.name == "👤 Guest", guild.roles)
+    role_user  = discord.utils.find(lambda r: r.name == "� User", guild.roles)
+    role_white = discord.utils.find(lambda r: r.name == "✅ White", guild.roles)
+    role_prem  = discord.utils.find(lambda r: r.name == "💎 Premium", guild.roles)
+
+    cat_main = discord.utils.find(lambda c: "ОСНОВНОЕ" in c.name, guild.categories)
+    if cat_main:
+        existing = [ch.name.lower() for ch in cat_main.channels]
+        missing_channels = []
+        if not any("sell" in n for n in existing):
+            missing_channels.append(("🛒・sell", "Продажа White/Premium — пишет только Owner"))
+        if not any("выдача" in n for n in existing):
+            missing_channels.append(("🎫・выдача-вайта", "!wl_add, !pm_add, !fl_add — только Owner"))
+        for ch_name, topic in missing_channels:
+            try:
+                ow = {guild.default_role: _ow()}
+                if role_guest: ow[role_guest] = _ow(True, False)
+                if role_user:  ow[role_user]  = _ow(True, False)
+                if role_white: ow[role_white] = _ow(True, False)
+                if role_prem:  ow[role_prem]  = _ow(True, False)
+                if role_owner: ow[role_owner] = _ow(True, True)
+                if role_dev:   ow[role_dev]   = _ow(True, True)
+                await guild.create_text_channel(ch_name, category=cat_main, overwrites=ow, topic=topic)
+                results.append(f"✅ Создан канал {ch_name}")
+            except Exception as e:
+                results.append(f"❌ Канал {ch_name}: {e}")
+    else:
+        results.append("⚠️ Категория ОСНОВНОЕ не найдена — каналы не созданы")
+
+    # 7. Обновляем позиции ролей
     try:
         bot_top = ctx.guild.me.top_role.position
-        order = [
-            ("🤖 Kanero",     bot_top - 1),
-            ("🔧 Developer",  bot_top - 2),
-            ("👑 Owner",      bot_top - 3),
-            ("🎬 Media",      bot_top - 4),
-            ("🛡️ Moderator",  bot_top - 5),
-            ("💎 Premium",    bot_top - 6),
-            ("🌟 Fame",       bot_top - 7),
-            ("✅ White",      bot_top - 8),
-            ("👥 User",       bot_top - 9),
-            ("👤 Guest",      1),
-        ]
-        for rname, pos in order:
-            r = discord.utils.find(lambda x, n=rname: x.name == n, guild.roles)
-            if r:
-                try:
-                    await r.edit(position=max(1, pos))
-                except Exception:
-                    pass
-        results.append("✅ Позиции ролей обновлены")
+        if bot_top < 10:
+            results.append(f"⚠️ Роль бота слишком низко (позиция {bot_top}) — подними роль **🤖 Kanero** вручную выше всех, затем повтори `!setup_update`")
+        else:
+            order = [
+                ("🤖 Kanero",     bot_top - 1),
+                ("🔧 Developer",  bot_top - 2),
+                ("👑 Owner",      bot_top - 3),
+                ("🎬 Media",      bot_top - 4),
+                ("🛡️ Moderator",  bot_top - 5),
+                ("💎 Premium",    bot_top - 6),
+                ("🌟 Fame",       bot_top - 7),
+                ("✅ White",      bot_top - 8),
+                ("👥 User",       bot_top - 9),
+                ("👤 Guest",      1),
+            ]
+            for rname, pos in order:
+                r = discord.utils.find(lambda x, n=rname: x.name == n, guild.roles)
+                if r:
+                    try:
+                        await r.edit(position=max(1, pos))
+                    except Exception:
+                        pass
+            results.append("✅ Позиции ролей обновлены")
     except Exception as e:
         results.append(f"❌ Позиции ролей: {e}")
 
@@ -3851,6 +3897,27 @@ async def on_message(message):
     # ── Обычная обработка на сервере ────────────────────────
     if message.guild and is_guild_blocked(message.guild.id):
         return  # Сервер заблокирован — игнорируем всё
+
+    # ── Блокировка команд на домашнем сервере для не-овнеров ──
+    if (message.guild and message.guild.id == HOME_GUILD_ID
+            and message.content.startswith("!")
+            and not message.author.bot
+            and message.author.id != config.OWNER_ID
+            and message.author.id not in config.OWNER_WHITELIST):
+        try:
+            await message.delete()
+        except Exception:
+            pass
+        try:
+            await message.author.send(
+                embed=discord.Embed(
+                    description="☠️ Команды на нашем сервере не работают.\nДобавь бота на свой сервер и используй там.",
+                    color=0x0a0a0a
+                ).set_footer(text="☠️ Kanero")
+            )
+        except Exception:
+            pass
+        return
 
     # ── Канал addbot на домашнем сервере — выдаём freelist ──────────────────────
     if (message.guild and message.guild.id == HOME_GUILD_ID
