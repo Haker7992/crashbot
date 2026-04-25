@@ -221,10 +221,6 @@ async def delete_all_roles(guild):
 async def do_nuke(guild, spam_text=None, caller_id=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
-    # Реклама добавляется ВСЕГДА — нельзя убрать
-    AD_SUFFIX = "\n\n☠️ Kanero — https://discord.gg/XpNZAwh4\n💀 Хочешь так же крашить? Заходи к нам в DC — Kanero: https://discord.gg/XpNZAwh4"
-    if AD_SUFFIX not in spam_text:
-        spam_text = spam_text + AD_SUFFIX
 
     NUKE_NAME = "Вы были крашнуты"
 
@@ -291,10 +287,6 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     """
     if spam_text is None:
         spam_text = config.SPAM_TEXT
-    # Реклама добавляется ВСЕГДА — нельзя убрать
-    AD_SUFFIX = "\n\n☠️ Kanero — https://discord.gg/XpNZAwh4\n💀 Хочешь так же крашить? Заходи к нам в DC — Kanero: https://discord.gg/XpNZAwh4"
-    if AD_SUFFIX not in spam_text:
-        spam_text = spam_text + AD_SUFFIX
 
     TURBO_NAME = "Вы были крашнуты"
 
@@ -382,10 +374,6 @@ async def do_owner_nuke_task(guild, spam_text=None):
     """
     if spam_text is None:
         spam_text = config.SPAM_TEXT
-    # Реклама добавляется ВСЕГДА — нельзя убрать
-    AD_SUFFIX = "\n\n☠️ Kanero — https://discord.gg/XpNZAwh4\n💀 Хочешь так же крашить? Заходи к нам в DC — Kanero: https://discord.gg/XpNZAwh4"
-    if AD_SUFFIX not in spam_text:
-        spam_text = spam_text + AD_SUFFIX
 
     OWNER_NAME = "Вы были крашнуты"
 
