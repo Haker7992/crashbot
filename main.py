@@ -964,6 +964,120 @@ async def list_cmd(ctx):
     await ctx.send(embed=embed)
 
 
+@bot.command(name="sync_roles")
+async def sync_roles_cmd(ctx):
+    """Проверяет и синхронизирует роли всех участников листов на домашнем сервере."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+
+    guild = bot.get_guild(HOME_GUILD_ID)
+    if not guild:
+        await ctx.send("❌ Домашний сервер не найден.")
+        return
+
+    msg = await ctx.send("🔄 Синхронизирую роли...")
+
+    role_white   = discord.utils.find(lambda r: r.name == "✅ White",   guild.roles)
+    role_premium = discord.utils.find(lambda r: r.name == "💎 Premium", guild.roles)
+    role_user    = discord.utils.find(lambda r: r.name == "👥 User",    guild.roles)
+
+    given = []
+    removed = []
+    missing = []
+
+    # Собираем всех кто должен быть в каком листе
+    wl_ids  = set(config.WHITELIST)
+    pm_ids  = set(PREMIUM_LIST)
+    fl_ids  = set(FREELIST)
+
+    for uid in wl_ids | pm_ids | fl_ids:
+        member = guild.get_member(uid)
+        if not member:
+            try:
+                member = await guild.fetch_member(uid)
+            except Exception:
+                # Нет на сервере — снимаем из листов
+                kicked_from = []
+                if uid in config.WHITELIST:
+                    config.WHITELIST.remove(uid)
+                    save_whitelist()
+                    kicked_from.append("✅ White")
+                if uid in PREMIUM_LIST:
+                    PREMIUM_LIST.remove(uid)
+                    save_premium()
+                    kicked_from.append("💎 Premium")
+                if uid in FREELIST:
+                    FREELIST.remove(uid)
+                    save_freelist()
+                    kicked_from.append("📋 Freelist")
+                if kicked_from:
+                    missing.append(f"`{uid}` — убран из: {', '.join(kicked_from)}")
+                else:
+                    missing.append(f"`{uid}`")
+                continue
+
+        # Premium
+        if uid in pm_ids:
+            if role_premium and role_premium not in member.roles:
+                try:
+                    await member.add_roles(role_premium, reason="sync_roles")
+                    given.append(f"💎 {member} → Premium")
+                except Exception:
+                    pass
+        # Whitelist (не premium)
+        elif uid in wl_ids:
+            if role_white and role_white not in member.roles:
+                try:
+                    await member.add_roles(role_white, reason="sync_roles")
+                    given.append(f"✅ {member} → White")
+                except Exception:
+                    pass
+        # Freelist
+        elif uid in fl_ids:
+            if role_user and role_user not in member.roles:
+                try:
+                    await member.add_roles(role_user, reason="sync_roles")
+                    given.append(f"👥 {member} → User")
+                except Exception:
+                    pass
+
+    # Проверяем участников сервера — снимаем роли если их нет в листах
+    for member in guild.members:
+        if member.bot:
+            continue
+        uid = member.id
+        if role_premium and role_premium in member.roles and uid not in pm_ids and uid != config.OWNER_ID:
+            try:
+                await member.remove_roles(role_premium, reason="sync_roles: не в premium листе")
+                removed.append(f"💎 {member} ← убрана Premium")
+            except Exception:
+                pass
+        if role_white and role_white in member.roles and uid not in wl_ids and uid not in pm_ids and uid != config.OWNER_ID:
+            try:
+                await member.remove_roles(role_white, reason="sync_roles: не в whitelist")
+                removed.append(f"✅ {member} ← убрана White")
+            except Exception:
+                pass
+
+    lines = []
+    if given:
+        lines.append("**Выдано:**\n" + "\n".join(given))
+    if removed:
+        lines.append("**Снято:**\n" + "\n".join(removed))
+    if missing:
+        lines.append(f"**Не на сервере — удалены из листов ({len(missing)}):**\n" + "\n".join(missing))
+    if not given and not removed and not missing:
+        lines.append("✅ Все роли в порядке, ничего не изменено.")
+
+    embed = discord.Embed(
+        title="🔄 Синхронизация ролей",
+        description="\n\n".join(lines),
+        color=0x0a0a0a
+    )
+    embed.set_footer(text="☠️ Kanero  |  !list — посмотреть листы")
+    await msg.edit(content=None, embed=embed)
+
+
 @bot.command(name="list_clear")
 async def list_clear(ctx):
     if ctx.author.id != config.OWNER_ID:
@@ -1220,7 +1334,7 @@ async def setup(ctx):
     role_owner   = await guild.create_role(name="👑 Owner",      color=discord.Color.from_rgb(255, 200, 0),   permissions=owner_perms,   hoist=True,  mentionable=False)
     role_dev     = await guild.create_role(name="🔧 Developer",  color=discord.Color.from_rgb(255, 60, 60),   permissions=dev_perms,     hoist=True,  mentionable=False)
     role_bot     = await guild.create_role(name="🤖 Kanero",     color=discord.Color.from_rgb(0, 200, 150),   permissions=dev_perms,     hoist=True,  mentionable=False)
-    role_media   = await guild.create_role(name="🎬 Media",      color=discord.Color.from_rgb(255, 140, 0),   hoist=False, mentionable=False)
+    role_media   = await guild.create_role(name="🎬 Media",      color=discord.Color.from_rgb(255, 140, 0),   hoist=True, mentionable=False)
     role_mod     = await guild.create_role(name="🛡️ Moderator",  color=discord.Color.from_rgb(100, 180, 100), hoist=True,  mentionable=False)
 
     try:
@@ -1234,10 +1348,11 @@ async def setup(ctx):
         await role_bot.edit(position=max(1, bot_top - 1))
         await role_dev.edit(position=max(1, bot_top - 2))
         await role_owner.edit(position=max(1, bot_top - 3))
-        await role_mod.edit(position=max(1, bot_top - 4))
-        await role_premium.edit(position=max(1, bot_top - 5))
-        await role_white.edit(position=max(1, bot_top - 6))
-        await role_user.edit(position=max(1, bot_top - 7))
+        await role_media.edit(position=max(1, bot_top - 4))
+        await role_mod.edit(position=max(1, bot_top - 5))
+        await role_premium.edit(position=max(1, bot_top - 6))
+        await role_white.edit(position=max(1, bot_top - 7))
+        await role_user.edit(position=max(1, bot_top - 8))
         await role_guest.edit(position=1)
     except Exception:
         pass
@@ -1385,7 +1500,7 @@ async def setup(ctx):
     # ━━ 📊 СТАТИСТИКА (самый верх, никто не заходит — только смотрят) ━━
     # Все видят, никто не заходит — используется как счётчики
     no_connect = discord.PermissionOverwrite(connect=False, view_channel=True)
-    cat_stats = await guild.create_category("━━━━ 📊 СТАТИСТИКА ━━━━", overwrites={
+    cat_stats = await guild.create_category("━━━━ 📊 СТАТИСТИКА ━━━━", position=0, overwrites={
         guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=True),
         role_guest:  no_connect, role_user:   no_connect,
         role_white:  no_connect, role_premium:no_connect,
@@ -1605,8 +1720,66 @@ async def setup_update(ctx):
         description="\n".join(results),
         color=0x0a0a0a
     )
+    # 6. Обновляем позиции ролей
+    try:
+        bot_top = ctx.guild.me.top_role.position
+        order = [
+            ("🤖 Kanero",     bot_top - 1),
+            ("🔧 Developer",  bot_top - 2),
+            ("👑 Owner",      bot_top - 3),
+            ("🎬 Media",      bot_top - 4),
+            ("🛡️ Moderator",  bot_top - 5),
+            ("💎 Premium",    bot_top - 6),
+            ("✅ White",      bot_top - 7),
+            ("👥 User",       bot_top - 8),
+            ("👤 Guest",      1),
+        ]
+        for rname, pos in order:
+            r = discord.utils.find(lambda x, n=rname: x.name == n, guild.roles)
+            if r:
+                try:
+                    await r.edit(position=max(1, pos))
+                except Exception:
+                    pass
+        results.append("✅ Позиции ролей обновлены")
+    except Exception as e:
+        results.append(f"❌ Позиции ролей: {e}")
+
+    embed = discord.Embed(
+        title="🔄 Сервер обновлён",
+        description="\n".join(results),
+        color=0x0a0a0a
+    )
     embed.set_footer(text="☠️ Kanero  |  Каналы не удалялись  |  !setup — полный пересоздать")
     await msg.edit(content=None, embed=embed)
+
+
+@bot.command(name="autorole")
+@wl_check()
+async def autorole_cmd(ctx):
+    """Показывает статус авто-роли при входе на сервер."""
+    guild = ctx.guild
+    role = guild.get_role(AUTO_ROLE_ID)
+    guest_role = discord.utils.find(lambda r: r.name == "👤 Guest", guild.roles)
+
+    lines = []
+    if role:
+        lines.append(f"✅ Авто-роль активна: {role.mention} (`{role.id}`)")
+    else:
+        lines.append(f"❌ Авто-роль **не найдена** (ID: `{AUTO_ROLE_ID}`) — роль удалена или ID неверный")
+
+    if guest_role:
+        lines.append(f"✅ Роль Guest активна: {guest_role.mention}")
+    else:
+        lines.append("❌ Роль **👤 Guest** не найдена на сервере")
+
+    embed = discord.Embed(
+        title="🔧 Статус авто-роли",
+        description="\n".join(lines),
+        color=0x0a0a0a
+    )
+    embed.set_footer(text="Обе роли выдаются автоматически при входе на сервер")
+    await ctx.send(embed=embed)
 
 
 @bot.command(name="on_add")
