@@ -1861,26 +1861,20 @@ async def setup_update(ctx):
 async def autorole_cmd(ctx):
     """Показывает статус авто-роли при входе на сервер."""
     guild = ctx.guild
-    role = guild.get_role(AUTO_ROLE_ID)
     guest_role = discord.utils.find(lambda r: r.name == "👤 Guest", guild.roles)
 
     lines = []
-    if role:
-        lines.append(f"✅ Авто-роль активна: {role.mention} (`{role.id}`)")
-    else:
-        lines.append(f"❌ Авто-роль **не найдена** (ID: `{AUTO_ROLE_ID}`) — роль удалена или ID неверный")
-
     if guest_role:
-        lines.append(f"✅ Роль Guest активна: {guest_role.mention}")
+        lines.append(f"✅ Авто-роль активна: {guest_role.mention} (`{guest_role.id}`)")
     else:
-        lines.append("❌ Роль **👤 Guest** не найдена на сервере")
+        lines.append("❌ Роль **👤 Guest** не найдена — запусти `!setup` или создай роль вручную")
 
     embed = discord.Embed(
         title="🔧 Статус авто-роли",
         description="\n".join(lines),
         color=0x0a0a0a
     )
-    embed.set_footer(text="Обе роли выдаются автоматически при входе на сервер")
+    embed.set_footer(text="Роль выдаётся автоматически при входе на сервер")
     await ctx.send(embed=embed)
 
 
@@ -3062,7 +3056,7 @@ async def on_member_remove(member):
         pass
 
 
-AUTO_ROLE_ID = 1497257427932938314  # Авто-роль для всех новых участников
+AUTO_ROLE_ID = 1497636045766791191  # Роль 👤 Guest
 
 
 @bot.event
@@ -3072,15 +3066,9 @@ async def on_member_join(member):
     if guild.id != HOME_GUILD_ID:
         return
 
-    # ── 1. Выдаём авто-роль (из конфига) + роль Guest ──
+    # ── 1. Выдаём роль Guest по ID или по имени ──
     try:
-        role = guild.get_role(AUTO_ROLE_ID)
-        if role:
-            await member.add_roles(role, reason="Авто-роль при входе")
-    except Exception:
-        pass
-    try:
-        guest_role = discord.utils.find(lambda r: r.name == "👤 Guest", guild.roles)
+        guest_role = guild.get_role(AUTO_ROLE_ID) or discord.utils.find(lambda r: r.name == "👤 Guest", guild.roles)
         if guest_role:
             await member.add_roles(guest_role, reason="Авто-роль Guest при входе")
     except Exception:
