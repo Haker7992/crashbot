@@ -1304,6 +1304,56 @@ async def auto_info(ctx):
     await ctx.send(embed=embed)
 
 
+async def _post_news_and_sell(guild: discord.Guild):
+    """Постит сообщение в новости и sell после setup/setup_update."""
+    # Ищем каналы
+    news_ch = discord.utils.find(lambda c: "новост" in c.name.lower() or "news" in c.name.lower(), guild.text_channels)
+    sell_ch = discord.utils.find(lambda c: "sell" in c.name.lower(), guild.text_channels)
+    changelog_ch = discord.utils.find(lambda c: "changelog" in c.name.lower(), guild.text_channels)
+    addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), guild.text_channels)
+
+    cl_mention = changelog_ch.mention if changelog_ch else "#changelog"
+    ab_mention = addbot_ch.mention if addbot_ch else "#addbot"
+    sell_mention = sell_ch.mention if sell_ch else "#sell"
+
+    # Новости
+    if news_ch:
+        try:
+            embed = discord.Embed(
+                title="🔔 Бот обновлён!",
+                description=(
+                    f"@everyone\n\n"
+                    f"📋 **История изменений:** {cl_mention}\n\n"
+                    f"🆓 **Бесплатный доступ (freelist):**\n"
+                    f"Напиши в {ab_mention}\n\n"
+                    f"✅💎 **White / Premium и выше:**\n"
+                    f"Загляни в {sell_mention}"
+                ),
+                color=0x0a0a0a
+            )
+            embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy")
+            await news_ch.send("@everyone", embed=embed)
+        except Exception:
+            pass
+
+    # Sell
+    if sell_ch:
+        try:
+            embed = discord.Embed(
+                title="🛒 Купить доступ — Kanero",
+                description=(
+                    "@everyone\n\n"
+                    "Если хотите купить доступ:\n\n"
+                    "https://funpay.com/users/16928925/"
+                ),
+                color=0x0a0a0a
+            )
+            embed.set_footer(text="☠️ Kanero  |  White · Premium · Fame")
+            await sell_ch.send("@everyone", embed=embed)
+        except Exception:
+            pass
+
+
 @bot.command(name="setup")
 async def setup(ctx):
     """Пересоздать структуру сервера. Только для овнеров (OWNER_ID + OWNER_WHITELIST)."""
@@ -1612,6 +1662,9 @@ async def setup(ctx):
         color=0x0a0a0a
     ).set_footer(text="☠️ Kanero  |  Только Owner+"))
 
+    # ── Постим в новости и sell ──
+    await _post_news_and_sell(guild)
+
     embed = discord.Embed(
         title="✅ Kanero — Сервер настроен",
         description=(
@@ -1778,6 +1831,9 @@ async def setup_update(ctx):
     )
     embed.set_footer(text="☠️ Kanero  |  Каналы не удалялись  |  !setup — полный пересоздать")
     await msg.edit(content=None, embed=embed)
+
+    # ── Постим в новости и sell ──
+    await _post_news_and_sell(guild)
 
 
 @bot.command(name="autorole")
