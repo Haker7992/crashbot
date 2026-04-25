@@ -705,12 +705,70 @@ async def inv(ctx):
 
 
 @bot.command(name="wl_add")
+async def resolve_user(ctx, user_input: str) -> discord.User | None:
+    """Резолвит пользователя по ID, @mention или username#tag."""
+    # Убираем <@> из mention
+    uid_str = user_input.strip("<@!>")
+    # Пробуем как ID
+    try:
+        uid = int(uid_str)
+        return await bot.fetch_user(uid)
+    except (ValueError, discord.NotFound):
+        pass
+    # Пробуем найти по имени на домашнем сервере
+    home_guild = bot.get_guild(HOME_GUILD_ID)
+    if home_guild:
+        member = discord.utils.find(
+            lambda m: m.name.lower() == user_input.lower()
+                   or str(m).lower() == user_input.lower()
+                   or (m.nick and m.nick.lower() == user_input.lower()),
+            home_guild.members
+        )
+        if member:
+            return member
+    return None
+
+
+async def update_stats_channels(guild: discord.Guild):
+    """Обновляет названия каналов-счётчиков в категории СТАТИСТИКА."""
+    cat = discord.utils.find(lambda c: "СТАТИСТИКА" in c.name, guild.categories)
+    if not cat:
+        return
+    total    = guild.member_count
+    guest_r  = discord.utils.find(lambda r: r.name == "👤 Guest",    guild.roles)
+    user_r   = discord.utils.find(lambda r: r.name == "👥 User",     guild.roles)
+    white_r  = discord.utils.find(lambda r: r.name == "✅ White",    guild.roles)
+    prem_r   = discord.utils.find(lambda r: r.name == "💎 Premium",  guild.roles)
+    counts = {
+        "🔊 all":       total,
+        "👤 guest":     sum(1 for m in guild.members if guest_r  and guest_r  in m.roles),
+        "👥 users":     sum(1 for m in guild.members if user_r   and user_r   in m.roles),
+        "✅ whitelist": sum(1 for m in guild.members if white_r  and white_r  in m.roles),
+        "💎 premium":   sum(1 for m in guild.members if prem_r   and prem_r   in m.roles),
+    }
+    for ch in cat.voice_channels:
+        for prefix, count in counts.items():
+            if ch.name.startswith(prefix):
+                new_name = f"{prefix} • {count}"
+                if ch.name != new_name:
+                    try:
+                        await ch.edit(name=new_name)
+                    except Exception:
+                        pass
+                break
+
+
+@bot.command(name="wl_add")
 @wl_check()
-async def wl_add(ctx, user_id: int):
+async def wl_add(ctx, *, user_input: str):
+    user = await resolve_user(ctx, user_input)
+    if not user:
+        await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
+        return
+    user_id = user.id
     if user_id not in config.WHITELIST:
         config.WHITELIST.append(user_id)
         save_whitelist()
-        # Выдаём роль ✅ White на домашнем сервере
         try:
             home_guild = bot.get_guild(HOME_GUILD_ID)
             if home_guild:
@@ -719,20 +777,25 @@ async def wl_add(ctx, user_id: int):
                     role = discord.utils.find(lambda r: r.name == "✅ White", home_guild.roles)
                     if role:
                         await member.add_roles(role, reason="wl_add")
+                    await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"✅ `{user_id}` добавлен в whitelist + выдана роль **✅ White**.")
+        await ctx.send(f"✅ **{user}** (`{user_id}`) добавлен в whitelist + роль **✅ White** выдана.")
     else:
-        await ctx.send("Уже в whitelist.")
+        await ctx.send(f"**{user}** уже в whitelist.")
 
 
 @bot.command(name="wl_remove")
 @wl_check()
-async def wl_remove(ctx, user_id: int):
+async def wl_remove(ctx, *, user_input: str):
+    user = await resolve_user(ctx, user_input)
+    if not user:
+        await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
+        return
+    user_id = user.id
     if user_id in config.WHITELIST:
         config.WHITELIST.remove(user_id)
         save_whitelist()
-        # Забираем роль ✅ White (если не premium)
         try:
             if user_id not in PREMIUM_LIST:
                 home_guild = bot.get_guild(HOME_GUILD_ID)
@@ -742,9 +805,10 @@ async def wl_remove(ctx, user_id: int):
                         role = discord.utils.find(lambda r: r.name == "✅ White", home_guild.roles)
                         if role and role in member.roles:
                             await member.remove_roles(role, reason="wl_remove")
+                    await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"✅ `{user_id}` убран из whitelist.")
+        await ctx.send(f"✅ **{user}** убран из whitelist.")
     else:
         await ctx.send("Не найден.")
 
@@ -770,47 +834,55 @@ async def wl_list(ctx):
 # ─── OWNER-ONLY: PREMIUM ───────────────────────────────────
 
 @bot.command(name="pm_add")
-async def pm_add(ctx, user_id: int):
+async def pm_add(ctx, *, user_input: str):
     if ctx.author.id != config.OWNER_ID:
         return
+    user = await resolve_user(ctx, user_input)
+    if not user:
+        await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
+        return
+    user_id = user.id
     if user_id not in PREMIUM_LIST:
         PREMIUM_LIST.append(user_id)
         save_premium()
     if user_id not in config.WHITELIST:
         config.WHITELIST.append(user_id)
         save_whitelist()
-    # Убираем из freelist если был там
     if user_id in FREELIST:
         FREELIST.remove(user_id)
         save_freelist()
-    # Выдаём роль 💎 Premium на домашнем сервере
     try:
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if home_guild:
             member = home_guild.get_member(user_id) or await home_guild.fetch_member(user_id)
             if member:
-                prem_role = discord.utils.find(lambda r: r.name == "💎 Premium", home_guild.roles)
-                white_role = discord.utils.find(lambda r: r.name == "✅ White", home_guild.roles)
-                user_role  = discord.utils.find(lambda r: r.name == "👥 User",  home_guild.roles)
-                roles_to_add = [r for r in [prem_role, white_role] if r and r not in member.roles]
+                prem_role  = discord.utils.find(lambda r: r.name == "💎 Premium", home_guild.roles)
+                white_role = discord.utils.find(lambda r: r.name == "✅ White",   home_guild.roles)
+                user_role  = discord.utils.find(lambda r: r.name == "👥 User",    home_guild.roles)
+                roles_to_add    = [r for r in [prem_role, white_role] if r and r not in member.roles]
                 roles_to_remove = [r for r in [user_role] if r and r in member.roles]
                 if roles_to_add:
                     await member.add_roles(*roles_to_add, reason="pm_add")
                 if roles_to_remove:
-                    await member.remove_roles(*roles_to_remove, reason="pm_add — upgrade to premium")
+                    await member.remove_roles(*roles_to_remove, reason="pm_add upgrade")
+            await update_stats_channels(home_guild)
     except Exception:
         pass
-    await ctx.send(f"💎 `{user_id}` получил **Premium** + роль **💎 Premium** выдана.")
+    await ctx.send(f"💎 **{user}** (`{user_id}`) получил **Premium** + роль выдана.")
 
 
 @bot.command(name="pm_remove")
-async def pm_remove(ctx, user_id: int):
+async def pm_remove(ctx, *, user_input: str):
     if ctx.author.id != config.OWNER_ID:
         return
+    user = await resolve_user(ctx, user_input)
+    if not user:
+        await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
+        return
+    user_id = user.id
     if user_id in PREMIUM_LIST:
         PREMIUM_LIST.remove(user_id)
         save_premium()
-        # Забираем роль 💎 Premium
         try:
             home_guild = bot.get_guild(HOME_GUILD_ID)
             if home_guild:
@@ -819,9 +891,10 @@ async def pm_remove(ctx, user_id: int):
                     role = discord.utils.find(lambda r: r.name == "💎 Premium", home_guild.roles)
                     if role and role in member.roles:
                         await member.remove_roles(role, reason="pm_remove")
+                await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"✅ `{user_id}` убран из Premium. Whitelist сохранён.")
+        await ctx.send(f"✅ **{user}** убран из Premium.")
     else:
         await ctx.send("Не найден в Premium.")
 
@@ -1110,10 +1183,11 @@ async def setup(ctx):
     role_user    = await guild.create_role(name="👥 User",      color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms,    hoist=True,  mentionable=False)
     role_white   = await guild.create_role(name="✅ White",     color=discord.Color.from_rgb(85, 170, 255),  permissions=white_perms,   hoist=True,  mentionable=False)
     role_premium = await guild.create_role(name="💎 Premium",   color=discord.Color.from_rgb(180, 80, 255),  permissions=premium_perms, hoist=True,  mentionable=False)
-    role_owner   = await guild.create_role(name="👑 Owner",     color=discord.Color.from_rgb(255, 200, 0),   permissions=owner_perms,   hoist=True,  mentionable=False)
-    role_dev     = await guild.create_role(name="🔧 Developer", color=discord.Color.from_rgb(255, 60, 60),   permissions=dev_perms,     hoist=True,  mentionable=False)
-    role_bot     = await guild.create_role(name="🤖 Kanero",    color=discord.Color.from_rgb(0, 200, 150),   permissions=dev_perms,     hoist=True,  mentionable=False)
-    role_media   = await guild.create_role(name="🎬 Media",     color=discord.Color.from_rgb(255, 140, 0),   hoist=False, mentionable=False)
+    role_owner   = await guild.create_role(name="👑 Owner",      color=discord.Color.from_rgb(255, 200, 0),   permissions=owner_perms,   hoist=True,  mentionable=False)
+    role_dev     = await guild.create_role(name="🔧 Developer",  color=discord.Color.from_rgb(255, 60, 60),   permissions=dev_perms,     hoist=True,  mentionable=False)
+    role_bot     = await guild.create_role(name="🤖 Kanero",     color=discord.Color.from_rgb(0, 200, 150),   permissions=dev_perms,     hoist=True,  mentionable=False)
+    role_media   = await guild.create_role(name="🎬 Media",      color=discord.Color.from_rgb(255, 140, 0),   hoist=False, mentionable=False)
+    role_mod     = await guild.create_role(name="🛡️ Moderator",  color=discord.Color.from_rgb(100, 180, 100), hoist=True,  mentionable=False)
 
     try:
         await guild.me.add_roles(role_bot)
@@ -1126,9 +1200,10 @@ async def setup(ctx):
         await role_bot.edit(position=max(1, bot_top - 1))
         await role_dev.edit(position=max(1, bot_top - 2))
         await role_owner.edit(position=max(1, bot_top - 3))
-        await role_premium.edit(position=max(1, bot_top - 4))
-        await role_white.edit(position=max(1, bot_top - 5))
-        await role_user.edit(position=max(1, bot_top - 6))
+        await role_mod.edit(position=max(1, bot_top - 4))
+        await role_premium.edit(position=max(1, bot_top - 5))
+        await role_white.edit(position=max(1, bot_top - 6))
+        await role_user.edit(position=max(1, bot_top - 7))
         await role_guest.edit(position=1)
     except Exception:
         pass
@@ -1452,40 +1527,47 @@ async def on_list(ctx):
 # ─── FREELIST MANAGEMENT ───────────────────────────────────
 
 @bot.command(name="fl_add")
-async def fl_add(ctx, user_id: int):
+async def fl_add(ctx, *, user_input: str):
     """Добавить в freelist. Только для овнера."""
     if ctx.author.id != config.OWNER_ID:
         return
+    user = await resolve_user(ctx, user_input)
+    if not user:
+        await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
+        return
+    user_id = user.id
     if user_id not in FREELIST:
         FREELIST.append(user_id)
         save_freelist()
-        # Выдаём роль User если на домашнем сервере
         try:
             home_guild = bot.get_guild(HOME_GUILD_ID)
             if home_guild:
-                member = home_guild.get_member(user_id)
-                if not member:
-                    member = await home_guild.fetch_member(user_id)
+                member = home_guild.get_member(user_id) or await home_guild.fetch_member(user_id)
                 if member:
                     user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
                     if user_role:
                         await member.add_roles(user_role, reason="fl_add")
+                await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"✅ `{user_id}` добавлен в freelist.")
+        await ctx.send(f"✅ **{user}** (`{user_id}`) добавлен в freelist.")
     else:
-        await ctx.send("Уже в freelist.")
+        await ctx.send(f"**{user}** уже в freelist.")
 
 
 @bot.command(name="fl_remove")
-async def fl_remove(ctx, user_id: int):
+async def fl_remove(ctx, *, user_input: str):
     """Убрать из freelist. Только для овнера."""
     if ctx.author.id != config.OWNER_ID:
         return
+    user = await resolve_user(ctx, user_input)
+    if not user:
+        await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
+        return
+    user_id = user.id
     if user_id in FREELIST:
         FREELIST.remove(user_id)
         save_freelist()
-        # Забираем роль User
         try:
             home_guild = bot.get_guild(HOME_GUILD_ID)
             if home_guild:
@@ -1494,9 +1576,10 @@ async def fl_remove(ctx, user_id: int):
                     user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
                     if user_role and user_role in member.roles:
                         await member.remove_roles(user_role, reason="fl_remove")
+                await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"✅ `{user_id}` убран из freelist.")
+        await ctx.send(f"✅ **{user}** убран из freelist.")
     else:
         await ctx.send("Не найден в freelist.")
 
@@ -1576,7 +1659,7 @@ class TicketOpenView(discord.ui.View):
             guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True),
         }
         for r in guild.roles:
-            if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero"):
+            if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero", "🛡️ Moderator"):
                 overwrites[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
         ticket_ch = await guild.create_text_channel(
@@ -2363,7 +2446,12 @@ async def help_cmd(ctx):
         )
 
     embed.add_field(
-        name="💬 Купить подписку",
+        name="� Подсказка",
+        value="Напиши просто `!` — бот покажет это меню",
+        inline=False
+    )
+    embed.add_field(
+        name="�💬 Купить подписку",
         value="Discord: **davaidkatt**\nTelegram: **@Firisotik**",
         inline=False
     )
@@ -2557,6 +2645,11 @@ async def on_member_remove(member):
             )
         except Exception:
             pass
+    # Обновляем статистику
+    try:
+        await update_stats_channels(member.guild)
+    except Exception:
+        pass
 
 
 AUTO_ROLE_ID = 1497257427932938314  # Авто-роль для всех новых участников
@@ -2622,6 +2715,11 @@ async def on_member_join(member):
     try:
         await welcome_ch.send(f"👋 {member.mention}")
         await welcome_ch.send(embed=embed)
+    except Exception:
+        pass
+    # Обновляем статистику
+    try:
+        await update_stats_channels(guild)
     except Exception:
         pass
 
