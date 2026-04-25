@@ -732,7 +732,6 @@ async def inv(ctx):
 
 
 
-@bot.command(name="wl_add")
 async def resolve_user(ctx, user_input: str) -> discord.User | None:
     """Резолвит пользователя по ID, @mention или username#tag."""
     # Убираем <@> из mention
