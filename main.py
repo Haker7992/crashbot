@@ -1220,6 +1220,28 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
     view = CompensationView(sub_type.lower(), hours, claim_deadline)
     await comp_ch.send(content="@everyone", embed=embed, view=view)
 
+    # Анонс в новостях
+    news_ch = discord.utils.find(
+        lambda c: "новост" in c.name.lower() or "news" in c.name.lower(),
+        home_guild.text_channels
+    )
+    if news_ch:
+        try:
+            news_embed = discord.Embed(
+                title="🎁 Доступна компенсация!",
+                description=(
+                    f"Для всех участников доступна бесплатная подписка **{sub_name}** на {duration_text}!\n\n"
+                    f"Перейди в {comp_ch.mention} и нажми кнопку чтобы получить.\n\n"
+                    f"**Получить до:** <t:{int(claim_deadline.timestamp())}:R>"
+                ),
+                color=0xffd700
+            )
+            news_embed.set_footer(text="☠️ Kanero  |  Нажми кнопку в канале компенсации")
+            news_embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+            await news_ch.send(content="@everyone", embed=news_embed)
+        except Exception:
+            pass
+
     # Уведомляем в admin-chat
     admin_ch = discord.utils.find(lambda c: "admin-chat" in c.name.lower(), home_guild.text_channels)
     if admin_ch:
@@ -1239,7 +1261,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
         except Exception:
             pass
 
-    await ctx.send(f"✅ Компенсация объявлена в {comp_ch.mention}!")
+    await ctx.send(f"✅ Компенсация объявлена в {comp_ch.mention} и анонс в {news_ch.mention if news_ch else '#новости'}!")
 
 
 @bot.command(name="announce_bug")
