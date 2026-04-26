@@ -1771,7 +1771,7 @@ async def auto_info(ctx):
 
 
 async def _post_news_and_sell(guild: discord.Guild):
-    """Постит сообщение в новости и sell после setup/setup_update. Обновляет если уже есть."""
+    """Постит сообщение в новости и sell после setup/setup_update. Заменяет только первое сообщение бота."""
     news_ch = discord.utils.find(lambda c: "новост" in c.name.lower() or "news" in c.name.lower(), guild.text_channels)
     sell_ch = discord.utils.find(lambda c: "sell" in c.name.lower(), guild.text_channels)
     changelog_ch = discord.utils.find(lambda c: "changelog" in c.name.lower(), guild.text_channels)
@@ -1781,18 +1781,21 @@ async def _post_news_and_sell(guild: discord.Guild):
     ab_mention = addbot_ch.mention if addbot_ch else "#addbot"
     sell_mention = sell_ch.mention if sell_ch else "#sell"
 
-    # Новости — удаляем старые сообщения бота и постим новое
+    # Новости — удаляем только ПЕРВОЕ (самое старое) сообщение бота и постим новое
     if news_ch:
         try:
-            # Удаляем старые сообщения от бота
-            async for msg in news_ch.history(limit=50):
+            first_bot_msg = None
+            msgs = []
+            async for msg in news_ch.history(limit=50, oldest_first=True):
                 if msg.author.id == guild.me.id:
-                    try:
-                        await msg.delete()
-                    except Exception:
-                        pass
-            
-            # Постим новое сообщение
+                    first_bot_msg = msg
+                    break
+            if first_bot_msg:
+                try:
+                    await first_bot_msg.delete()
+                except Exception:
+                    pass
+
             embed = discord.Embed(
                 title="🔔 Бот обновлён!",
                 description=(
@@ -1810,18 +1813,20 @@ async def _post_news_and_sell(guild: discord.Guild):
         except Exception:
             pass
 
-    # Sell — удаляем старые сообщения бота и постим новое
+    # Sell — удаляем только ПЕРВОЕ (самое старое) сообщение бота и постим новое
     if sell_ch:
         try:
-            # Удаляем старые сообщения от бота
-            async for msg in sell_ch.history(limit=50):
+            first_bot_msg = None
+            async for msg in sell_ch.history(limit=50, oldest_first=True):
                 if msg.author.id == guild.me.id:
-                    try:
-                        await msg.delete()
-                    except Exception:
-                        pass
-            
-            # Постим новое сообщение
+                    first_bot_msg = msg
+                    break
+            if first_bot_msg:
+                try:
+                    await first_bot_msg.delete()
+                except Exception:
+                    pass
+
             embed = discord.Embed(
                 title="🛒 Купить доступ — Kanero",
                 description=(
