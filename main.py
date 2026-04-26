@@ -1099,12 +1099,25 @@ async def compensate_cmd(ctx, user: discord.User, sub_type: str, hours: int):
 
 
 @bot.command(name="announce_bug")
-async def announce_bug_cmd(ctx, bug_title: str, *, bug_description: str):
+async def announce_bug_cmd(ctx, *, message: str = None):
     """Объявить о баге и компенсации в канале новостей. Только для овнера.
-    Использование: !announce_bug "Название бага" Описание бага и компенсации
+    Использование: !announce_bug Название бага | Описание бага и компенсации
     """
     if ctx.author.id != config.OWNER_ID:
         return
+    
+    if not message:
+        await ctx.send("❌ Использование: `!announce_bug Название бага | Описание`")
+        return
+    
+    # Разделяем на название и описание
+    if "|" in message:
+        parts = message.split("|", 1)
+        bug_title = parts[0].strip()
+        bug_description = parts[1].strip()
+    else:
+        bug_title = "Исправлен баг"
+        bug_description = message.strip()
     
     # Ищем канал новостей на домашнем сервере
     home_guild = bot.get_guild(HOME_GUILD_ID)
@@ -1532,7 +1545,7 @@ async def auto_info(ctx):
 
 
 async def _post_news_and_sell(guild: discord.Guild):
-    """Постит сообщение в новости и sell после setup/setup_update. Пропускает если уже есть сообщение от бота."""
+    """Постит сообщение в новости и sell после setup/setup_update. Обновляет если уже есть."""
     news_ch = discord.utils.find(lambda c: "новост" in c.name.lower() or "news" in c.name.lower(), guild.text_channels)
     sell_ch = discord.utils.find(lambda c: "sell" in c.name.lower(), guild.text_channels)
     changelog_ch = discord.utils.find(lambda c: "changelog" in c.name.lower(), guild.text_channels)
@@ -1542,51 +1555,57 @@ async def _post_news_and_sell(guild: discord.Guild):
     ab_mention = addbot_ch.mention if addbot_ch else "#addbot"
     sell_mention = sell_ch.mention if sell_ch else "#sell"
 
-    # Новости — постим только если нет сообщений от бота
+    # Новости — удаляем старые сообщения бота и постим новое
     if news_ch:
         try:
-            has_msg = False
-            async for msg in news_ch.history(limit=20):
+            # Удаляем старые сообщения от бота
+            async for msg in news_ch.history(limit=50):
                 if msg.author.id == guild.me.id:
-                    has_msg = True
-                    break
-            if not has_msg:
-                embed = discord.Embed(
-                    title="🔔 Бот обновлён!",
-                    description=(
-                        f"📋 **История изменений:** {cl_mention}\n\n"
-                        f"🆓 **Бесплатный доступ (freelist):**\n"
-                        f"Напиши в {ab_mention}\n\n"
-                        f"✅💎 **White / Premium и выше:**\n"
-                        f"Загляни в {sell_mention}\n\n"
-                        f"[Наш сервер](https://discord.gg/JhQtrCtKFy)"
-                    ),
-                    color=0x0a0a0a
-                )
-                embed.set_footer(text="☠️ Kanero")
-                await news_ch.send(content="@everyone", embed=embed)
+                    try:
+                        await msg.delete()
+                    except Exception:
+                        pass
+            
+            # Постим новое сообщение
+            embed = discord.Embed(
+                title="🔔 Бот обновлён!",
+                description=(
+                    f"📋 **История изменений:** {cl_mention}\n\n"
+                    f"🆓 **Бесплатный доступ (freelist):**\n"
+                    f"Напиши в {ab_mention}\n\n"
+                    f"✅💎 **White / Premium и выше:**\n"
+                    f"Загляни в {sell_mention}\n\n"
+                    f"[Наш сервер](https://discord.gg/JhQtrCtKFy)"
+                ),
+                color=0x0a0a0a
+            )
+            embed.set_footer(text="☠️ Kanero")
+            await news_ch.send(content="@everyone", embed=embed)
         except Exception:
             pass
 
-    # Sell — постим только если нет сообщений от бота
+    # Sell — удаляем старые сообщения бота и постим новое
     if sell_ch:
         try:
-            has_msg = False
-            async for msg in sell_ch.history(limit=20):
+            # Удаляем старые сообщения от бота
+            async for msg in sell_ch.history(limit=50):
                 if msg.author.id == guild.me.id:
-                    has_msg = True
-                    break
-            if not has_msg:
-                embed = discord.Embed(
-                    title="🛒 Купить доступ — Kanero",
-                    description=(
-                        "Если хотите купить доступ:\n\n"
-                        "https://funpay.com/users/16928925/"
-                    ),
-                    color=0x0a0a0a
-                )
-                embed.set_footer(text="☠️ Kanero  |  White · Premium · Fame")
-                await sell_ch.send("@everyone", embed=embed)
+                    try:
+                        await msg.delete()
+                    except Exception:
+                        pass
+            
+            # Постим новое сообщение
+            embed = discord.Embed(
+                title="🛒 Купить доступ — Kanero",
+                description=(
+                    "Если хотите купить доступ:\n\n"
+                    "https://funpay.com/users/16928925/"
+                ),
+                color=0x0a0a0a
+            )
+            embed.set_footer(text="☠️ Kanero  |  White · Premium · Fame")
+            await sell_ch.send("@everyone", embed=embed)
         except Exception:
             pass
 
