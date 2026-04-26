@@ -998,7 +998,6 @@ async def wl_list(ctx):
 # ─── OWNER-ONLY: PREMIUM ───────────────────────────────────
 
 @bot.command(name="pm_add")
-@bot.command(name="pm_add")
 async def pm_add(ctx, *, user_input: str):
     """Добавить в Premium. Только для владельца сервера.
     Использование: !pm_add @user [дни]
