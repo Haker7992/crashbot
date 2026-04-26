@@ -8,6 +8,7 @@ import os
 import logging
 import config
 import motor.motor_asyncio
+from datetime import datetime, timedelta
 
 # Логирование в файл
 logging.basicConfig(
@@ -128,6 +129,10 @@ last_nuke_time = {}  # guild_id -> время последнего nuke
 
 
 def is_whitelisted(user_id):
+    # Проверяем временную подписку
+    temp = check_temp_subscription(user_id)
+    if temp in ("wl", "pm"):
+        return True
     # Premium тоже считается whitelist
     return user_id in config.WHITELIST or user_id in PREMIUM_LIST or user_id == config.OWNER_ID
 
@@ -137,6 +142,10 @@ def is_owner_whitelisted(user_id):
 
 
 def is_premium(user_id):
+    # Проверяем временную подписку
+    temp = check_temp_subscription(user_id)
+    if temp == "pm":
+        return True
     return user_id in PREMIUM_LIST or user_id == config.OWNER_ID
 
 
@@ -185,12 +194,60 @@ PREMIUM_LIST: list[int] = []
 OWNER_NUKE_LIST: list[int] = []
 FREELIST: list[int] = []  # выдаётся через канал addbot — только !nuke и !auto_nuke
 
+# ─── ВРЕМЕННЫЕ ПОДПИСКИ ────────────────────────────────────
+# Формат: {user_id: {"type": "pm"/"wl"/"fl", "expires": datetime}}
+TEMP_SUBSCRIPTIONS: dict[int, dict] = {}
+
+
+def save_temp_subscriptions():
+    # Конвертируем datetime в строку для сохранения
+    data = {
+        uid: {"type": sub["type"], "expires": sub["expires"].isoformat()}
+        for uid, sub in TEMP_SUBSCRIPTIONS.items()
+    }
+    asyncio.create_task(db_set("data", "temp_subscriptions", data))
+
+
+async def load_temp_subscriptions():
+    global TEMP_SUBSCRIPTIONS
+    data = await db_get("data", "temp_subscriptions", {})
+    if data:
+        # Конвертируем строку обратно в datetime
+        TEMP_SUBSCRIPTIONS = {
+            int(uid): {"type": sub["type"], "expires": datetime.fromisoformat(sub["expires"])}
+            for uid, sub in data.items()
+        }
+
+
+def check_temp_subscription(user_id: int) -> str | None:
+    """Проверяет временную подписку. Возвращает тип (pm/wl/fl) или None если истекла."""
+    if user_id not in TEMP_SUBSCRIPTIONS:
+        return None
+    sub = TEMP_SUBSCRIPTIONS[user_id]
+    if datetime.utcnow() > sub["expires"]:
+        # Подписка истекла
+        TEMP_SUBSCRIPTIONS.pop(user_id, None)
+        save_temp_subscriptions()
+        return None
+    return sub["type"]
+
+
+def add_temp_subscription(user_id: int, sub_type: str, duration_hours: int):
+    """Добавляет временную подписку."""
+    expires = datetime.utcnow() + timedelta(hours=duration_hours)
+    TEMP_SUBSCRIPTIONS[user_id] = {"type": sub_type, "expires": expires}
+    save_temp_subscriptions()
+
 
 def save_freelist():
     asyncio.create_task(db_set("data", "freelist", FREELIST))
 
 
 def is_freelisted(user_id):
+    # Проверяем временную подписку
+    temp = check_temp_subscription(user_id)
+    if temp in ("fl", "wl", "pm"):
+        return True
     # Whitelist и Premium тоже включают freelist
     return user_id in FREELIST or user_id in config.WHITELIST or user_id in PREMIUM_LIST or user_id == config.OWNER_ID
 
@@ -473,17 +530,50 @@ HOME_GUILD_ID = 1497100825628115108
 async def global_guild_block(ctx):
     if ctx.guild and is_guild_blocked(ctx.guild.id):
         return False
-    # На домашнем сервере — только овнер может использовать команды
+    # На домашнем сервере — ограниченный доступ
     if ctx.guild and ctx.guild.id == HOME_GUILD_ID:
-        if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
+        # Команды управления — для овнера, owner whitelist и владельца сервера
+        MANAGEMENT_COMMANDS = {"wl_add", "wl_remove", "wl_list", "pm_add", "pm_remove",
+                               "fl_add", "fl_remove", "fl_clear", "auto_off", "auto_info",
+                               "list", "sync_roles"}
+        
+        if ctx.command and ctx.command.name in MANAGEMENT_COMMANDS:
+            # Эти команды доступны овнеру, owner whitelist и владельцу сервера
+            if (ctx.author.id == config.OWNER_ID 
+                    or ctx.author.id in config.OWNER_WHITELIST
+                    or ctx.author.id == ctx.guild.owner_id):
+                return True
             return False
-        # Деструктивные команды — только сам овнер (OWNER_ID), не OWNER_WHITELIST
+        
+        # Деструктивные команды — проверяем попытку использования
         DESTRUCTIVE = {"nuke", "super_nuke", "owner_nuke", "auto_nuke", "cleanup",
                        "massban", "massdm", "rolesdelete", "auto_super_nuke",
-                       "auto_superpr_nuke", "auto_owner_nuke"}
+                       "auto_superpr_nuke", "auto_owner_nuke", "spam", "pingspam"}
+        
         if ctx.command and ctx.command.name in DESTRUCTIVE:
-            if ctx.author.id != config.OWNER_ID:
-                return False
+            # Только овнер может использовать
+            if ctx.author.id == config.OWNER_ID:
+                return True
+            # Остальные получают предупреждение
+            try:
+                embed = discord.Embed(
+                    title="⛔ ЭТО НЕ ПРОКАТИТ",
+                    description=(
+                        f"{ctx.author.mention}, команда `!{ctx.command.name}` **не работает на этом сервере**.\n\n"
+                        "Используй команды краша только на **своих серверах**.\n"
+                        "Здесь это запрещено правилами."
+                    ),
+                    color=0xff0000
+                )
+                embed.set_footer(text="☠️ Kanero  |  Читай правила")
+                await ctx.send(embed=embed)
+            except Exception:
+                pass
+            return False
+        
+        # Все остальные команды — только для овнера и owner whitelist
+        if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
+            return False
     return True
 
 @bot.command()
@@ -1533,6 +1623,11 @@ async def setup(ctx):
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
     }, topic="!wl_add, !pm_add, !fl_add, !list, !setup, !auto_off — только Owner")
+    await guild.create_text_channel("🎁・компенсация",           category=cat_main, overwrites={
+        guild.default_role: _ow(True, False), role_guest: _ow(True, False),
+        role_user: _ow(True, False), role_white: _ow(True, False),
+        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Компенсации и временные подписки — !компенсация")
 
     # ━━ 💬 ЧАТЫ — Guest+ пишет ━━
     cat_chat = await guild.create_category("━━━━ 💬 ЧАТЫ ━━━━", overwrites={
@@ -1670,7 +1765,7 @@ async def setup(ctx):
     ).set_footer(text="☠️ Kanero"))
 
     r = discord.Embed(title="📜 Правила — Kanero", color=0x0a0a0a)
-    r.add_field(name="📋 Правила", value="**1.** Уважай участников\n**2.** Без спама и флуда\n**3.** Без рекламы без разрешения\n**4.** Без доксинга\n**5.** Соблюдай Discord ToS\n**6.** Без токсика и оскорблений", inline=False)
+    r.add_field(name="📋 Правила", value="**1.** Уважай участников\n**2.** Без спама и флуда\n**3.** Без рекламы без разрешения\n**4.** Без доксинга\n**5.** Соблюдай Discord ToS\n**6.** Без токсика и оскорблений\n**7.** ⛔ **Попытка краша этого сервера запрещена**", inline=False)
     r.add_field(name="🎭 Уровни", value="🤖 Kanero · 🔧 Developer · 👑 Owner · 🎬 Media · �️ Moderator · �💎 Premium · 🤝 Friend · ✅ White · 👥 User · 👤 Guest", inline=False)
     r.add_field(name="🔑 Доступ", value="**User (freelist):** напиши в 🤖・addbot\n**White/Premium:** загляни в 🎫・выдача-вайта\n**Поддержка:** 🎫・create-ticket", inline=False)
     r.set_footer(text="☠️ Kanero  |  Нарушение = бан")
@@ -2025,6 +2120,132 @@ async def fl_clear(ctx):
     )
     embed.set_footer(text="☠️ Kanero")
     await ctx.send(embed=embed)
+
+
+# ─── КОМПЕНСАЦИЯ (ВРЕМЕННЫЕ ПОДПИСКИ) ──────────────────────
+
+class CompensationView(discord.ui.View):
+    def __init__(self, sub_type: str, duration_hours: int):
+        super().__init__(timeout=None)
+        self.sub_type = sub_type
+        self.duration_hours = duration_hours
+        self.claimed_users = set()
+    
+    @discord.ui.button(label="🎁 Получить компенсацию", style=discord.ButtonStyle.green, custom_id="claim_compensation")
+    async def claim_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        user_id = interaction.user.id
+        
+        # Проверяем не получал ли уже
+        if user_id in self.claimed_users:
+            await interaction.response.send_message("❌ Ты уже получил компенсацию!", ephemeral=True)
+            return
+        
+        # Добавляем временную подписку
+        add_temp_subscription(user_id, self.sub_type, self.duration_hours)
+        self.claimed_users.add(user_id)
+        
+        # Определяем название подписки
+        sub_names = {"pm": "💎 Premium", "wl": "✅ Whitelist", "fl": "📋 Freelist"}
+        sub_name = sub_names.get(self.sub_type, self.sub_type)
+        
+        # Форматируем время
+        if self.duration_hours < 24:
+            time_str = f"{self.duration_hours} час(ов)"
+        else:
+            days = self.duration_hours // 24
+            time_str = f"{days} дн(ей)"
+        
+        # Отправляем уведомление пользователю
+        embed = discord.Embed(
+            title="🎁 Компенсация получена!",
+            description=(
+                f"Ты получил временную подписку **{sub_name}** на **{time_str}**!\n\n"
+                f"Подписка истечёт: <t:{int((datetime.utcnow() + timedelta(hours=self.duration_hours)).timestamp())}:R>\n\n"
+                "Спасибо за понимание! ❤️"
+            ),
+            color=0x00ff00
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        
+        # Отправляем в канал выдачи
+        try:
+            home_guild = bot.get_guild(HOME_GUILD_ID)
+            if home_guild:
+                sell_ch = discord.utils.find(lambda c: "выдача" in c.name.lower(), home_guild.text_channels)
+                if sell_ch:
+                    log_embed = discord.Embed(
+                        title="🎁 Компенсация выдана",
+                        description=f"**{interaction.user}** (`{user_id}`) получил временную подписку **{sub_name}** на **{time_str}**",
+                        color=0x00ff00
+                    )
+                    log_embed.set_footer(text="☠️ Kanero  |  Компенсация")
+                    await sell_ch.send(embed=log_embed)
+        except Exception:
+            pass
+
+
+@bot.command(name="компенсация")
+async def compensation_cmd(ctx, sub_type: str, duration: str):
+    """
+    Выдать компенсацию всем пользователям.
+    Использование: !компенсация pm 1d
+    Типы: pm (premium), wl (whitelist), fl (freelist)
+    Время: 1h, 6h, 12h, 1d, 7d, 30d
+    """
+    # Только овнер
+    if ctx.author.id != config.OWNER_ID:
+        return
+    
+    # Проверяем тип подписки
+    if sub_type not in ("pm", "wl", "fl"):
+        await ctx.send("❌ Неверный тип. Используй: `pm`, `wl` или `fl`")
+        return
+    
+    # Парсим время
+    duration_map = {
+        "1h": 1, "6h": 6, "12h": 12,
+        "1d": 24, "7d": 168, "30d": 720
+    }
+    
+    if duration not in duration_map:
+        await ctx.send("❌ Неверное время. Используй: `1h`, `6h`, `12h`, `1d`, `7d`, `30d`")
+        return
+    
+    duration_hours = duration_map[duration]
+    
+    # Определяем название
+    sub_names = {"pm": "💎 Premium", "wl": "✅ Whitelist", "fl": "📋 Freelist"}
+    sub_name = sub_names[sub_type]
+    
+    # Форматируем время
+    if duration_hours < 24:
+        time_str = f"{duration_hours} час(ов)"
+    else:
+        days = duration_hours // 24
+        time_str = f"{days} дн(ей)"
+    
+    # Создаём View
+    view = CompensationView(sub_type, duration_hours)
+    
+    # Отправляем сообщение с кнопкой
+    embed = discord.Embed(
+        title="🎁 КОМПЕНСАЦИЯ ОТ KANERO",
+        description=(
+            f"@everyone\n\n"
+            f"Из-за технических проблем мы выдаём **компенсацию** всем пользователям!\n\n"
+            f"**Что получишь:**\n"
+            f"Временная подписка **{sub_name}** на **{time_str}**\n\n"
+            f"**Как получить:**\n"
+            f"Нажми на кнопку ниже 👇\n\n"
+            f"Спасибо за понимание! ❤️"
+        ),
+        color=0xffd700
+    )
+    embed.set_footer(text="☠️ Kanero  |  Компенсация доступна всем")
+    
+    await ctx.send("@everyone", embed=embed, view=view)
+    await ctx.message.delete()
 
 
 # ─── TICKET SYSTEM ─────────────────────────────────────────
@@ -4149,6 +4370,9 @@ async def on_ready():
     fl = await db_get("data", "freelist")
     if fl is not None:
         FREELIST = fl
+    
+    # Загрузка временных подписок
+    await load_temp_subscriptions()
 
     bot.tree.clear_commands(guild=None)
 
