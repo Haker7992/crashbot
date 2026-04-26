@@ -1048,6 +1048,100 @@ async def pm_remove(ctx, *, user_input: str):
         await ctx.send("Не найден в Premium.")
 
 
+@bot.command(name="compensate")
+async def compensate_cmd(ctx, user: discord.User, sub_type: str, hours: int):
+    """Выдать компенсацию пользователю. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+    
+    # Проверяем тип подписки
+    if sub_type.lower() not in ("wl", "pm", "fl"):
+        await ctx.send("❌ Тип должен быть: `wl` (White), `pm` (Premium), `fl` (Freelist)")
+        return
+    
+    # Добавляем временную подписку
+    add_temp_subscription(user.id, sub_type.lower(), hours)
+    
+    # Определяем название подписки
+    sub_names = {"wl": "✅ White", "pm": "💎 Premium", "fl": "📋 Freelist"}
+    sub_name = sub_names.get(sub_type.lower(), sub_type)
+    
+    embed = discord.Embed(
+        title="💰 Компенсация выдана",
+        description=(
+            f"**Пользователь:** {user.mention} (`{user.id}`)\n"
+            f"**Подписка:** {sub_name}\n"
+            f"**Длительность:** {hours} часов ({hours // 24} дней)\n"
+            f"**Истекает:** <t:{int((datetime.utcnow() + timedelta(hours=hours)).timestamp())}:R>"
+        ),
+        color=0x00ff00
+    )
+    embed.set_footer(text="☠️ Kanero  |  Компенсация за найденный баг")
+    await ctx.send(embed=embed)
+    
+    # Отправляем ЛС пользователю
+    try:
+        dm_embed = discord.Embed(
+            title="💰 Вам выдана компенсация!",
+            description=(
+                f"Спасибо за помощь в улучшении бота!\n\n"
+                f"**Подписка:** {sub_name}\n"
+                f"**Длительность:** {hours} часов ({hours // 24} дней)\n"
+                f"**Истекает:** <t:{int((datetime.utcnow() + timedelta(hours=hours)).timestamp())}:R>\n\n"
+                f"Используй `!help` чтобы посмотреть доступные команды."
+            ),
+            color=0x00ff00
+        )
+        dm_embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy")
+        await user.send(embed=dm_embed)
+    except Exception:
+        await ctx.send("⚠️ Не удалось отправить ЛС пользователю.")
+
+
+@bot.command(name="announce_bug")
+async def announce_bug_cmd(ctx, bug_title: str, *, bug_description: str):
+    """Объявить о баге и компенсации в канале новостей. Только для овнера.
+    Использование: !announce_bug "Название бага" Описание бага и компенсации
+    """
+    if ctx.author.id != config.OWNER_ID:
+        return
+    
+    # Ищем канал новостей на домашнем сервере
+    home_guild = bot.get_guild(HOME_GUILD_ID)
+    if not home_guild:
+        await ctx.send("❌ Домашний сервер не найден.")
+        return
+    
+    news_channel = discord.utils.find(lambda c: "новости" in c.name.lower(), home_guild.text_channels)
+    if not news_channel:
+        await ctx.send("❌ Канал новостей не найден.")
+        return
+    
+    # Создаём embed для объявления
+    embed = discord.Embed(
+        title=f"🐛 {bug_title}",
+        description=bug_description,
+        color=0xff6b6b,
+        timestamp=datetime.utcnow()
+    )
+    embed.add_field(
+        name="💰 Компенсация",
+        value=(
+            "Нашёл баг? **Сообщи в тикет** — получи бесплатную подписку!\n"
+            "За критические баги — автоматическая компенсация всем затронутым пользователям."
+        ),
+        inline=False
+    )
+    embed.set_footer(text="☠️ Kanero  |  Спасибо за помощь в улучшении бота!")
+    embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+    
+    try:
+        await news_channel.send(embed=embed)
+        await ctx.send(f"✅ Объявление опубликовано в {news_channel.mention}")
+    except Exception as e:
+        await ctx.send(f"❌ Ошибка при публикации: {e}")
+
+
 @bot.command(name="list")
 async def list_cmd(ctx):
     # Только владелец сервера может использовать
@@ -1940,9 +2034,6 @@ async def setup_update(ctx):
             results.append(f"❌ Выдача Guest: {e}")
 
     # 4. ADMIN — обновляем права и создаём admin-chat если нет
-    def _ow(read=False, write=False):
-        return discord.PermissionOverwrite(read_messages=read, send_messages=write)
-
     admin_cat = discord.utils.find(lambda c: "ADMIN" in c.name, guild.categories)
     if admin_cat:
         # Обновляем права существующих каналов
@@ -3020,9 +3111,9 @@ async def changelog(ctx):
             "• Уникальные эмодзи для каждого типа нюка\n\n"
             "**⚙️ Setup:**\n"
             "• `!setup` и `!setup_update` автоматически выдают роль 👤 Guest всем\n\n"
-            "**💰 Компенсация:**\n"
-            "• За баг с крашем — всем пострадавшим выдана компенсация\n"
-            "• Обращайтесь к администрации если не получили"
+            "**💰 Система компенсаций:**\n"
+            "• Нашёл баг? Сообщи в тикет — получи компенсацию!\n"
+            "• За критические баги (как краш сервера) — автоматическая компенсация всем"
         ),
         inline=False
     )
@@ -3089,7 +3180,7 @@ async def changelogall(ctx):
             "• Токен и OWNER_ID в переменных окружения\n"
             "• `!help` и `!changelog` работают для всех на нашем сервере\n"
             "• `!setup` и `!setup_update` автоматически выдают роль 👤 Guest\n"
-            "• Компенсация пострадавшим от бага"
+            "• `!compensate` — система компенсаций за найденные баги"
         ),
         inline=False
     )
@@ -3184,6 +3275,8 @@ async def help_cmd(ctx):
                 "`!wl_add/remove/list` · `!pm_add/remove/list`\n"
                 "`!fl_add/remove/list/clear` — freelist\n"
                 "`!on_add/remove/list` — owner nuke list\n"
+                "`!compensate <@user> <тип> <время>` — выдать компенсацию\n"
+                "`!announce_bug \"Название\" Описание` — объявить о баге\n"
                 "`!list` · `!list_clear` · `!sync_roles` — синхронизация ролей\n"
                 "`!autorole` — статус авто-роли\n"
                 "`!block_guild/unblock_guild` · `!set_spam_text`\n"
@@ -3195,21 +3288,13 @@ async def help_cmd(ctx):
         )
 
     embed.add_field(
-        name="💰 Компенсация за баг v2.2",
-        value=(
-            "Из-за бага с автокрашем домашнего сервера всем пострадавшим выдаётся компенсация.\n\n"
-            "**Что получают:**\n"
-            "• Временная подписка White/Premium\n"
-            "• Или другая компенсация на усмотрение администрации\n\n"
-            "**Как получить:**\n"
-            "Напиши в 🎫・create-ticket или в ЛС: **davaidkatt**"
-        ),
-        inline=False
-    )
-
-    embed.add_field(
         name="💬 Купить подписку",
-        value="Загляни в 🎫・выдача-вайта на нашем сервере\nhttps://discord.gg/JhQtrCtKFy",
+        value=(
+            "**White / Premium:**\n"
+            "🛒・sell — https://discord.com/channels/1497100825628115108/1497101001088045076\n"
+            "🎫・выдача-вайта — https://discord.com/channels/1497100825628115108/1497101001088045077\n\n"
+            "**Наш сервер:** https://discord.gg/JhQtrCtKFy"
+        ),
         inline=False
     )
     embed.set_footer(text="☠️ Kanero  |  !changelogall — вся история  |  v2.3")
