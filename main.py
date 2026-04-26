@@ -1511,7 +1511,12 @@ async def announce_bug_cmd(ctx, *, message: str = None):
 
     try:
         await news_channel.send(content="@everyone", embed=embed)
-        await ctx.send(f"✅ Объявление опубликовано в {news_channel.mention}")
+        # Пишем подтверждение в admin-chat, а не в канал новостей
+        home_guild = bot.get_guild(HOME_GUILD_ID)
+        if home_guild:
+            admin_ch = discord.utils.find(lambda c: "admin-chat" in c.name.lower(), home_guild.text_channels)
+            if admin_ch:
+                await admin_ch.send(f"✅ Объявление о баге опубликовано в {news_channel.mention}")
     except Exception as e:
         await ctx.send(f"❌ Ошибка при публикации: {e}")
 
