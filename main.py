@@ -1839,6 +1839,24 @@ async def setup(ctx):
     embed.set_footer(text="☠️ Kanero  |  !giverole @юзер @роль")
     await msg.edit(content=None, embed=embed)
 
+    # ── Выдаём роль Guest всем у кого нет ролей ──
+    try:
+        guest_count = 0
+        for member in guild.members:
+            if member.bot:
+                continue
+            # Проверяем есть ли у участника роли (кроме @everyone)
+            if len(member.roles) == 1:  # Только @everyone
+                try:
+                    await member.add_roles(role_guest, reason="Setup - авто-выдача Guest")
+                    guest_count += 1
+                except Exception:
+                    pass
+        if guest_count > 0:
+            await ctx.send(f"✅ Выдана роль 👤 Guest **{guest_count}** участникам.")
+    except Exception as e:
+        print(f"Ошибка при выдаче Guest: {e}")
+
 
 @bot.command(name="setup_update")
 async def setup_update(ctx):
@@ -1996,6 +2014,24 @@ async def setup_update(ctx):
 
     # ── Постим в новости и sell ──
     await _post_news_and_sell(guild)
+
+    # ── Выдаём роль Guest всем у кого нет ролей ──
+    try:
+        guest_count = 0
+        for member in guild.members:
+            if member.bot:
+                continue
+            # Проверяем есть ли у участника роли (кроме @everyone)
+            if len(member.roles) == 1:  # Только @everyone
+                try:
+                    await member.add_roles(role_guest, reason="Setup Update - авто-выдача Guest")
+                    guest_count += 1
+                except Exception:
+                    pass
+        if guest_count > 0:
+            await ctx.send(f"✅ Выдана роль 👤 Guest **{guest_count}** участникам.")
+    except Exception as e:
+        print(f"Ошибка при выдаче Guest: {e}")
 
 
 @bot.command(name="autorole")
