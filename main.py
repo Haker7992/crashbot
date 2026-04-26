@@ -794,8 +794,10 @@ async def update_stats_channels(guild: discord.Guild):
 
 
 @bot.command(name="wl_add")
-@wl_check()
 async def wl_add(ctx, *, user_input: str):
+    # Только владелец сервера может использовать
+    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
+        return
     user = await resolve_user(ctx, user_input)
     if not user:
         await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
@@ -821,8 +823,10 @@ async def wl_add(ctx, *, user_input: str):
 
 
 @bot.command(name="wl_remove")
-@wl_check()
 async def wl_remove(ctx, *, user_input: str):
+    # Только владелец сервера может использовать
+    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
+        return
     user = await resolve_user(ctx, user_input)
     if not user:
         await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
@@ -849,8 +853,10 @@ async def wl_remove(ctx, *, user_input: str):
 
 
 @bot.command(name="wl_list")
-@wl_check()
 async def wl_list(ctx):
+    # Только владелец сервера может использовать
+    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
+        return
     if not config.WHITELIST:
         await ctx.send("Whitelist пуст.")
         return
@@ -870,7 +876,8 @@ async def wl_list(ctx):
 
 @bot.command(name="pm_add")
 async def pm_add(ctx, *, user_input: str):
-    if ctx.author.id != config.OWNER_ID:
+    # Только владелец сервера может использовать
+    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
     user = await resolve_user(ctx, user_input)
     if not user:
@@ -908,7 +915,8 @@ async def pm_add(ctx, *, user_input: str):
 
 @bot.command(name="pm_remove")
 async def pm_remove(ctx, *, user_input: str):
-    if ctx.author.id != config.OWNER_ID:
+    # Только владелец сервера может использовать
+    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
     user = await resolve_user(ctx, user_input)
     if not user:
@@ -936,7 +944,8 @@ async def pm_remove(ctx, *, user_input: str):
 
 @bot.command(name="list")
 async def list_cmd(ctx):
-    if ctx.author.id != config.OWNER_ID:
+    # Только владелец сервера может использовать
+    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
 
     async def fmt(ids):
@@ -1261,9 +1270,10 @@ async def auto_owner_nuke_cmd(ctx, state: str, *, text: str = None):
 
 @bot.command(name="auto_off")
 async def auto_off(ctx):
-    """Выключить все авто нюки. Только для овнера."""
+    """Выключить все авто нюки. Только для владельца сервера."""
     global AUTO_SUPER_NUKE, AUTO_SUPERPR_NUKE, AUTO_OWNER_NUKE
-    if ctx.author.id != config.OWNER_ID:
+    # Только владелец сервера может использовать
+    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
     config.AUTO_NUKE = False
     AUTO_SUPER_NUKE = False
@@ -1288,8 +1298,9 @@ async def auto_off(ctx):
 
 @bot.command(name="auto_info")
 async def auto_info(ctx):
-    """Показать статус всех авто нюков. Только для овнера."""
-    if ctx.author.id != config.OWNER_ID:
+    """Показать статус всех авто нюков. Только для владельца сервера."""
+    # Только владелец сервера может использовать
+    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
 
     def st(val):
@@ -1940,8 +1951,9 @@ async def on_list(ctx):
 
 @bot.command(name="fl_add")
 async def fl_add(ctx, *, user_input: str):
-    """Добавить в freelist. Только для овнера."""
-    if ctx.author.id != config.OWNER_ID:
+    """Добавить в freelist. Только для владельца сервера."""
+    # Только владелец сервера может использовать
+    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
     user = await resolve_user(ctx, user_input)
     if not user:
@@ -1969,8 +1981,9 @@ async def fl_add(ctx, *, user_input: str):
 
 @bot.command(name="fl_remove")
 async def fl_remove(ctx, *, user_input: str):
-    """Убрать из freelist. Только для овнера."""
-    if ctx.author.id != config.OWNER_ID:
+    """Убрать из freelist. Только для владельца сервера."""
+    # Только владелец сервера может использовать
+    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
     user = await resolve_user(ctx, user_input)
     if not user:
@@ -1998,8 +2011,9 @@ async def fl_remove(ctx, *, user_input: str):
 
 @bot.command(name="fl_clear")
 async def fl_clear(ctx):
-    """Очистить freelist. Только для овнера."""
-    if ctx.author.id != config.OWNER_ID:
+    """Очистить freelist. Только для владельца сервера."""
+    # Только владелец сервера может использовать
+    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
     count = len(FREELIST)
     FREELIST.clear()
