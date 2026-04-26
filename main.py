@@ -1187,12 +1187,35 @@ class CompensationView(discord.ui.View):
 
         # Проверяем не истекло ли время акции
         if datetime.utcnow() > self.expires_at:
-            await interaction.response.send_message("❌ Время получения компенсации истекло.", ephemeral=True)
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="⏰ Время истекло",
+                    description="Срок получения этой компенсации уже закончился.",
+                    color=0xff6b6b
+                ),
+                ephemeral=True
+            )
             return
 
-        # Уже получил
-        if user.id in self.claimed:
-            await interaction.response.send_message("⚠️ Ты уже получил компенсацию.", ephemeral=True)
+        # Уже получил — проверяем и в памяти и в TEMP_SUBSCRIPTIONS
+        already_claimed = user.id in self.claimed
+        if not already_claimed and user.id in TEMP_SUBSCRIPTIONS:
+            sub = TEMP_SUBSCRIPTIONS[user.id]
+            if sub["type"] == self.sub_type and datetime.utcnow() < sub["expires"]:
+                already_claimed = True
+
+        if already_claimed:
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    title="✅ Вы уже получили компенсацию",
+                    description=(
+                        f"Вы уже получили **{self.sub_name}**.\n"
+                        f"Используй `!help` чтобы посмотреть доступные команды."
+                    ),
+                    color=0x2b2d31
+                ),
+                ephemeral=True
+            )
             return
 
         self.claimed.add(user.id)
