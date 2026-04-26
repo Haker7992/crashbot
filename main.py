@@ -1942,6 +1942,35 @@ async def setup_update(ctx):
     # 4. ADMIN — обновляем права и создаём admin-chat если нет
     def _ow(read=False, write=False):
         return discord.PermissionOverwrite(read_messages=read, send_messages=write)
+
+    admin_cat = discord.utils.find(lambda c: "ADMIN" in c.name, guild.categories)
+    if admin_cat:
+        # Обновляем права существующих каналов
+        for ch in admin_cat.channels:
+            if "admin-chat" in ch.name.lower():
+                continue  # admin-chat обрабатываем отдельно
+            try:
+                ow = {guild.default_role: discord.PermissionOverwrite(read_messages=False)}
+                for r in guild.roles:
+                    if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero"):
+                        ow[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                await ch.edit(overwrites=ow)
+            except Exception:
+                pass
+        # Создаём admin-chat если нет
+        existing_names = [ch.name.lower() for ch in admin_cat.channels]
+        if not any("admin-chat" in n for n in existing_names):
+            try:
+                ow = {guild.default_role: _ow()}
+                if role_guest:  ow[role_guest]  = _ow(False, False)
+                if role_user:   ow[role_user]   = _ow(False, False)
+                if role_white:  ow[role_white]  = _ow(False, False)
+                if role_prem:   ow[role_prem]   = _ow(False, False)
+                if role_friend: ow[role_friend] = _ow(False, False)
+                if role_owner:  ow[role_owner]  = _ow(True, True)
+                if role_dev:    ow[role_dev]    = _ow(True, True)
+                await guild.create_text_channel("💬・admin-chat", category=admin_cat, overwrites=ow, topic="Чат для Owner и Developer")
+                results.append("✅ Создан 💬・admin-chat")
             except Exception as e:
                 results.append(f"❌ admin-chat: {e}")
         results.append("✅ ADMIN обновлён")
