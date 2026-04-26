@@ -1345,20 +1345,45 @@ async def list_cmd(ctx):
         for uid in ids:
             try:
                 user = await bot.fetch_user(uid)
-                lines.append(f"`{uid}` — **{user}**")
+                name = f"`{uid}` — **{user}**"
             except Exception:
-                lines.append(f"`{uid}` — *не найден*")
+                name = f"`{uid}` — *не найден*"
+            # Проверяем есть ли временная подписка
+            if uid in TEMP_SUBSCRIPTIONS:
+                sub = TEMP_SUBSCRIPTIONS[uid]
+                if datetime.utcnow() < sub["expires"]:
+                    expires_ts = int(sub["expires"].timestamp())
+                    name += f" ⏳ <t:{expires_ts}:R>"
+            lines.append(name)
         return "\n".join(lines) if lines else "*пусто*"
 
     embed = discord.Embed(title="📋 Списки Kanero", color=0x0a0a0a)
     protected = set(config.OWNER_WHITELIST) | {config.OWNER_ID}
-    # Freelist — только те кто НЕ в whitelist и НЕ в premium
-    fl_only = [uid for uid in FREELIST if uid not in config.WHITELIST and uid not in PREMIUM_LIST]
-    # Whitelist — только те кто НЕ в premium и НЕ в owner whitelist
-    wl_only = [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST and uid not in protected]
+    now = datetime.utcnow()
+
+    # Собираем ID из временных подписок (только активные)
+    temp_wl = {uid for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "wl" and now < s["expires"]}
+    temp_pm = {uid for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "pm" and now < s["expires"]}
+    temp_fl = {uid for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "fl" and now < s["expires"]}
+
+    # Freelist — постоянные + временные (без дублей с wl/pm)
+    fl_only = list(dict.fromkeys(
+        [uid for uid in FREELIST if uid not in config.WHITELIST and uid not in PREMIUM_LIST]
+        + [uid for uid in temp_fl if uid not in config.WHITELIST and uid not in PREMIUM_LIST and uid not in FREELIST]
+    ))
+    # Whitelist — постоянные + временные
+    wl_only = list(dict.fromkeys(
+        [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST and uid not in protected]
+        + [uid for uid in temp_wl if uid not in PREMIUM_LIST and uid not in protected and uid not in config.WHITELIST]
+    ))
+    # Premium — постоянные + временные
+    pm_all = list(dict.fromkeys(
+        list(PREMIUM_LIST)
+        + [uid for uid in temp_pm if uid not in PREMIUM_LIST]
+    ))
     embed.add_field(name=f"📋 Freelist ({len(fl_only)})",                        value=await fmt(fl_only),              inline=False)
     embed.add_field(name=f"✅ Whitelist ({len(wl_only)})",                        value=await fmt(wl_only),              inline=False)
-    embed.add_field(name=f"💎 Premium ({len(PREMIUM_LIST)})",                     value=await fmt(PREMIUM_LIST),         inline=False)
+    embed.add_field(name=f"💎 Premium ({len(pm_all)})",                           value=await fmt(pm_all),               inline=False)
     embed.add_field(name=f"👑 Owner Whitelist ({len(config.OWNER_WHITELIST)})",   value=await fmt(config.OWNER_WHITELIST), inline=False)
 
     # Временные подписки
