@@ -2963,22 +2963,23 @@ bot.remove_command("help")
 @bot.command(name="changelog")
 async def changelog(ctx):
     """Показывает только последнее обновление."""
-    embed = discord.Embed(title="📋 CHANGELOG — v2.2  |  Обновление ролей", color=0x0a0a0a)
+    embed = discord.Embed(title="📋 CHANGELOG — v2.3  |  Багфиксы и безопасность", color=0x0a0a0a)
     embed.add_field(
-        name="🔥 v2.2",
+        name="🔥 v2.3",
         value=(
-            "**Роли:**\n"
-            "• 🌟 Fame переименована в 🤝 Friend\n"
-            "• Friend стоит над 💎 Premium\n\n"
-            "**Каналы:**\n"
-            "• 🤝・admin-chat в ADMIN — только Friend+\n\n"
-            "**Нюки:**\n"
-            "• Удаление и создание каналов параллельно — быстрее\n"
-            "• Овнер всегда может остановить любой нюк\n\n"
-            "**Логи:**\n"
-            "• Бот пишет в 📊・logs при каждом нюке автоматически\n\n"
-            "**Удалено:**\n"
-            "• `/sp` и `/spkd` — команды убраны"
+            "**🐛 Критические багфиксы:**\n"
+            "• Исправлен баг с автоматическим крашем домашнего сервера\n"
+            "• Добавлена защита от авто-нюков на домашнем сервере\n"
+            "• Исправлено логирование всех типов нюков\n\n"
+            "**🔒 Безопасность:**\n"
+            "• Токен и OWNER_ID теперь в переменных окружения\n"
+            "• Публичные команды (`!help`, `!changelog`) доступны всем\n\n"
+            "**📊 Логи:**\n"
+            "• Все типы нюков теперь логируются: `auto_nuke`, `auto_super_nuke`, `auto_owner_nuke`\n"
+            "• Уникальные эмодзи для каждого типа нюка\n\n"
+            "**💰 Компенсация:**\n"
+            "• За баг с крашем — всем пострадавшим выдана компенсация\n"
+            "• Обращайтесь к администрации если не получили"
         ),
         inline=False
     )
@@ -3036,7 +3037,19 @@ async def changelogall(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy  |  текущая версия: v2.2")
+    embed.add_field(
+        name="🐛 v2.3 — Багфиксы",
+        value=(
+            "• Исправлен критический баг с автокрашем домашнего сервера\n"
+            "• Защита от авто-нюков на домашнем сервере\n"
+            "• Логирование всех типов нюков (auto_nuke, auto_super_nuke, auto_owner_nuke)\n"
+            "• Токен и OWNER_ID в переменных окружения\n"
+            "• Публичные команды доступны всем\n"
+            "• Компенсация пострадавшим от бага"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy  |  текущая версия: v2.3")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
@@ -3142,7 +3155,7 @@ async def help_cmd(ctx):
         value="Загляни в 🎫・выдача-вайта на нашем сервере\nhttps://discord.gg/JhQtrCtKFy",
         inline=False
     )
-    embed.set_footer(text="☠️ Kanero  |  !changelogall — вся история  |  v2.2")
+    embed.set_footer(text="☠️ Kanero  |  !changelogall — вся история  |  v2.3")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
