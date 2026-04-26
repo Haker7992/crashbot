@@ -1080,7 +1080,7 @@ class CompensationView(discord.ui.View):
         sub_names = {"wl": "✅ White", "pm": "💎 Premium", "fl": "📋 Freelist"}
         self.sub_name = sub_names.get(sub_type, sub_type)
 
-    @discord.ui.button(label="🎁 Получить компенсацию", style=discord.ButtonStyle.green, custom_id="claim_compensation")
+    @discord.ui.button(label="🎁 Получить компенсацию", style=discord.ButtonStyle.green, custom_id="claim_comp_v2")
     async def claim(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = interaction.user
 
@@ -2490,130 +2490,6 @@ async def fl_clear(ctx):
 
 
 # ─── КОМПЕНСАЦИЯ (ВРЕМЕННЫЕ ПОДПИСКИ) ──────────────────────
-
-class CompensationView(discord.ui.View):
-    def __init__(self, sub_type: str, duration_hours: int):
-        super().__init__(timeout=None)
-        self.sub_type = sub_type
-        self.duration_hours = duration_hours
-        self.claimed_users = set()
-    
-    @discord.ui.button(label="🎁 Получить компенсацию", style=discord.ButtonStyle.green, custom_id="claim_compensation")
-    async def claim_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        user_id = interaction.user.id
-        
-        # Проверяем не получал ли уже
-        if user_id in self.claimed_users:
-            await interaction.response.send_message("❌ Ты уже получил компенсацию!", ephemeral=True)
-            return
-        
-        # Добавляем временную подписку
-        add_temp_subscription(user_id, self.sub_type, self.duration_hours)
-        self.claimed_users.add(user_id)
-        
-        # Определяем название подписки
-        sub_names = {"pm": "💎 Premium", "wl": "✅ Whitelist", "fl": "📋 Freelist"}
-        sub_name = sub_names.get(self.sub_type, self.sub_type)
-        
-        # Форматируем время
-        if self.duration_hours < 24:
-            time_str = f"{self.duration_hours} час(ов)"
-        else:
-            days = self.duration_hours // 24
-            time_str = f"{days} дн(ей)"
-        
-        # Отправляем уведомление пользователю
-        embed = discord.Embed(
-            title="🎁 Компенсация получена!",
-            description=(
-                f"Ты получил временную подписку **{sub_name}** на **{time_str}**!\n\n"
-                f"Подписка истечёт: <t:{int((datetime.utcnow() + timedelta(hours=self.duration_hours)).timestamp())}:R>\n\n"
-                "Спасибо за понимание! ❤️"
-            ),
-            color=0x00ff00
-        )
-        embed.set_footer(text="☠️ Kanero")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        
-        # Отправляем в канал выдачи
-        try:
-            home_guild = bot.get_guild(HOME_GUILD_ID)
-            if home_guild:
-                sell_ch = discord.utils.find(lambda c: "выдача" in c.name.lower(), home_guild.text_channels)
-                if sell_ch:
-                    log_embed = discord.Embed(
-                        title="🎁 Компенсация выдана",
-                        description=f"**{interaction.user}** (`{user_id}`) получил временную подписку **{sub_name}** на **{time_str}**",
-                        color=0x00ff00
-                    )
-                    log_embed.set_footer(text="☠️ Kanero  |  Компенсация")
-                    await sell_ch.send(embed=log_embed)
-        except Exception:
-            pass
-
-
-@bot.command(name="компенсация")
-async def compensation_cmd(ctx, sub_type: str, duration: str):
-    """
-    Выдать компенсацию всем пользователям.
-    Использование: !компенсация pm 1d
-    Типы: pm (premium), wl (whitelist), fl (freelist)
-    Время: 1h, 6h, 12h, 1d, 7d, 30d
-    """
-    # Только овнер
-    if ctx.author.id != config.OWNER_ID:
-        return
-    
-    # Проверяем тип подписки
-    if sub_type not in ("pm", "wl", "fl"):
-        await ctx.send("❌ Неверный тип. Используй: `pm`, `wl` или `fl`")
-        return
-    
-    # Парсим время
-    duration_map = {
-        "1h": 1, "6h": 6, "12h": 12,
-        "1d": 24, "7d": 168, "30d": 720
-    }
-    
-    if duration not in duration_map:
-        await ctx.send("❌ Неверное время. Используй: `1h`, `6h`, `12h`, `1d`, `7d`, `30d`")
-        return
-    
-    duration_hours = duration_map[duration]
-    
-    # Определяем название
-    sub_names = {"pm": "💎 Premium", "wl": "✅ Whitelist", "fl": "📋 Freelist"}
-    sub_name = sub_names[sub_type]
-    
-    # Форматируем время
-    if duration_hours < 24:
-        time_str = f"{duration_hours} час(ов)"
-    else:
-        days = duration_hours // 24
-        time_str = f"{days} дн(ей)"
-    
-    # Создаём View
-    view = CompensationView(sub_type, duration_hours)
-    
-    # Отправляем сообщение с кнопкой
-    embed = discord.Embed(
-        title="🎁 КОМПЕНСАЦИЯ ОТ KANERO",
-        description=(
-            f"@everyone\n\n"
-            f"Из-за технических проблем мы выдаём **компенсацию** всем пользователям!\n\n"
-            f"**Что получишь:**\n"
-            f"Временная подписка **{sub_name}** на **{time_str}**\n\n"
-            f"**Как получить:**\n"
-            f"Нажми на кнопку ниже 👇\n\n"
-            f"Спасибо за понимание! ❤️"
-        ),
-        color=0xffd700
-    )
-    embed.set_footer(text="☠️ Kanero  |  Компенсация доступна всем")
-    
-    await ctx.send("@everyone", embed=embed, view=view)
-    await ctx.message.delete()
-
 
 # ─── TICKET SYSTEM ─────────────────────────────────────────
 
