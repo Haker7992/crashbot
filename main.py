@@ -919,31 +919,58 @@ async def update_stats_channels(guild: discord.Guild):
 
 @bot.command(name="wl_add")
 async def wl_add(ctx, *, user_input: str):
-    # Только владелец сервера может использовать
-    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
+    """Добавить в Whitelist. Без дней — навсегда. С днями — временно.
+    Использование: !wl_add @user [дни]
+    """
+    if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
-    user = await resolve_user(ctx, user_input)
+
+    # Парсим — последний аргумент может быть длительностью
+    parts = user_input.rsplit(maxsplit=1)
+    duration_hours = None
+    actual_input = user_input
+    if len(parts) == 2:
+        try:
+            duration_hours = _parse_duration(parts[1])
+            actual_input = parts[0].strip()
+        except Exception:
+            actual_input = user_input
+
+    user = await resolve_user(ctx, actual_input)
     if not user:
-        await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
+        await ctx.send(f"❌ Пользователь `{actual_input}` не найден.")
         return
     user_id = user.id
-    if user_id not in config.WHITELIST:
-        config.WHITELIST.append(user_id)
-        save_whitelist()
-        try:
-            home_guild = bot.get_guild(HOME_GUILD_ID)
-            if home_guild:
-                member = home_guild.get_member(user_id) or await home_guild.fetch_member(user_id)
-                if member:
-                    role = discord.utils.find(lambda r: r.name == "✅ White", home_guild.roles)
-                    if role:
-                        await member.add_roles(role, reason="wl_add")
-                    await update_stats_channels(home_guild)
-        except Exception:
-            pass
-        await ctx.send(f"✅ **{user}** (`{user_id}`) добавлен в whitelist + роль **✅ White** выдана.")
+
+    if duration_hours:
+        add_temp_subscription(user_id, "wl", duration_hours)
+        days = duration_hours // 24
+        duration_text = f"{days} дн." if days > 0 else f"{duration_hours} ч."
+        result_text = f"✅ **{user}** получил **White** на **{duration_text}** (временно)."
     else:
-        await ctx.send(f"**{user}** уже в whitelist.")
+        if user_id not in config.WHITELIST:
+            config.WHITELIST.append(user_id)
+            save_whitelist()
+        result_text = f"✅ **{user}** (`{user_id}`) добавлен в whitelist навсегда."
+
+    # Выдаём роль
+    try:
+        home_guild = bot.get_guild(HOME_GUILD_ID)
+        if home_guild:
+            member = home_guild.get_member(user_id)
+            if not member:
+                try:
+                    member = await home_guild.fetch_member(user_id)
+                except Exception:
+                    member = None
+            if member:
+                role = discord.utils.find(lambda r: r.name == "✅ White", home_guild.roles)
+                if role and role not in member.roles:
+                    await member.add_roles(role, reason="wl_add")
+            await update_stats_channels(home_guild)
+    except Exception:
+        pass
+    await ctx.send(result_text)
 
 
 @bot.command(name="wl_remove")
@@ -2616,51 +2643,79 @@ async def on_list(ctx):
 
 @bot.command(name="fl_add")
 async def fl_add(ctx, *, user_input: str):
-    """Добавить в freelist. Только для владельца сервера."""
-    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
+    """Добавить в freelist. Без дней — навсегда. С днями — временно.
+    Использование: !fl_add @user [дни]
+    """
+    if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
-    user = await resolve_user(ctx, user_input)
+
+    # Парсим длительность из последнего аргумента
+    parts = user_input.rsplit(maxsplit=1)
+    duration_hours = None
+    actual_input = user_input
+    if len(parts) == 2:
+        try:
+            duration_hours = _parse_duration(parts[1])
+            actual_input = parts[0].strip()
+        except Exception:
+            actual_input = user_input
+
+    user = await resolve_user(ctx, actual_input)
     if not user:
-        await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
+        await ctx.send(f"❌ Пользователь `{actual_input}` не найден.")
         return
     user_id = user.id
-    if user_id not in FREELIST:
-        FREELIST.append(user_id)
-        save_freelist()
-        try:
-            home_guild = bot.get_guild(HOME_GUILD_ID)
-            if home_guild:
-                member = home_guild.get_member(user_id) or await home_guild.fetch_member(user_id)
-                if member:
-                    user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
-                    if user_role:
-                        await member.add_roles(user_role, reason="fl_add")
-                await update_stats_channels(home_guild)
 
-                # Постим в #addbot что пользователь добавлен
-                addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), home_guild.text_channels)
-                if addbot_ch:
-                    app_id = bot.user.id
-                    invite_url = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
-                    notif = discord.Embed(
-                        title="✅ Новый участник Freelist",
-                        description=(
-                            f"{user.mention} добавлен в **Freelist**!\n\n"
-                            f"**Доступные команды:**\n"
-                            f"`!nuke` · `!auto_nuke` · `!help` · `!changelog`\n\n"
-                            f"**Хочешь больше?**\n"
-                            f"✅ White / 💎 Premium — [купить на FunPay](https://funpay.com/users/16928925/)\n\n"
-                            f"**Добавить бота на сервер:** [нажми сюда]({invite_url})"
-                        ),
-                        color=0x00ff00
-                    )
-                    notif.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy")
-                    await addbot_ch.send(content=user.mention, embed=notif)
-        except Exception:
-            pass
-        await ctx.send(f"✅ **{user}** (`{user_id}`) добавлен в freelist.")
+    if duration_hours:
+        add_temp_subscription(user_id, "fl", duration_hours)
+        days = duration_hours // 24
+        duration_text = f"{days} дн." if days > 0 else f"{duration_hours} ч."
+        result_text = f"✅ **{user}** получил **Freelist** на **{duration_text}** (временно)."
     else:
-        await ctx.send(f"**{user}** уже в freelist.")
+        if user_id not in FREELIST:
+            FREELIST.append(user_id)
+            save_freelist()
+        result_text = f"✅ **{user}** (`{user_id}`) добавлен в freelist навсегда."
+
+    # Выдаём роль и постим в addbot
+    try:
+        home_guild = bot.get_guild(HOME_GUILD_ID)
+        if home_guild:
+            member = home_guild.get_member(user_id)
+            if not member:
+                try:
+                    member = await home_guild.fetch_member(user_id)
+                except Exception:
+                    member = None
+            if member:
+                user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
+                if user_role and user_role not in member.roles:
+                    await member.add_roles(user_role, reason="fl_add")
+            await update_stats_channels(home_guild)
+
+            # Постим в #addbot
+            addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), home_guild.text_channels)
+            if addbot_ch:
+                app_id = bot.user.id
+                invite_url = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
+                days_text = f" на **{duration_text}**" if duration_hours else ""
+                notif = discord.Embed(
+                    title="✅ Новый участник Freelist",
+                    description=(
+                        f"{user.mention} добавлен в **Freelist**{days_text}!\n\n"
+                        f"**Доступные команды:**\n"
+                        f"`!nuke` · `!auto_nuke` · `!help` · `!changelog`\n\n"
+                        f"**Хочешь больше?**\n"
+                        f"✅ White / 💎 Premium — [купить на FunPay](https://funpay.com/users/16928925/)\n\n"
+                        f"**Добавить бота на сервер:** [нажми сюда]({invite_url})"
+                    ),
+                    color=0x00ff00
+                )
+                notif.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy")
+                await addbot_ch.send(content=user.mention, embed=notif)
+    except Exception:
+        pass
+    await ctx.send(result_text)
 
 
 @bot.command(name="fl_remove")
