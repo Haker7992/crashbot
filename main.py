@@ -998,28 +998,62 @@ async def wl_list(ctx):
 # ─── OWNER-ONLY: PREMIUM ───────────────────────────────────
 
 @bot.command(name="pm_add")
+@bot.command(name="pm_add")
 async def pm_add(ctx, *, user_input: str):
-    # Только владелец сервера может использовать
-    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
+    """Добавить в Premium. Только для владельца сервера.
+    Использование: !pm_add @user [дни]
+    Без дней — навсегда. С днями — временно.
+    """
+    if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
-    user = await resolve_user(ctx, user_input)
+
+    # Парсим — последний аргумент может быть числом (дни)
+    parts = user_input.rsplit(maxsplit=1)
+    duration_hours = None
+    actual_input = user_input
+
+    if len(parts) == 2:
+        try:
+            duration_hours = _parse_duration(parts[1])
+            actual_input = parts[0].strip()
+        except (ValueError, Exception):
+            actual_input = user_input  # не число — значит всё это имя пользователя
+
+    user = await resolve_user(ctx, actual_input)
     if not user:
-        await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
+        await ctx.send(f"❌ Пользователь `{actual_input}` не найден.")
         return
     user_id = user.id
-    if user_id not in PREMIUM_LIST:
-        PREMIUM_LIST.append(user_id)
-        save_premium()
-    if user_id not in config.WHITELIST:
-        config.WHITELIST.append(user_id)
-        save_whitelist()
-    if user_id in FREELIST:
-        FREELIST.remove(user_id)
-        save_freelist()
+
+    if duration_hours:
+        # Временная подписка
+        add_temp_subscription(user_id, "pm", duration_hours)
+        days = duration_hours // 24
+        duration_text = f"{days} дн." if days > 0 else f"{duration_hours} ч."
+        result_text = f"💎 **{user}** получил **Premium** на **{duration_text}** (временно)."
+    else:
+        # Постоянная подписка
+        if user_id not in PREMIUM_LIST:
+            PREMIUM_LIST.append(user_id)
+            save_premium()
+        if user_id not in config.WHITELIST:
+            config.WHITELIST.append(user_id)
+            save_whitelist()
+        if user_id in FREELIST:
+            FREELIST.remove(user_id)
+            save_freelist()
+        result_text = f"💎 **{user}** (`{user_id}`) получил **Premium** навсегда."
+
+    # Выдаём роль
     try:
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if home_guild:
-            member = home_guild.get_member(user_id) or await home_guild.fetch_member(user_id)
+            member = home_guild.get_member(user_id)
+            if not member:
+                try:
+                    member = await home_guild.fetch_member(user_id)
+                except Exception:
+                    member = None
             if member:
                 prem_role  = discord.utils.find(lambda r: r.name == "💎 Premium", home_guild.roles)
                 white_role = discord.utils.find(lambda r: r.name == "✅ White",   home_guild.roles)
@@ -1033,7 +1067,7 @@ async def pm_add(ctx, *, user_input: str):
             await update_stats_channels(home_guild)
     except Exception:
         pass
-    await ctx.send(f"💎 **{user}** (`{user_id}`) получил **Premium** + роль выдана.")
+    await ctx.send(result_text)
 
 
 @bot.command(name="pm_remove")
@@ -1174,6 +1208,11 @@ class CompensationView(discord.ui.View):
             role_name = role_map.get(self.sub_type)
             if role_name:
                 member = home_guild.get_member(user.id)
+                if not member:
+                    try:
+                        member = await home_guild.fetch_member(user.id)
+                    except Exception:
+                        member = None
                 if member:
                     role = discord.utils.find(lambda r: r.name == role_name, home_guild.roles)
                     if role:
