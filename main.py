@@ -1318,8 +1318,8 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
     days = hours // 24
     duration_text = f"{days} дн. ({hours} ч.)" if days > 0 else f"{hours} ч."
 
-    # Время истечения акции — 7 дней на получение
-    claim_deadline = datetime.utcnow() + timedelta(days=7)
+    # Время истечения акции — 1 день на получение
+    claim_deadline = datetime.utcnow() + timedelta(days=1)
 
     # Ищем канал компенсации на домашнем сервере
     home_guild = bot.get_guild(HOME_GUILD_ID)
@@ -1346,7 +1346,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
 
     view = CompensationView(sub_type.lower(), hours, claim_deadline)
-    await comp_ch.send(content="@everyone", embed=embed, view=view)
+    comp_msg = await comp_ch.send(content="@everyone", embed=embed, view=view)
 
     # Анонс в новостях
     news_ch = discord.utils.find(
@@ -1390,6 +1390,35 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
             pass
 
     await ctx.send(f"✅ Компенсация объявлена в {comp_ch.mention} и анонс в {news_ch.mention if news_ch else '#новости'}!")
+
+    # Таск — через 24 часа напомнить в admin-chat удалить сообщение
+    async def remind_delete():
+        await asyncio.sleep(86400)  # 24 часа
+        try:
+            hg = bot.get_guild(HOME_GUILD_ID)
+            if not hg:
+                return
+            ac = discord.utils.find(lambda c: "admin-chat" in c.name.lower(), hg.text_channels)
+            if ac:
+                await ac.send(
+                    embed=discord.Embed(
+                        title="🗑️ Время компенсации истекло",
+                        description=(
+                            f"Компенсация **{sub_name}** завершена.\n\n"
+                            f"Не забудь удалить сообщение в {comp_ch.mention}!"
+                        ),
+                        color=0xff6b6b
+                    ).set_footer(text="☠️ Kanero")
+                )
+            # Пробуем удалить сообщение автоматически
+            try:
+                await comp_msg.delete()
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    asyncio.create_task(remind_delete())
 
 
 @bot.command(name="announce_bug")
