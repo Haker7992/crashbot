@@ -589,6 +589,24 @@ async def global_guild_block(ctx):
         
         # Все остальные команды — только для овнера и owner whitelist
         if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
+            try:
+                embed = discord.Embed(
+                    title="❌ Команды здесь недоступны",
+                    description=(
+                        f"{ctx.author.mention}, команды бота используются **в личных сообщениях** с ботом.\n\n"
+                        "Напиши боту в ЛС: `!help`\n"
+                        "Или добавь бота на свой сервер."
+                    ),
+                    color=0x2b2d31
+                )
+                embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy")
+                await ctx.send(embed=embed, delete_after=8)
+                try:
+                    await ctx.message.delete()
+                except Exception:
+                    pass
+            except Exception:
+                pass
             return False
     return True
 
