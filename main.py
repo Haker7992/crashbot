@@ -1070,34 +1070,134 @@ def _parse_duration(duration_str: str) -> int:
 
 @bot.command(name="compensate")
 async def compensate_cmd(ctx, *, args: str = None):
-    """Выдать компенсацию пользователю. Только для овнера.
-    Использование: !compensate @user wl/pm/fl 2d / 48h / 24
+    """Выдать компенсацию пользователю или роли. Только для овнера.
+    Использование:
+      !compensate @user wl/pm/fl 2d
+      !compensate role @роль wl/pm/fl 2d
     """
     if ctx.author.id != config.OWNER_ID:
         return
 
-    # Подсказка если нет аргументов
     if not args:
         await ctx.send(
-            "❌ **Неверное использование.**\n"
-            "Правильно: `!compensate @user <тип> <время>`\n\n"
+            "❌ **Неверное использование.**\n\n"
+            "**Одному пользователю:**\n`!compensate @user <тип> <время>`\n"
+            "Пример: `!compensate @user pm 2d`\n\n"
+            "**Всем с ролью:**\n`!compensate role @роль <тип> <время>`\n"
+            "Пример: `!compensate role @Guest wl 1d`\n\n"
             "**Типы:** `wl` — White · `pm` — Premium · `fl` — Freelist\n"
-            "**Время:** `2d` — 2 дня · `48h` — 48 часов · `24` — 24 часа\n\n"
-            "**Пример:** `!compensate @user pm 2d`"
+            "**Время:** `2d` — 2 дня · `48h` — 48 часов · `24` — 24 часа"
         )
         return
 
-    # Парсим аргументы вручную чтобы поддержать @mention/ID и формат времени
     parts = args.split()
+
+    # Режим по роли: !compensate role @роль тип время
+    if parts[0].lower() == "role":
+        if len(parts) < 4:
+            await ctx.send(
+                "❌ **Не хватает аргументов.**\n"
+                "Правильно: `!compensate role @роль <тип> <время>`\n"
+                "Пример: `!compensate role @Guest wl 1d`"
+            )
+            return
+
+        # Резолвим роль
+        role_str = parts[1]
+        sub_type = parts[2]
+        duration_str = parts[3]
+
+        home_guild = bot.get_guild(HOME_GUILD_ID)
+        if not home_guild:
+            await ctx.send("❌ Домашний сервер не найден.")
+            return
+
+        # Ищем роль по упоминанию или имени
+        role = None
+        if role_str.startswith("<@&") and role_str.endswith(">"):
+            role_id = int(role_str[3:-1])
+            role = home_guild.get_role(role_id)
+        else:
+            role = discord.utils.find(lambda r: r.name.lower() == role_str.lower(), home_guild.roles)
+
+        if not role:
+            await ctx.send(f"❌ Роль `{role_str}` не найдена на домашнем сервере.")
+            return
+
+        if sub_type.lower() not in ("wl", "pm", "fl"):
+            await ctx.send(
+                f"❌ Неверный тип `{sub_type}`.\n"
+                "Доступные типы: `wl` — White · `pm` — Premium · `fl` — Freelist"
+            )
+            return
+
+        try:
+            hours = _parse_duration(duration_str)
+        except ValueError as e:
+            await ctx.send(f"❌ {e}\nПримеры: `2d` · `48h` · `24`")
+            return
+
+        sub_names = {"wl": "✅ White", "pm": "💎 Premium", "fl": "📋 Freelist"}
+        sub_name = sub_names[sub_type.lower()]
+        days = hours // 24
+        duration_text = f"{days} дн. ({hours} ч.)" if days > 0 else f"{hours} ч."
+
+        # Выдаём всем участникам с этой ролью
+        members_with_role = [m for m in home_guild.members if role in m.roles and not m.bot]
+        if not members_with_role:
+            await ctx.send(f"❌ Нет участников с ролью {role.mention}.")
+            return
+
+        count = 0
+        for member in members_with_role:
+            add_temp_subscription(member.id, sub_type.lower(), hours)
+            count += 1
+            # ЛС каждому
+            try:
+                dm_embed = discord.Embed(
+                    title="💰 Вам выдана компенсация!",
+                    description=(
+                        f"**Подписка:** {sub_name}\n"
+                        f"**Длительность:** {duration_text}\n"
+                        f"**Истекает:** <t:{int((datetime.utcnow() + timedelta(hours=hours)).timestamp())}:R>\n\n"
+                        f"Используй `!help` чтобы посмотреть доступные команды."
+                    ),
+                    color=0x00ff00
+                )
+                dm_embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy")
+                await member.send(embed=dm_embed)
+            except Exception:
+                pass
+
+        # Пингуем роль в канале компенсации
+        comp_ch = discord.utils.find(lambda c: "компенсац" in c.name.lower(), home_guild.text_channels)
+        if comp_ch:
+            ping_embed = discord.Embed(
+                title="💰 Компенсация выдана",
+                description=(
+                    f"**Роль:** {role.mention}\n"
+                    f"**Подписка:** {sub_name}\n"
+                    f"**Длительность:** {duration_text}\n"
+                    f"**Получили:** {count} участников\n"
+                    f"**Истекает:** <t:{int((datetime.utcnow() + timedelta(hours=hours)).timestamp())}:R>"
+                ),
+                color=0x00ff00
+            )
+            ping_embed.set_footer(text="☠️ Kanero  |  Компенсация за найденный баг")
+            await comp_ch.send(content=role.mention, embed=ping_embed)
+
+        await ctx.send(f"✅ Компенсация **{sub_name}** на {duration_text} выдана {count} участникам с ролью {role.mention}.")
+        return
+
+    # Режим одному пользователю: !compensate @user тип время
     if len(parts) < 3:
         await ctx.send(
             "❌ **Не хватает аргументов.**\n"
             "Правильно: `!compensate @user <тип> <время>`\n"
-            "**Пример:** `!compensate @user pm 2d`"
+            "Пример: `!compensate @user pm 2d`"
         )
         return
 
-    # Резолвим пользователя
     user_str = parts[0]
     sub_type = parts[1]
     duration_str = parts[2]
@@ -1110,7 +1210,6 @@ async def compensate_cmd(ctx, *, args: str = None):
         await ctx.send(f"❌ Пользователь `{user_str}` не найден. Используй @упоминание или ID.")
         return
 
-    # Проверяем тип подписки
     if sub_type.lower() not in ("wl", "pm", "fl"):
         await ctx.send(
             f"❌ Неверный тип `{sub_type}`.\n"
@@ -1118,17 +1217,12 @@ async def compensate_cmd(ctx, *, args: str = None):
         )
         return
 
-    # Парсим длительность
     try:
         hours = _parse_duration(duration_str)
     except ValueError as e:
-        await ctx.send(
-            f"❌ {e}\n"
-            "Примеры времени: `2d` — 2 дня · `48h` — 48 часов · `24` — 24 часа"
-        )
+        await ctx.send(f"❌ {e}\nПримеры: `2d` · `48h` · `24`")
         return
 
-    # Добавляем временную подписку
     add_temp_subscription(user.id, sub_type.lower(), hours)
 
     sub_names = {"wl": "✅ White", "pm": "💎 Premium", "fl": "📋 Freelist"}
@@ -1149,7 +1243,6 @@ async def compensate_cmd(ctx, *, args: str = None):
     embed.set_footer(text="☠️ Kanero  |  Компенсация за найденный баг")
     await ctx.send(embed=embed)
 
-    # Отправляем ЛС пользователю
     try:
         dm_embed = discord.Embed(
             title="💰 Вам выдана компенсация!",
@@ -1680,12 +1773,16 @@ async def _post_news_and_sell(guild: discord.Guild):
             embed = discord.Embed(
                 title="🛒 Купить доступ — Kanero",
                 description=(
-                    "Если хотите купить доступ:\n\n"
+                    "**✅ White / 💎 Premium** — купить на FunPay:\n"
+                    "https://funpay.com/users/16928925/\n\n"
+                    "**📋 Freelist (бесплатно)** — напиши в этот канал любое сообщение"
+                    if sell_ch and "sell" in sell_ch.name.lower() else
+                    "**✅ White / 💎 Premium** — купить на FunPay:\n"
                     "https://funpay.com/users/16928925/"
                 ),
                 color=0x0a0a0a
             )
-            embed.set_footer(text="☠️ Kanero  |  White · Premium · Fame")
+            embed.set_footer(text="☠️ Kanero  |  White · Premium")
             await sell_ch.send("@everyone", embed=embed)
         except Exception:
             pass
@@ -2001,8 +2098,8 @@ async def setup(ctx):
 
     a = discord.Embed(title="🤖 Получить доступ к Kanero", color=0x0a0a0a)
     a.add_field(name="📋 Freelist (бесплатно)", value="Напиши **любое сообщение** сюда\nПолучишь роль 👥 User:\n`!nuke` · `!auto_nuke` · `!help` · `!changelog`", inline=False)
-    a.add_field(name="✅ White", value="`!nuke [текст]` · `!stop` · `!cleanup`\n`!rename` · `!nicks_all` · `!webhooks` · `!clear`\n`/sp` · `/spkd`\nКупить: **davaidkatt**", inline=False)
-    a.add_field(name="💎 Premium", value="`!super_nuke` · `!massban` · `!massdm`\n`!spam` · `!pingspam` · `!rolesdelete`\n`!auto_super_nuke` · `!auto_superpr_nuke`\nКупить: **davaidkatt**", inline=False)
+    a.add_field(name="✅ White", value="`!nuke [текст]` · `!stop` · `!cleanup`\n`!rename` · `!nicks_all` · `!webhooks`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
+    a.add_field(name="💎 Premium", value="`!super_nuke` · `!massban` · `!massdm`\n`!spam` · `!pingspam` · `!rolesdelete`\n`!auto_super_nuke` · `!auto_superpr_nuke`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
     a.set_footer(text="☠️ Kanero  |  Просто напиши что-нибудь")
     await addbot_ch.send(embed=a)
 
@@ -2295,7 +2392,6 @@ async def on_list(ctx):
 @bot.command(name="fl_add")
 async def fl_add(ctx, *, user_input: str):
     """Добавить в freelist. Только для владельца сервера."""
-    # Только владелец сервера может использовать
     if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
     user = await resolve_user(ctx, user_input)
@@ -2315,6 +2411,26 @@ async def fl_add(ctx, *, user_input: str):
                     if user_role:
                         await member.add_roles(user_role, reason="fl_add")
                 await update_stats_channels(home_guild)
+
+                # Постим в #addbot что пользователь добавлен
+                addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), home_guild.text_channels)
+                if addbot_ch:
+                    app_id = bot.user.id
+                    invite_url = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
+                    notif = discord.Embed(
+                        title="✅ Новый участник Freelist",
+                        description=(
+                            f"{user.mention} добавлен в **Freelist**!\n\n"
+                            f"**Доступные команды:**\n"
+                            f"`!nuke` · `!auto_nuke` · `!help` · `!changelog`\n\n"
+                            f"**Хочешь больше?**\n"
+                            f"✅ White / 💎 Premium — [купить на FunPay](https://funpay.com/users/16928925/)\n\n"
+                            f"**Добавить бота на сервер:** [нажми сюда]({invite_url})"
+                        ),
+                        color=0x00ff00
+                    )
+                    notif.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy")
+                    await addbot_ch.send(content=user.mention, embed=notif)
         except Exception:
             pass
         await ctx.send(f"✅ **{user}** (`{user_id}`) добавлен в freelist.")
@@ -3376,6 +3492,7 @@ async def help_cmd(ctx):
                 "`!fl_add/remove/list/clear` — freelist\n"
                 "`!on_add/remove/list` — owner nuke list\n"
                 "`!compensate <@user> <тип> <время>` — выдать компенсацию\n"
+                "`!compensate role <@роль> <тип> <время>` — компенсация всей роли\n"
                 "`!announce_bug \"Название\" Описание` — объявить о баге\n"
                 "`!list` · `!list_clear` · `!sync_roles` — синхронизация ролей\n"
                 "`!autorole` — статус авто-роли\n"
