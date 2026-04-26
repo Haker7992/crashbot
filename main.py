@@ -1048,37 +1048,107 @@ async def pm_remove(ctx, *, user_input: str):
         await ctx.send("Не найден в Premium.")
 
 
+def _parse_duration(duration_str: str) -> int:
+    """Парсит строку длительности в часы. Поддерживает: 2d, 24h, 48, 1d12h и т.д."""
+    duration_str = duration_str.lower().strip()
+    total_hours = 0
+    import re
+    # Ищем числа с суффиксами d/h
+    matches = re.findall(r'(\d+)\s*([dh]?)', duration_str)
+    if not matches:
+        raise ValueError(f"Не удалось распознать длительность: `{duration_str}`")
+    for value, unit in matches:
+        value = int(value)
+        if unit == 'd':
+            total_hours += value * 24
+        elif unit == 'h' or unit == '':
+            total_hours += value
+    if total_hours <= 0:
+        raise ValueError("Длительность должна быть больше 0")
+    return total_hours
+
+
 @bot.command(name="compensate")
-async def compensate_cmd(ctx, user: discord.User, sub_type: str, hours: int):
-    """Выдать компенсацию пользователю. Только для овнера."""
+async def compensate_cmd(ctx, *, args: str = None):
+    """Выдать компенсацию пользователю. Только для овнера.
+    Использование: !compensate @user wl/pm/fl 2d / 48h / 24
+    """
     if ctx.author.id != config.OWNER_ID:
         return
-    
+
+    # Подсказка если нет аргументов
+    if not args:
+        await ctx.send(
+            "❌ **Неверное использование.**\n"
+            "Правильно: `!compensate @user <тип> <время>`\n\n"
+            "**Типы:** `wl` — White · `pm` — Premium · `fl` — Freelist\n"
+            "**Время:** `2d` — 2 дня · `48h` — 48 часов · `24` — 24 часа\n\n"
+            "**Пример:** `!compensate @user pm 2d`"
+        )
+        return
+
+    # Парсим аргументы вручную чтобы поддержать @mention/ID и формат времени
+    parts = args.split()
+    if len(parts) < 3:
+        await ctx.send(
+            "❌ **Не хватает аргументов.**\n"
+            "Правильно: `!compensate @user <тип> <время>`\n"
+            "**Пример:** `!compensate @user pm 2d`"
+        )
+        return
+
+    # Резолвим пользователя
+    user_str = parts[0]
+    sub_type = parts[1]
+    duration_str = parts[2]
+
+    try:
+        user = await resolve_user(ctx, user_str)
+    except Exception:
+        user = None
+    if not user:
+        await ctx.send(f"❌ Пользователь `{user_str}` не найден. Используй @упоминание или ID.")
+        return
+
     # Проверяем тип подписки
     if sub_type.lower() not in ("wl", "pm", "fl"):
-        await ctx.send("❌ Тип должен быть: `wl` (White), `pm` (Premium), `fl` (Freelist)")
+        await ctx.send(
+            f"❌ Неверный тип `{sub_type}`.\n"
+            "Доступные типы: `wl` — White · `pm` — Premium · `fl` — Freelist"
+        )
         return
-    
+
+    # Парсим длительность
+    try:
+        hours = _parse_duration(duration_str)
+    except ValueError as e:
+        await ctx.send(
+            f"❌ {e}\n"
+            "Примеры времени: `2d` — 2 дня · `48h` — 48 часов · `24` — 24 часа"
+        )
+        return
+
     # Добавляем временную подписку
     add_temp_subscription(user.id, sub_type.lower(), hours)
-    
-    # Определяем название подписки
+
     sub_names = {"wl": "✅ White", "pm": "💎 Premium", "fl": "📋 Freelist"}
     sub_name = sub_names.get(sub_type.lower(), sub_type)
-    
+    days = hours // 24
+    duration_text = f"{days} дн. ({hours} ч.)" if days > 0 else f"{hours} ч."
+
     embed = discord.Embed(
         title="💰 Компенсация выдана",
         description=(
             f"**Пользователь:** {user.mention} (`{user.id}`)\n"
             f"**Подписка:** {sub_name}\n"
-            f"**Длительность:** {hours} часов ({hours // 24} дней)\n"
+            f"**Длительность:** {duration_text}\n"
             f"**Истекает:** <t:{int((datetime.utcnow() + timedelta(hours=hours)).timestamp())}:R>"
         ),
         color=0x00ff00
     )
     embed.set_footer(text="☠️ Kanero  |  Компенсация за найденный баг")
     await ctx.send(embed=embed)
-    
+
     # Отправляем ЛС пользователю
     try:
         dm_embed = discord.Embed(
@@ -1086,7 +1156,7 @@ async def compensate_cmd(ctx, user: discord.User, sub_type: str, hours: int):
             description=(
                 f"Спасибо за помощь в улучшении бота!\n\n"
                 f"**Подписка:** {sub_name}\n"
-                f"**Длительность:** {hours} часов ({hours // 24} дней)\n"
+                f"**Длительность:** {duration_text}\n"
                 f"**Истекает:** <t:{int((datetime.utcnow() + timedelta(hours=hours)).timestamp())}:R>\n\n"
                 f"Используй `!help` чтобы посмотреть доступные команды."
             ),
@@ -1100,16 +1170,20 @@ async def compensate_cmd(ctx, user: discord.User, sub_type: str, hours: int):
 
 @bot.command(name="announce_bug")
 async def announce_bug_cmd(ctx, *, message: str = None):
-    """Объявить о баге и компенсации в канале новостей. Только для овнера.
-    Использование: !announce_bug Название бага | Описание бага и компенсации
+    """Объявить о баге в канале новостей. Только для овнера.
+    Использование: !announce_bug Название | Описание что случилось и что исправлено
     """
     if ctx.author.id != config.OWNER_ID:
         return
-    
+
     if not message:
-        await ctx.send("❌ Использование: `!announce_bug Название бага | Описание`")
+        await ctx.send(
+            "❌ **Неверное использование.**\n"
+            "Правильно: `!announce_bug Название | Описание`\n\n"
+            "**Пример:** `!announce_bug Автокраш сервера | Бот автоматически крашил наш сервер при перезапуске. Баг исправлен в v2.3.`"
+        )
         return
-    
+
     # Разделяем на название и описание
     if "|" in message:
         parts = message.split("|", 1)
@@ -1118,38 +1192,45 @@ async def announce_bug_cmd(ctx, *, message: str = None):
     else:
         bug_title = "Исправлен баг"
         bug_description = message.strip()
-    
+
     # Ищем канал новостей на домашнем сервере
     home_guild = bot.get_guild(HOME_GUILD_ID)
     if not home_guild:
         await ctx.send("❌ Домашний сервер не найден.")
         return
-    
-    news_channel = discord.utils.find(lambda c: "новости" in c.name.lower(), home_guild.text_channels)
+
+    news_channel = discord.utils.find(
+        lambda c: "новост" in c.name.lower() or "news" in c.name.lower(),
+        home_guild.text_channels
+    )
     if not news_channel:
-        await ctx.send("❌ Канал новостей не найден.")
+        await ctx.send("❌ Канал новостей не найден на домашнем сервере.")
         return
-    
-    # Создаём embed для объявления
+
     embed = discord.Embed(
-        title=f"🐛 {bug_title}",
+        title=f"🐛 Исправлен баг: {bug_title}",
         description=bug_description,
         color=0xff6b6b,
         timestamp=datetime.utcnow()
     )
     embed.add_field(
+        name="✅ Статус",
+        value="Баг полностью исправлен и обновление уже активно.",
+        inline=False
+    )
+    embed.add_field(
         name="💰 Компенсация",
         value=(
-            "Нашёл баг? **Сообщи в тикет** — получи бесплатную подписку!\n"
-            "За критические баги — автоматическая компенсация всем затронутым пользователям."
+            "Если вас затронул этот баг — напишите в тикет, мы выдадим компенсацию.\n"
+            "За критические баги компенсация выдаётся автоматически всем пострадавшим."
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ Kanero  |  Спасибо за помощь в улучшении бота!")
+    embed.set_footer(text="☠️ Kanero  |  Спасибо за терпение!")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
-    
+
     try:
-        await news_channel.send(embed=embed)
+        await news_channel.send(content="@everyone", embed=embed)
         await ctx.send(f"✅ Объявление опубликовано в {news_channel.mention}")
     except Exception as e:
         await ctx.send(f"❌ Ошибка при публикации: {e}")
@@ -4898,6 +4979,62 @@ async def on_ready():
         await bot.tree.sync(guild=guild)
 
     print(f"Бот запущен как {bot.user}")
+
+
+@bot.event
+async def on_command_error(ctx, error):
+    """Глобальный обработчик ошибок — объясняет что пошло не так."""
+    # Игнорируем если команда не найдена (не наша команда)
+    if isinstance(error, commands.CommandNotFound):
+        return
+
+    # Не хватает аргументов
+    if isinstance(error, commands.MissingRequiredArgument):
+        cmd = ctx.command
+        usage = f"`!{cmd.name}`"
+        if cmd.name == "compensate":
+            usage = "`!compensate @user wl/pm/fl 2d`\nПример: `!compensate @user pm 2d`"
+        elif cmd.name == "announce_bug":
+            usage = "`!announce_bug Название | Описание`"
+        elif cmd.name == "wl_add":
+            usage = "`!wl_add @user`"
+        elif cmd.name == "pm_add":
+            usage = "`!pm_add @user`"
+        elif cmd.name == "fl_add":
+            usage = "`!fl_add @user`"
+        elif cmd.name == "giverole":
+            usage = "`!giverole @user @роль`"
+        elif cmd.name == "unban":
+            usage = "`!unban <ID>`"
+        else:
+            usage = f"`!{cmd.name}` — не хватает аргумента `{error.param.name}`"
+        await ctx.send(f"❌ **Не хватает аргументов.**\nПравильно: {usage}")
+        return
+
+    # Неверный тип аргумента
+    if isinstance(error, commands.BadArgument):
+        cmd = ctx.command
+        if cmd.name == "compensate":
+            await ctx.send(
+                "❌ **Неверный аргумент.**\n"
+                "Правильно: `!compensate @user wl/pm/fl 2d`\n"
+                "**Типы:** `wl` · `pm` · `fl`\n"
+                "**Время:** `2d` · `48h` · `24`"
+            )
+        else:
+            await ctx.send(f"❌ **Неверный аргумент.** Проверь правильность команды: `!{cmd.name}`")
+        return
+
+    # Нет прав
+    if isinstance(error, commands.CheckFailure):
+        return  # Молча игнорируем — не наш пользователь
+
+    # Остальные ошибки — логируем но не спамим
+    if isinstance(error, commands.CommandInvokeError):
+        original = error.original
+        cmd_name = ctx.command.name if ctx.command else "?"
+        await ctx.send(f"❌ Ошибка при выполнении `!{cmd_name}`: `{type(original).__name__}: {original}`")
+        return
 
 
 bot.run(config.TOKEN)
