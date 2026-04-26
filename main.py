@@ -1334,8 +1334,10 @@ async def announce_bug_cmd(ctx, *, message: str = None):
 
 @bot.command(name="list")
 async def list_cmd(ctx):
-    # Только владелец сервера может использовать
-    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
+    # Владелец сервера ИЛИ OWNER_ID из конфига
+    is_server_owner = ctx.guild and ctx.author.id == ctx.guild.owner_id
+    is_bot_owner = ctx.author.id == config.OWNER_ID
+    if not is_server_owner and not is_bot_owner:
         return
 
     async def fmt(ids):
