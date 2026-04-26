@@ -2398,6 +2398,17 @@ async def setup_update(ctx):
     embed.set_footer(text="☠️ Kanero  |  Каналы не удалялись  |  !setup — полный пересоздать")
     await msg.edit(content=None, embed=embed)
 
+    # ── Обновляем ссылку в тексте нюка ──
+    invite = "https://discord.gg/JhQtrCtKFy"
+    import re as _re
+    old_text = config.SPAM_TEXT
+    # Заменяем любую discord.gg/... ссылку на актуальную
+    new_text = _re.sub(r'https://discord\.gg/\S+', invite, old_text)
+    if new_text != old_text:
+        config.SPAM_TEXT = new_text
+        save_spam_text()
+        results.append("✅ Ссылка в тексте нюка обновлена")
+
     # ── Постим в новости и sell ──
     await _post_news_and_sell(guild)
 
