@@ -1389,7 +1389,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
         except Exception:
             pass
 
-    await ctx.send(f"✅ Компенсация объявлена в {comp_ch.mention} и анонс в {news_ch.mention if news_ch else '#новости'}!")
+    await ctx.message.delete()  # удаляем команду чтобы не засорять канал
 
     # Таск — через 24 часа напомнить в admin-chat удалить сообщение
     async def remind_delete():
