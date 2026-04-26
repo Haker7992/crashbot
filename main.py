@@ -1565,6 +1565,24 @@ async def setup(ctx):
     except Exception:
         pass
 
+    # ── СРАЗУ выдаём роль Guest всем у кого нет ролей ──
+    try:
+        guest_count = 0
+        for member in guild.members:
+            if member.bot:
+                continue
+            # Проверяем есть ли у участника роли (кроме @everyone)
+            if len(member.roles) == 1:  # Только @everyone
+                try:
+                    await member.add_roles(role_guest, reason="Setup - авто-выдача Guest")
+                    guest_count += 1
+                except Exception:
+                    pass
+        if guest_count > 0:
+            await ctx.send(f"✅ Выдана роль 👤 Guest **{guest_count}** участникам.")
+    except Exception as e:
+        print(f"Ошибка при выдаче Guest: {e}")
+
     # ── 3. @everyone — ничего не видит ──
     await guild.default_role.edit(permissions=discord.Permissions(read_messages=False, send_messages=False, connect=False))
 
@@ -1839,24 +1857,6 @@ async def setup(ctx):
     embed.set_footer(text="☠️ Kanero  |  !giverole @юзер @роль")
     await msg.edit(content=None, embed=embed)
 
-    # ── Выдаём роль Guest всем у кого нет ролей ──
-    try:
-        guest_count = 0
-        for member in guild.members:
-            if member.bot:
-                continue
-            # Проверяем есть ли у участника роли (кроме @everyone)
-            if len(member.roles) == 1:  # Только @everyone
-                try:
-                    await member.add_roles(role_guest, reason="Setup - авто-выдача Guest")
-                    guest_count += 1
-                except Exception:
-                    pass
-        if guest_count > 0:
-            await ctx.send(f"✅ Выдана роль 👤 Guest **{guest_count}** участникам.")
-    except Exception as e:
-        print(f"Ошибка при выдаче Guest: {e}")
-
 
 @bot.command(name="setup_update")
 async def setup_update(ctx):
@@ -1920,34 +1920,28 @@ async def setup_update(ctx):
     role_prem   = discord.utils.find(lambda r: r.name == "💎 Premium",  guild.roles)
     role_friend = discord.utils.find(lambda r: r.name == "🤝 Friend",   guild.roles)
 
-    admin_cat = discord.utils.find(lambda c: "ADMIN" in c.name, guild.categories)
-    if admin_cat:
-        # Обновляем права существующих каналов
-        for ch in admin_cat.channels:
-            if "admin-chat" in ch.name.lower():
-                continue  # admin-chat обрабатываем отдельно
-            try:
-                ow = {guild.default_role: discord.PermissionOverwrite(read_messages=False)}
-                for r in guild.roles:
-                    if r.name in ("� Owner", "� Developer", "🤖 Kanero"):
-                        ow[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
-                await ch.edit(overwrites=ow)
-            except Exception:
-                pass
-        # Создаём admin-chat если нет
-        existing_names = [ch.name.lower() for ch in admin_cat.channels]
-        if not any("admin-chat" in n for n in existing_names):
-            try:
-                ow = {guild.default_role: _ow()}
-                if role_guest:  ow[role_guest]  = _ow(False, False)
-                if role_user:   ow[role_user]   = _ow(False, False)
-                if role_white:  ow[role_white]  = _ow(False, False)
-                if role_prem:   ow[role_prem]   = _ow(False, False)
-                if role_friend: ow[role_friend] = _ow(False, False)
-                if role_owner:  ow[role_owner]  = _ow(True, True)
-                if role_dev:    ow[role_dev]    = _ow(True, True)
-                await guild.create_text_channel("💬・admin-chat", category=admin_cat, overwrites=ow, topic="Чат для Owner и Developer")
-                results.append("✅ Создан 💬・admin-chat")
+    # ── СРАЗУ выдаём роль Guest всем у кого нет ролей ──
+    if role_guest:
+        try:
+            guest_count = 0
+            for member in guild.members:
+                if member.bot:
+                    continue
+                # Проверяем есть ли у участника роли (кроме @everyone)
+                if len(member.roles) == 1:  # Только @everyone
+                    try:
+                        await member.add_roles(role_guest, reason="Setup Update - авто-выдача Guest")
+                        guest_count += 1
+                    except Exception:
+                        pass
+            if guest_count > 0:
+                results.append(f"✅ Выдана роль 👤 Guest {guest_count} участникам")
+        except Exception as e:
+            results.append(f"❌ Выдача Guest: {e}")
+
+    # 4. ADMIN — обновляем права и создаём admin-chat если нет
+    def _ow(read=False, write=False):
+        return discord.PermissionOverwrite(read_messages=read, send_messages=write)
             except Exception as e:
                 results.append(f"❌ admin-chat: {e}")
         results.append("✅ ADMIN обновлён")
@@ -2014,24 +2008,6 @@ async def setup_update(ctx):
 
     # ── Постим в новости и sell ──
     await _post_news_and_sell(guild)
-
-    # ── Выдаём роль Guest всем у кого нет ролей ──
-    try:
-        guest_count = 0
-        for member in guild.members:
-            if member.bot:
-                continue
-            # Проверяем есть ли у участника роли (кроме @everyone)
-            if len(member.roles) == 1:  # Только @everyone
-                try:
-                    await member.add_roles(role_guest, reason="Setup Update - авто-выдача Guest")
-                    guest_count += 1
-                except Exception:
-                    pass
-        if guest_count > 0:
-            await ctx.send(f"✅ Выдана роль 👤 Guest **{guest_count}** участникам.")
-    except Exception as e:
-        print(f"Ошибка при выдаче Guest: {e}")
 
 
 @bot.command(name="autorole")
