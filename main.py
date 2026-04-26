@@ -535,7 +535,8 @@ async def global_guild_block(ctx):
         # Команды управления — для овнера, owner whitelist и владельца сервера
         MANAGEMENT_COMMANDS = {"wl_add", "wl_remove", "wl_list", "pm_add", "pm_remove",
                                "fl_add", "fl_remove", "fl_clear", "auto_off", "auto_info",
-                               "list", "sync_roles"}
+                               "list", "sync_roles", "setup", "setup_update", "help", "info",
+                               "changelog", "changelogall", "inv", "nukelogs"}
         
         if ctx.command and ctx.command.name in MANAGEMENT_COMMANDS:
             # Эти команды доступны овнеру, owner whitelist и владельцу сервера
