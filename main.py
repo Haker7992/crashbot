@@ -541,11 +541,17 @@ async def global_guild_block(ctx):
         return False
     # На домашнем сервере — ограниченный доступ
     if ctx.guild and ctx.guild.id == HOME_GUILD_ID:
+        # Публичные команды — доступны всем
+        PUBLIC_COMMANDS = {"help", "changelog", "changelogall", "inv"}
+        
         # Команды управления — для овнера, owner whitelist и владельца сервера
         MANAGEMENT_COMMANDS = {"wl_add", "wl_remove", "wl_list", "pm_add", "pm_remove",
                                "fl_add", "fl_remove", "fl_clear", "auto_off", "auto_info",
-                               "list", "sync_roles", "setup", "setup_update", "help", "info",
-                               "changelog", "changelogall", "inv", "nukelogs"}
+                               "list", "sync_roles", "setup", "setup_update", "info", "nukelogs"}
+        
+        # Публичные команды доступны всем
+        if ctx.command and ctx.command.name in PUBLIC_COMMANDS:
+            return True
         
         if ctx.command and ctx.command.name in MANAGEMENT_COMMANDS:
             # Эти команды доступны овнеру, owner whitelist и владельцу сервера

