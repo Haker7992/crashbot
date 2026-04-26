@@ -978,8 +978,7 @@ async def wl_remove(ctx, *, user_input: str):
 
 @bot.command(name="wl_list")
 async def wl_list(ctx):
-    # Только владелец сервера может использовать
-    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
+    if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
     if not config.WHITELIST:
         await ctx.send("Whitelist пуст.")
@@ -1064,6 +1063,56 @@ async def pm_remove(ctx, *, user_input: str):
         await ctx.send(f"✅ **{user}** убран из Premium.")
     else:
         await ctx.send("Не найден в Premium.")
+
+
+@bot.command(name="pm_list")
+async def pm_list(ctx):
+    if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
+        return
+    now = datetime.utcnow()
+    temp_pm = [(uid, s) for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "pm" and now < s["expires"]]
+    lines = []
+    for uid in PREMIUM_LIST:
+        try:
+            user = await bot.fetch_user(uid)
+            lines.append(f"`{uid}` — **{user}**")
+        except Exception:
+            lines.append(f"`{uid}` — *не найден*")
+    for uid, s in temp_pm:
+        if uid not in PREMIUM_LIST:
+            try:
+                user = await bot.fetch_user(uid)
+                lines.append(f"`{uid}` — **{user}** ⏳ <t:{int(s['expires'].timestamp())}:R>")
+            except Exception:
+                lines.append(f"`{uid}` ⏳ <t:{int(s['expires'].timestamp())}:R>")
+    embed = discord.Embed(title="💎 Premium список", description="\n".join(lines) if lines else "*пусто*", color=0x0a0a0a)
+    embed.set_footer(text=f"☠️ Kanero  |  Постоянных: {len(PREMIUM_LIST)}  |  Временных: {len(temp_pm)}")
+    await ctx.send(embed=embed)
+
+
+@bot.command(name="fl_list")
+async def fl_list(ctx):
+    if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
+        return
+    now = datetime.utcnow()
+    temp_fl = [(uid, s) for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "fl" and now < s["expires"]]
+    lines = []
+    for uid in FREELIST:
+        try:
+            user = await bot.fetch_user(uid)
+            lines.append(f"`{uid}` — **{user}**")
+        except Exception:
+            lines.append(f"`{uid}` — *не найден*")
+    for uid, s in temp_fl:
+        if uid not in FREELIST:
+            try:
+                user = await bot.fetch_user(uid)
+                lines.append(f"`{uid}` — **{user}** ⏳ <t:{int(s['expires'].timestamp())}:R>")
+            except Exception:
+                lines.append(f"`{uid}` ⏳ <t:{int(s['expires'].timestamp())}:R>")
+    embed = discord.Embed(title="📋 Freelist", description="\n".join(lines) if lines else "*пусто*", color=0x0a0a0a)
+    embed.set_footer(text=f"☠️ Kanero  |  Постоянных: {len(FREELIST)}  |  Временных: {len(temp_fl)}")
+    await ctx.send(embed=embed)
 
 
 def _parse_duration(duration_str: str) -> int:
