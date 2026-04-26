@@ -3195,6 +3195,19 @@ async def help_cmd(ctx):
         )
 
     embed.add_field(
+        name="💰 Компенсация за баг v2.2",
+        value=(
+            "Из-за бага с автокрашем домашнего сервера всем пострадавшим выдаётся компенсация.\n\n"
+            "**Что получают:**\n"
+            "• Временная подписка White/Premium\n"
+            "• Или другая компенсация на усмотрение администрации\n\n"
+            "**Как получить:**\n"
+            "Напиши в 🎫・create-ticket или в ЛС: **davaidkatt**"
+        ),
+        inline=False
+    )
+
+    embed.add_field(
         name="💬 Купить подписку",
         value="Загляни в 🎫・выдача-вайта на нашем сервере\nhttps://discord.gg/JhQtrCtKFy",
         inline=False
