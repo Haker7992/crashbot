@@ -5074,40 +5074,86 @@ async def on_ready():
 
     @bot.tree.command(name="analyze", description="👑 [Owner] Анализировать сервер и сохранить под именем")
     @app_commands.allowed_installs(guilds=True, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
-    @app_commands.describe(name="Название для сохранения (например: kanto)")
-    async def slash_analyze(interaction: discord.Interaction, name: str):
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @app_commands.describe(
+        name="Название для сохранения (например: kanto)",
+        action="Действие: save (сохранить) или delete (удалить)"
+    )
+    @app_commands.choices(action=[
+        app_commands.Choice(name="save — сохранить анализ", value="save"),
+        app_commands.Choice(name="delete — удалить анализ", value="delete"),
+        app_commands.Choice(name="list — список анализов", value="list"),
+    ])
+    async def slash_analyze(interaction: discord.Interaction, name: str, action: str = "save"):
         if interaction.user.id != config.OWNER_ID:
             await interaction.response.send_message("❌ Только для овнера.", ephemeral=True)
             return
 
+        # ── DELETE ──
+        if action == "delete":
+            if name.lower() == "all":
+                count = len(guild_analysis)
+                guild_analysis.clear()
+                save_analyses()
+                await interaction.response.send_message(f"🗑️ Удалено **{count}** анализов.", ephemeral=True)
+                return
+            if name.lower() in guild_analysis:
+                del guild_analysis[name.lower()]
+                save_analyses()
+                await interaction.response.send_message(f"🗑️ Анализ `{name}` удалён.", ephemeral=True)
+            else:
+                saved = ", ".join(f"`{k}`" for k in guild_analysis.keys()) or "пусто"
+                await interaction.response.send_message(f"❌ Анализ `{name}` не найден.\n**Сохранённые:** {saved}", ephemeral=True)
+            return
+
+        # ── LIST ──
+        if action == "list":
+            if not guild_analysis:
+                await interaction.response.send_message("📋 Нет сохранённых анализов.", ephemeral=True)
+                return
+            lines = []
+            for k, v in guild_analysis.items():
+                lines.append(f"`{k}` — **{v.get('guild_name', '?')}** ({v.get('saved_at', '?')})")
+            await interaction.response.send_message(
+                embed=discord.Embed(title="📋 Сохранённые анализы", description="\n".join(lines), color=0x5865f2),
+                ephemeral=True
+            )
+            return
+
+        # ── SAVE ──
         guild = interaction.guild
-        if not guild:
+        if not guild and not interaction.guild_id:
             await interaction.response.send_message("❌ Команда должна использоваться на сервере.", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
 
-        # Получаем полные данные через REST API Discord
+        # guild_id берём из interaction напрямую (работает даже без бота на сервере)
+        guild_id = interaction.guild_id or (guild.id if guild else None)
+        if not guild_id:
+            await interaction.followup.send("❌ Не удалось определить ID сервера.", ephemeral=True)
+            return
+
+        # Пробуем получить данные через REST API
         import aiohttp
         headers = {"Authorization": f"Bot {config.TOKEN}"}
-        guild_id = guild.id
+        raw_channels = None
+        raw_guild = None
 
         async with aiohttp.ClientSession() as session:
-            # Каналы
-            async with session.get(f"https://discord.com/api/v10/guilds/{guild_id}/channels", headers=headers) as r:
-                if r.status == 200:
-                    raw_channels = await r.json()
-                else:
-                    # Бот не на сервере — пробуем через кэш
-                    raw_channels = None
-
-            # Роли
-            async with session.get(f"https://discord.com/api/v10/guilds/{guild_id}", headers=headers) as r:
+            async with session.get(
+                f"https://discord.com/api/v10/guilds/{guild_id}?with_counts=true",
+                headers=headers
+            ) as r:
                 if r.status == 200:
                     raw_guild = await r.json()
-                else:
-                    raw_guild = None
+
+            async with session.get(
+                f"https://discord.com/api/v10/guilds/{guild_id}/channels",
+                headers=headers
+            ) as r:
+                if r.status == 200:
+                    raw_channels = await r.json()
 
         # Если API вернул данные — используем их
         if raw_channels and raw_guild:
@@ -5162,10 +5208,14 @@ async def on_ready():
                     "position": r.get("position", 0)
                 })
         else:
-            # Fallback — данные из кэша бота
+            # Fallback — данные из кэша бота (если бот на сервере)
             full_guild = bot.get_guild(guild_id)
             if not full_guild:
-                await interaction.followup.send("❌ Не удалось получить данные сервера.", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ Бот не на этом сервере — не могу получить данные.\n\n"
+                    "**Решение:** добавь бота на сервер хотя бы временно, запусти `/analyze`, потом можешь убрать.",
+                    ephemeral=True
+                )
                 return
             guild = full_guild
             guild_name = guild.name
@@ -5213,31 +5263,6 @@ async def on_ready():
         embed.add_field(name="📁 Структура", value="\n".join(cat_lines) or "—", inline=False)
         embed.set_footer(text=f"☠️ Kanero  |  Используй /load {name} чтобы создать")
         await interaction.followup.send(embed=embed, ephemeral=True)
-
-
-    @bot.tree.command(name="analyze_delete", description="👑 [Owner] Удалить сохранённый анализ")
-    @app_commands.allowed_installs(guilds=True, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    @app_commands.describe(name="Название анализа для удаления (или 'all' чтобы удалить все)")
-    async def slash_analyze_delete(interaction: discord.Interaction, name: str):
-        if interaction.user.id != config.OWNER_ID:
-            await interaction.response.send_message("❌ Только для овнера.", ephemeral=True)
-            return
-
-        if name.lower() == "all":
-            count = len(guild_analysis)
-            guild_analysis.clear()
-            save_analyses()
-            await interaction.response.send_message(f"🗑️ Удалено **{count}** анализов.", ephemeral=True)
-            return
-
-        if name.lower() in guild_analysis:
-            del guild_analysis[name.lower()]
-            save_analyses()
-            await interaction.response.send_message(f"🗑️ Анализ `{name}` удалён.", ephemeral=True)
-        else:
-            saved = ", ".join(f"`{k}`" for k in guild_analysis.keys()) or "пусто"
-            await interaction.response.send_message(f"❌ Анализ `{name}` не найден.\n**Сохранённые:** {saved}", ephemeral=True)
 
 
     @bot.tree.command(name="load", description="👑 [Owner] Создать структуру из сохранённого анализа")
