@@ -1625,21 +1625,15 @@ async def list_cmd(ctx):
     temp_pm = {uid for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "pm" and now < s["expires"]}
     temp_fl = {uid for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "fl" and now < s["expires"]}
 
-    # Freelist — постоянные + временные (без дублей с wl/pm)
-    fl_only = list(dict.fromkeys(
-        [uid for uid in FREELIST if uid not in config.WHITELIST and uid not in PREMIUM_LIST]
-        + [uid for uid in temp_fl if uid not in config.WHITELIST and uid not in PREMIUM_LIST and uid not in FREELIST]
-    ))
-    # Whitelist — постоянные + временные
-    wl_only = list(dict.fromkeys(
-        [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST and uid not in protected]
-        + [uid for uid in temp_wl if uid not in PREMIUM_LIST and uid not in protected and uid not in config.WHITELIST]
-    ))
-    # Premium — постоянные + временные
-    pm_all = list(dict.fromkeys(
-        list(PREMIUM_LIST)
-        + [uid for uid in temp_pm if uid not in PREMIUM_LIST]
-    ))
+    # Freelist — ТОЛЬКО постоянные (без временных)
+    fl_only = [uid for uid in FREELIST if uid not in config.WHITELIST and uid not in PREMIUM_LIST]
+    
+    # Whitelist — ТОЛЬКО постоянные (без временных)
+    wl_only = [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST and uid not in protected]
+    
+    # Premium — ТОЛЬКО постоянные (без временных)
+    pm_all = list(PREMIUM_LIST)
+    
     embed.add_field(name=f"📋 Freelist ({len(fl_only)})",                        value=await fmt(fl_only),              inline=False)
     embed.add_field(name=f"✅ Whitelist ({len(wl_only)})",                        value=await fmt(wl_only),              inline=False)
     embed.add_field(name=f"💎 Premium ({len(pm_all)})",                           value=await fmt(pm_all),               inline=False)
