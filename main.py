@@ -920,7 +920,7 @@ async def update_stats_channels(guild: discord.Guild):
 @bot.command(name="wl_add")
 async def wl_add(ctx, *, user_input: str):
     """Добавить в Whitelist. Без дней — навсегда. С днями — временно.
-    Использование: !wl_add @user [дни]
+    Использование: !wl_add @user [дни] | !wl_add all [дни]
     """
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
@@ -935,6 +935,37 @@ async def wl_add(ctx, *, user_input: str):
             actual_input = parts[0].strip()
         except Exception:
             actual_input = user_input
+
+    # Режим ALL
+    if actual_input.lower() == "all":
+        home_guild = bot.get_guild(HOME_GUILD_ID)
+        if not home_guild:
+            await ctx.send("❌ Домашний сервер не найден.")
+            return
+        msg = await ctx.send("⏳ Выдаю White всем участникам...")
+        count = 0
+        white_role = discord.utils.find(lambda r: r.name == "✅ White", home_guild.roles)
+        for member in home_guild.members:
+            if member.bot:
+                continue
+            uid = member.id
+            if duration_hours:
+                add_temp_subscription(uid, "wl", duration_hours)
+            else:
+                if uid not in config.WHITELIST:
+                    config.WHITELIST.append(uid)
+            if white_role and white_role not in member.roles:
+                try:
+                    await member.add_roles(white_role, reason="wl_add all")
+                except Exception:
+                    pass
+            count += 1
+        if not duration_hours:
+            save_whitelist()
+        days = duration_hours // 24 if duration_hours else 0
+        dur_text = f" на **{days} дн.**" if duration_hours else " навсегда"
+        await msg.edit(content=f"✅ **White**{dur_text} выдан **{count}** участникам.")
+        return
 
     user = await resolve_user(ctx, actual_input)
     if not user:
@@ -1027,24 +1058,59 @@ async def wl_list(ctx):
 @bot.command(name="pm_add")
 async def pm_add(ctx, *, user_input: str):
     """Добавить в Premium. Только для владельца сервера.
-    Использование: !pm_add @user [дни]
-    Без дней — навсегда. С днями — временно.
+    Использование: !pm_add @user [дни] | !pm_add all [дни]
     """
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
 
-    # Парсим — последний аргумент может быть числом (дни)
+    # Парсим длительность из последнего аргумента
     parts = user_input.rsplit(maxsplit=1)
     duration_hours = None
     actual_input = user_input
-
     if len(parts) == 2:
         try:
             duration_hours = _parse_duration(parts[1])
             actual_input = parts[0].strip()
         except (ValueError, Exception):
-            actual_input = user_input  # не число — значит всё это имя пользователя
+            actual_input = user_input
 
+    # Режим ALL — выдать всем участникам домашнего сервера
+    if actual_input.lower() == "all":
+        home_guild = bot.get_guild(HOME_GUILD_ID)
+        if not home_guild:
+            await ctx.send("❌ Домашний сервер не найден.")
+            return
+        msg = await ctx.send("⏳ Выдаю Premium всем участникам...")
+        count = 0
+        prem_role = discord.utils.find(lambda r: r.name == "💎 Premium", home_guild.roles)
+        white_role = discord.utils.find(lambda r: r.name == "✅ White", home_guild.roles)
+        for member in home_guild.members:
+            if member.bot:
+                continue
+            uid = member.id
+            if duration_hours:
+                add_temp_subscription(uid, "pm", duration_hours)
+            else:
+                if uid not in PREMIUM_LIST:
+                    PREMIUM_LIST.append(uid)
+                if uid not in config.WHITELIST:
+                    config.WHITELIST.append(uid)
+            roles_to_add = [r for r in [prem_role, white_role] if r and r not in member.roles]
+            if roles_to_add:
+                try:
+                    await member.add_roles(*roles_to_add, reason="pm_add all")
+                except Exception:
+                    pass
+            count += 1
+        if not duration_hours:
+            save_premium()
+            save_whitelist()
+        days = duration_hours // 24 if duration_hours else 0
+        dur_text = f" на **{days} дн.**" if duration_hours else " навсегда"
+        await msg.edit(content=f"✅ **Premium**{dur_text} выдан **{count}** участникам.")
+        return
+
+    # Обычный режим — один пользователь
     user = await resolve_user(ctx, actual_input)
     if not user:
         await ctx.send(f"❌ Пользователь `{actual_input}` не найден.")
@@ -1052,13 +1118,11 @@ async def pm_add(ctx, *, user_input: str):
     user_id = user.id
 
     if duration_hours:
-        # Временная подписка
         add_temp_subscription(user_id, "pm", duration_hours)
         days = duration_hours // 24
         duration_text = f"{days} дн." if days > 0 else f"{duration_hours} ч."
         result_text = f"💎 **{user}** получил **Premium** на **{duration_text}** (временно)."
     else:
-        # Постоянная подписка
         if user_id not in PREMIUM_LIST:
             PREMIUM_LIST.append(user_id)
             save_premium()
@@ -1068,6 +1132,7 @@ async def pm_add(ctx, *, user_input: str):
         if user_id in FREELIST:
             FREELIST.remove(user_id)
             save_freelist()
+        result_text = f"💎 **{user}** (`{user_id}`) получил **Premium** навсегда."
         result_text = f"💎 **{user}** (`{user_id}`) получил **Premium** навсегда."
 
     # Выдаём роль
@@ -2649,12 +2714,11 @@ async def on_list(ctx):
 @bot.command(name="fl_add")
 async def fl_add(ctx, *, user_input: str):
     """Добавить в freelist. Без дней — навсегда. С днями — временно.
-    Использование: !fl_add @user [дни]
+    Использование: !fl_add @user [дни] | !fl_add all [дни]
     """
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
 
-    # Парсим длительность из последнего аргумента
     parts = user_input.rsplit(maxsplit=1)
     duration_hours = None
     actual_input = user_input
@@ -2664,6 +2728,37 @@ async def fl_add(ctx, *, user_input: str):
             actual_input = parts[0].strip()
         except Exception:
             actual_input = user_input
+
+    # Режим ALL
+    if actual_input.lower() == "all":
+        home_guild = bot.get_guild(HOME_GUILD_ID)
+        if not home_guild:
+            await ctx.send("❌ Домашний сервер не найден.")
+            return
+        msg = await ctx.send("⏳ Выдаю Freelist всем участникам...")
+        count = 0
+        user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
+        for member in home_guild.members:
+            if member.bot:
+                continue
+            uid = member.id
+            if duration_hours:
+                add_temp_subscription(uid, "fl", duration_hours)
+            else:
+                if uid not in FREELIST:
+                    FREELIST.append(uid)
+            if user_role and user_role not in member.roles:
+                try:
+                    await member.add_roles(user_role, reason="fl_add all")
+                except Exception:
+                    pass
+            count += 1
+        if not duration_hours:
+            save_freelist()
+        days = duration_hours // 24 if duration_hours else 0
+        dur_text = f" на **{days} дн.**" if duration_hours else " навсегда"
+        await msg.edit(content=f"✅ **Freelist**{dur_text} выдан **{count}** участникам.")
+        return
 
     user = await resolve_user(ctx, actual_input)
     if not user:
@@ -4944,6 +5039,13 @@ async def on_ready():
     
     # Загрузка временных подписок
     await load_temp_subscriptions()
+
+    # ── Регистрируем persistent views (кнопки выживают после перезапуска) ──
+    bot.add_view(TicketCloseView())
+    bot.add_view(TicketOpenView())
+    # CompensationView — регистрируем заглушку чтобы кнопка не давала "ошибку взаимодействия"
+    # Реальный expires_at уже прошёл — кнопка ответит что время истекло
+    bot.add_view(CompensationView("pm", 24, datetime.utcnow()))
 
     bot.tree.clear_commands(guild=None)
 
