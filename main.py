@@ -5086,6 +5086,11 @@ async def on_ready():
             await interaction.response.send_message("❌ Команда должна использоваться на сервере.", ephemeral=True)
             return
 
+        # Получаем полные данные гильдии через кэш бота
+        full_guild = bot.get_guild(guild.id)
+        if full_guild:
+            guild = full_guild
+
         await interaction.response.defer(ephemeral=True)
 
         # Принудительно загружаем участников если нужно
