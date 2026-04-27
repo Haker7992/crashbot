@@ -2156,6 +2156,11 @@ async def setup(ctx):
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
     }, topic="Информация о покупке доступа и помощи")
+    await guild.create_text_channel("📋・changelog", category=cat_info, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(True, False),
+        role_user: _ow(True, False), role_white: _ow(True, False),
+        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="История обновлений — !changelogall")
 
     # ━━ 📢 ОСНОВНОЕ — Guest+ читает ━━
     cat_main = await guild.create_category("━━━━ 📢 ОСНОВНОЕ ━━━━", overwrites={
@@ -2171,7 +2176,6 @@ async def setup(ctx):
         }
     rules_ch  = await guild.create_text_channel("📜・правила",  category=cat_main, overwrites=readonly_ow(), topic="Правила сервера")
     await guild.create_text_channel("📰・новости",              category=cat_main, overwrites=readonly_ow(), topic="Новости Kanero — только Owner пишет")
-    await guild.create_text_channel("📋・changelog",            category=cat_main, overwrites=readonly_ow(), topic="История обновлений — !changelogall")
     addbot_ch = await guild.create_text_channel("🤖・addbot",   category=cat_main, overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, True),
         role_user: _ow(True, True), role_white: _ow(True, True),
@@ -2599,6 +2603,19 @@ async def setup_update(ctx):
                 results.append("✅ Создан ℹ️・info")
             except Exception as e:
                 results.append(f"❌ ℹ️・info: {e}")
+        if not any("changelog" in n for n in existing_info):
+            try:
+                ow_changelog = {guild.default_role: _ow()}
+                if role_guest: ow_changelog[role_guest] = _ow(True, False)
+                if role_user:  ow_changelog[role_user]  = _ow(True, False)
+                if role_white: ow_changelog[role_white] = _ow(True, False)
+                if role_prem:  ow_changelog[role_prem]  = _ow(True, False)
+                if role_owner: ow_changelog[role_owner] = _ow(True, True)
+                if role_dev:   ow_changelog[role_dev]   = _ow(True, True)
+                await guild.create_text_channel("📋・changelog", category=cat_info, overwrites=ow_changelog, topic="История обновлений — !changelogall")
+                results.append("✅ Создан 📋・changelog")
+            except Exception as e:
+                results.append(f"❌ 📋・changelog: {e}")
 
     # 7. Обновляем позиции ролей
     try:
