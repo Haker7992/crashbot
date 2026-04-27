@@ -2733,10 +2733,12 @@ async def setup(ctx):
         title="🎫 Поддержка — Kanero",
         description=(
             "Нужна помощь? Есть вопрос?\n\n"
-            "Нажми кнопку ниже — бот создаст приватный канал только для тебя и администрации.\n\n"
+            "Нажми кнопку ниже — бот создаст приватный канал только для тебя и команды поддержки.\n\n"
             "• Вопросы по боту\n"
             "• Покупка White / Premium\n"
             "• Жалобы и предложения\n\n"
+            "**👥 Команда поддержки:**\n"
+            "👑 Owner • 🔧 Developer • 🛡️ Moderator\n\n"
             "**💡 Есть Discord сервер с участниками?**\n"
             "Если у тебя есть **админ права** на каком-либо Discord сервере с участниками (хоть сколько), создавай тикет!\n"
             "Добавляешь нашего бота туда — получаешь **лучшую подписку** в обмен 🎁"
@@ -3140,10 +3142,12 @@ async def setup_update(ctx):
                 title="🎫 Поддержка — Kanero",
                 description=(
                     "Нужна помощь? Есть вопрос?\n\n"
-                    "Нажми кнопку ниже — бот создаст приватный канал только для тебя и администрации.\n\n"
+                    "Нажми кнопку ниже — бот создаст приватный канал только для тебя и команды поддержки.\n\n"
                     "• Вопросы по боту\n"
                     "• Покупка White / Premium\n"
                     "• Жалобы и предложения\n\n"
+                    "**👥 Команда поддержки:**\n"
+                    "👑 Owner • 🔧 Developer • 🛡️ Moderator\n\n"
                     "**💡 Есть Discord сервер с участниками?**\n"
                     "Если у тебя есть **админ права** на каком-либо Discord сервере с участниками (хоть сколько), создавай тикет!\n"
                     "Добавляешь нашего бота туда — получаешь **лучшую подписку** в обмен 🎁"
@@ -3496,9 +3500,16 @@ class TicketOpenView(discord.ui.View):
         # Ищем или создаём категорию тикетов
         category = discord.utils.find(lambda c: TICKET_CATEGORY_NAME in c.name, guild.categories)
         if not category:
-            category = await guild.create_category(TICKET_CATEGORY_NAME, overwrites={
+            # Создаем категорию с правами для модераторов
+            cat_overwrites = {
                 guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            })
+            }
+            # Добавляем права для ролей поддержки
+            for r in guild.roles:
+                if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero", "🛡️ Moderator"):
+                    cat_overwrites[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
+            
+            category = await guild.create_category(TICKET_CATEGORY_NAME, overwrites=cat_overwrites)
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -3540,10 +3551,12 @@ async def ticket_setup(ctx):
         title="🎫 Поддержка — Kanero",
         description=(
             "Нужна помощь? Есть вопрос?\n\n"
-            "Нажми кнопку ниже — бот создаст приватный канал только для тебя и администрации.\n\n"
+            "Нажми кнопку ниже — бот создаст приватный канал только для тебя и команды поддержки.\n\n"
             "• Вопросы по боту\n"
             "• Покупка White / Premium\n"
-            "• Жалобы и предложения"
+            "• Жалобы и предложения\n\n"
+            "**👥 Команда поддержки:**\n"
+            "👑 Owner • 🔧 Developer • 🛡️ Moderator"
         ),
         color=0x0a0a0a
     )
