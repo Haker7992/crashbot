@@ -1869,6 +1869,37 @@ async def sync_roles_cmd(ctx):
     await msg.edit(content=None, embed=embed)
 
 
+@bot.command(name="temp_check")
+async def temp_check(ctx):
+    """Проверить временные подписки. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+    
+    now = datetime.utcnow()
+    embed = discord.Embed(title="⏳ Временные подписки", color=0x0a0a0a)
+    
+    if not TEMP_SUBSCRIPTIONS:
+        embed.description = "❌ Нет активных временных подписок"
+    else:
+        lines = []
+        for uid, sub in TEMP_SUBSCRIPTIONS.items():
+            expires_ts = int(sub["expires"].timestamp())
+            status = "✅ Активна" if now < sub["expires"] else "❌ Истекла"
+            sub_names = {"wl": "✅ White", "pm": "💎 Premium", "fl": "📋 Freelist"}
+            sub_name = sub_names.get(sub["type"], sub["type"])
+            
+            try:
+                user = await bot.fetch_user(uid)
+                lines.append(f"`{uid}` — **{user}**\n{sub_name} | <t:{expires_ts}:R> | {status}")
+            except Exception:
+                lines.append(f"`{uid}` — *не найден*\n{sub_name} | <t:{expires_ts}:R> | {status}")
+        
+        embed.description = "\n\n".join(lines)
+    
+    embed.set_footer(text=f"☠️ Kanero  |  Всего: {len(TEMP_SUBSCRIPTIONS)}")
+    await ctx.send(embed=embed)
+
+
 @bot.command(name="fix_role")
 async def fix_role_cmd(ctx, user: discord.Member = None):
     """Проверяет и выдает роль конкретному пользователю, если он есть в списках."""
@@ -2221,23 +2252,26 @@ async def setup(ctx):
         await ctx.send(embed=embed)
         return
     guild = ctx.guild
-    msg = await ctx.send("⚙️ Пересоздаю структуру сервера... (это займёт ~30 сек)")
+    msg = await ctx.send("⚙️ Пересоздаю структуру сервера... (ускоренная версия ~15-20 сек)")
 
-    # ── 1. Удаляем все каналы и роли ──
+    # ── 1. ПАРАЛЛЕЛЬНОЕ удаление всех каналов и ролей ──
+    delete_tasks = []
+    
+    # Добавляем задачи удаления каналов
     for ch in guild.channels:
-        try:
-            await ch.delete()
-        except Exception:
-            pass
+        delete_tasks.append(ch.delete())
+    
+    # Добавляем задачи удаления ролей
     bot_role = guild.me.top_role
     for r in guild.roles:
         if r < bot_role and not r.is_default():
-            try:
-                await r.delete()
-            except Exception:
-                pass
+            delete_tasks.append(r.delete())
+    
+    # Выполняем все удаления параллельно
+    if delete_tasks:
+        await asyncio.gather(*delete_tasks, return_exceptions=True)
 
-    # ── 2. Создаём роли с правами ──
+    # ── 2. ПАРАЛЛЕЛЬНОЕ создание ролей ──
     guest_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False)
     user_perms    = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=False, speak=False, use_application_commands=False)
     white_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=True, speak=True, use_voice_activation=True, stream=True, use_application_commands=False)
@@ -2245,9 +2279,31 @@ async def setup(ctx):
     owner_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, manage_channels=True, manage_roles=True, manage_webhooks=True, kick_members=True, ban_members=True, manage_nicknames=True, view_audit_log=True, mention_everyone=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, mute_members=True, deafen_members=True, priority_speaker=True)
     dev_perms     = discord.Permissions(administrator=True)
 
-    role_guest   = await guild.create_role(name="👤 Guest",     color=discord.Color.from_rgb(120, 120, 120), permissions=guest_perms,   hoist=False, mentionable=False)
-    role_user    = await guild.create_role(name="👥 User",      color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms,    hoist=True,  mentionable=False)
-    role_white   = await guild.create_role(name="✅ White",     color=discord.Color.from_rgb(85, 170, 255),  permissions=white_perms,   hoist=True,  mentionable=False)
+    # Создаем все роли параллельно
+    role_tasks = [
+        guild.create_role(name="👤 Guest",     color=discord.Color.from_rgb(120, 120, 120), permissions=guest_perms,   hoist=False, mentionable=False),
+        guild.create_role(name="👥 User",      color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms,    hoist=True,  mentionable=False),
+        guild.create_role(name="✅ White",     color=discord.Color.from_rgb(85, 170, 255),  permissions=white_perms,   hoist=True,  mentionable=False),
+        guild.create_role(name="💎 Premium",   color=discord.Color.from_rgb(180, 80, 255),  permissions=premium_perms, hoist=True,  mentionable=False),
+        guild.create_role(name="🛡️ Moderator", color=discord.Color.from_rgb(255, 140, 0),   permissions=premium_perms, hoist=True,  mentionable=False),
+        guild.create_role(name="🎬 Media",      color=discord.Color.from_rgb(255, 105, 180), permissions=premium_perms, hoist=True,  mentionable=False),
+        guild.create_role(name="🤝 Friend",     color=discord.Color.from_rgb(50, 205, 50),   permissions=premium_perms, hoist=True,  mentionable=False),
+        guild.create_role(name="👑 Owner",      color=discord.Color.from_rgb(255, 200, 0),   permissions=owner_perms,   hoist=True,  mentionable=False),
+        guild.create_role(name="🔧 Developer",  color=discord.Color.from_rgb(255, 60, 60),   permissions=dev_perms,     hoist=True,  mentionable=False)
+    ]
+    
+    roles_result = await asyncio.gather(*role_tasks, return_exceptions=True)
+    
+    # Извлекаем созданные роли из результатов
+    role_guest = roles_result[0] if not isinstance(roles_result[0], Exception) else None
+    role_user = roles_result[1] if not isinstance(roles_result[1], Exception) else None
+    role_white = roles_result[2] if not isinstance(roles_result[2], Exception) else None
+    role_premium = roles_result[3] if not isinstance(roles_result[3], Exception) else None
+    role_mod = roles_result[4] if not isinstance(roles_result[4], Exception) else None
+    role_media = roles_result[5] if not isinstance(roles_result[5], Exception) else None
+    role_friend = roles_result[6] if not isinstance(roles_result[6], Exception) else None
+    role_owner = roles_result[7] if not isinstance(roles_result[7], Exception) else None
+    role_dev = roles_result[8] if not isinstance(roles_result[8], Exception) else None
     role_premium = await guild.create_role(name="💎 Premium",   color=discord.Color.from_rgb(180, 80, 255),  permissions=premium_perms, hoist=True,  mentionable=False)
     role_owner   = await guild.create_role(name="👑 Owner",      color=discord.Color.from_rgb(255, 200, 0),   permissions=owner_perms,   hoist=True,  mentionable=False)
     role_dev     = await guild.create_role(name="🔧 Developer",  color=discord.Color.from_rgb(255, 60, 60),   permissions=dev_perms,     hoist=True,  mentionable=False)
@@ -2714,7 +2770,7 @@ async def setup(ctx):
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="☠️ Kanero  |  !giverole @юзер @роль")
+    embed.set_footer(text="☠️ Kanero  |  Ускоренная версия setup  |  !giverole @юзер @роль")
     await msg.edit(content=None, embed=embed)
 
 
