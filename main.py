@@ -1882,7 +1882,10 @@ async def temp_check(ctx):
         embed.description = "❌ Нет активных временных подписок"
     else:
         lines = []
-        for uid, sub in TEMP_SUBSCRIPTIONS.items():
+        # Создаем копию словаря чтобы избежать ошибки изменения размера во время итерации
+        temp_copy = dict(TEMP_SUBSCRIPTIONS)
+        
+        for uid, sub in temp_copy.items():
             expires_ts = int(sub["expires"].timestamp())
             status = "✅ Активна" if now < sub["expires"] else "❌ Истекла"
             sub_names = {"wl": "✅ White", "pm": "💎 Premium", "fl": "📋 Freelist"}
@@ -1894,7 +1897,7 @@ async def temp_check(ctx):
             except Exception:
                 lines.append(f"`{uid}` — *не найден*\n{sub_name} | <t:{expires_ts}:R> | {status}")
         
-        embed.description = "\n\n".join(lines)
+        embed.description = "\n\n".join(lines) if lines else "❌ Нет временных подписок"
     
     embed.set_footer(text=f"☠️ Kanero  |  Всего: {len(TEMP_SUBSCRIPTIONS)}")
     await ctx.send(embed=embed)
