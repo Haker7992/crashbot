@@ -4943,9 +4943,7 @@ async def on_ready():
     pm = await db_get("data", "premium")
     if pm is not None:
         PREMIUM_LIST = pm
-    st = await db_get("data", "spam_text")
-    if st is not None:
-        config.SPAM_TEXT = st
+    # spam_text всегда берётся из config.py (не перезаписывается из MongoDB)
     asn = await db_get("data", "auto_super_nuke")
     if asn is not None:
         AUTO_SUPER_NUKE = asn.get("enabled", False)
