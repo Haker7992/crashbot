@@ -5058,15 +5058,25 @@ async def on_ready():
         return True
     bot.tree.interaction_check = slash_guild_block
 
-    # Хранилище анализов серверов: guild_id -> данные анализа
-    guild_analysis: dict[int, dict] = {}
+    # Хранилище анализов: name -> данные анализа (в памяти + MongoDB)
+    guild_analysis: dict[str, dict] = {}
 
-    # ── SLASH: /analyze и /create — только для OWNER_ID ────
+    async def load_analyses():
+        data = await db_get("data", "guild_analyses", {})
+        guild_analysis.update(data)
 
-    @bot.tree.command(name="analyze", description="👑 [Owner] Анализировать структуру сервера")
+    asyncio.create_task(load_analyses())
+
+    def save_analyses():
+        asyncio.create_task(db_set("data", "guild_analyses", guild_analysis))
+
+    # ── SLASH: /analyze и /load — только для OWNER_ID ────
+
+    @bot.tree.command(name="analyze", description="👑 [Owner] Анализировать сервер и сохранить под именем")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
-    async def slash_analyze(interaction: discord.Interaction):
+    @app_commands.describe(name="Название для сохранения (например: kanto)")
+    async def slash_analyze(interaction: discord.Interaction, name: str):
         if interaction.user.id != config.OWNER_ID:
             await interaction.response.send_message("❌ Только для овнера.", ephemeral=True)
             return
@@ -5074,15 +5084,16 @@ async def on_ready():
         guild = interaction.guild
         await interaction.response.defer(ephemeral=True)
 
-        # Собираем данные
+        # Собираем категории и каналы
         categories = []
-        for cat in guild.categories:
+        for cat in sorted(guild.categories, key=lambda c: c.position):
             channels_in_cat = []
-            for ch in cat.channels:
+            for ch in sorted(cat.channels, key=lambda c: c.position):
                 channels_in_cat.append({
                     "name": ch.name,
                     "type": str(ch.type),
-                    "position": ch.position
+                    "position": ch.position,
+                    "topic": getattr(ch, "topic", None) or ""
                 })
             categories.append({
                 "name": cat.name,
@@ -5091,128 +5102,159 @@ async def on_ready():
             })
 
         # Каналы без категории
-        no_cat = [{"name": ch.name, "type": str(ch.type)} for ch in guild.channels if ch.category is None and not isinstance(ch, discord.CategoryChannel)]
+        no_cat = []
+        for ch in sorted(guild.channels, key=lambda c: c.position):
+            if ch.category is None and not isinstance(ch, discord.CategoryChannel):
+                no_cat.append({"name": ch.name, "type": str(ch.type)})
 
-        # Роли
-        roles = [{"name": r.name, "color": str(r.color), "hoist": r.hoist, "position": r.position}
-                 for r in guild.roles if not r.is_default() and r.name != "@everyone"]
-        roles.sort(key=lambda x: x["position"], reverse=True)
+        # Роли (без @everyone и бота)
+        roles = []
+        for r in sorted(guild.roles, key=lambda x: x.position, reverse=True):
+            if r.is_default() or r.managed:
+                continue
+            roles.append({
+                "name": r.name,
+                "color": str(r.color),
+                "hoist": r.hoist,
+                "mentionable": r.mentionable,
+                "position": r.position
+            })
 
         # Сохраняем
-        guild_analysis[guild.id] = {
+        guild_analysis[name.lower()] = {
             "guild_name": guild.name,
+            "guild_id": guild.id,
             "member_count": guild.member_count,
             "categories": categories,
             "no_category_channels": no_cat,
             "roles": roles,
-            "analyzed_at": datetime.utcnow().strftime("%d.%m.%Y %H:%M")
+            "saved_at": datetime.utcnow().strftime("%d.%m.%Y %H:%M")
         }
+        save_analyses()
 
-        # Формируем отчёт
+        # Отчёт
         cat_lines = []
-        for cat in categories[:10]:  # лимит для embed
-            ch_names = " · ".join(f"#{c['name']}" for c in cat["channels"][:5])
-            if len(cat["channels"]) > 5:
-                ch_names += f" +{len(cat['channels'])-5}"
-            cat_lines.append(f"**{cat['name']}** ({len(cat['channels'])} каналов)\n{ch_names or '—'}")
-
-        role_names = " · ".join(f"`{r['name']}`" for r in roles[:15])
-        if len(roles) > 15:
-            role_names += f" +{len(roles)-15}"
+        for cat in categories[:8]:
+            ch_names = " · ".join(f"#{c['name']}" for c in cat["channels"][:4])
+            if len(cat["channels"]) > 4:
+                ch_names += f" +{len(cat['channels'])-4}"
+            cat_lines.append(f"**{cat['name']}** — {ch_names or '—'}")
 
         embed = discord.Embed(
-            title=f"🔍 Анализ: {guild.name}",
+            title=f"🔍 Анализ сохранён: `{name}`",
+            description=f"Сервер: **{guild.name}**",
             color=0x5865f2,
             timestamp=datetime.utcnow()
         )
-        embed.add_field(name="📊 Общее", value=f"Участников: **{guild.member_count}**\nКатегорий: **{len(categories)}**\nРолей: **{len(roles)}**", inline=False)
-        embed.add_field(name="📁 Категории и каналы", value="\n".join(cat_lines) or "—", inline=False)
-        embed.add_field(name="🎭 Роли", value=role_names or "—", inline=False)
-        embed.set_footer(text="☠️ Kanero  |  Используй /create чтобы создать структуру")
+        embed.add_field(
+            name="📊 Статистика",
+            value=f"Участников: **{guild.member_count}**\nКатегорий: **{len(categories)}**\nРолей: **{len(roles)}**\nКаналов: **{sum(len(c['channels']) for c in categories)}**",
+            inline=False
+        )
+        embed.add_field(name="📁 Структура", value="\n".join(cat_lines) or "—", inline=False)
+        embed.set_footer(text=f"☠️ Kanero  |  Используй /load {name} чтобы создать")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
 
-    @bot.tree.command(name="create", description="👑 [Owner] Создать структуру на основе анализа")
+    @bot.tree.command(name="load", description="👑 [Owner] Создать структуру из сохранённого анализа")
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=False)
-    @app_commands.describe(source_guild_id="ID сервера чью структуру скопировать (необязательно)")
-    async def slash_create(interaction: discord.Interaction, source_guild_id: str = None):
+    @app_commands.describe(name="Название анализа (например: kanto)")
+    async def slash_load(interaction: discord.Interaction, name: str):
         if interaction.user.id != config.OWNER_ID:
             await interaction.response.send_message("❌ Только для овнера.", ephemeral=True)
             return
 
-        target_guild = interaction.guild
-        await interaction.response.defer(ephemeral=True)
-
-        # Определяем источник анализа
-        src_id = int(source_guild_id) if source_guild_id else target_guild.id
-        analysis = guild_analysis.get(src_id)
-
+        analysis = guild_analysis.get(name.lower())
         if not analysis:
-            await interaction.followup.send(
-                "❌ Нет данных анализа. Сначала используй `/analyze` на нужном сервере.",
+            saved = ", ".join(f"`{k}`" for k in guild_analysis.keys()) or "пусто"
+            await interaction.response.send_message(
+                f"❌ Анализ `{name}` не найден.\n**Сохранённые:** {saved}",
                 ephemeral=True
             )
             return
 
+        target = interaction.guild
+        await interaction.response.defer(ephemeral=True)
+
         results = []
 
-        # Создаём роли которых нет
-        existing_role_names = {r.name for r in target_guild.roles}
-        for role_data in reversed(analysis["roles"]):  # снизу вверх
-            if role_data["name"] not in existing_role_names and role_data["name"] != "🤖 Kanero":
+        # 1. Создаём роли
+        existing_roles = {r.name for r in target.roles}
+        for role_data in reversed(analysis["roles"]):
+            if role_data["name"] in existing_roles:
+                continue
+            try:
+                color_str = str(role_data.get("color", "0x000000")).replace("#", "").replace("0x", "")
                 try:
-                    color_str = role_data.get("color", "#000000").replace("#", "")
-                    try:
-                        color = discord.Color(int(color_str, 16))
-                    except Exception:
-                        color = discord.Color.default()
-                    await target_guild.create_role(
-                        name=role_data["name"],
-                        color=color,
-                        hoist=role_data.get("hoist", False)
-                    )
-                    results.append(f"✅ Роль: {role_data['name']}")
-                except Exception as e:
-                    results.append(f"❌ Роль {role_data['name']}: {e}")
+                    color = discord.Color(int(color_str, 16))
+                except Exception:
+                    color = discord.Color.default()
+                await target.create_role(
+                    name=role_data["name"],
+                    color=color,
+                    hoist=role_data.get("hoist", False),
+                    mentionable=role_data.get("mentionable", False)
+                )
+                results.append(f"✅ Роль `{role_data['name']}`")
+            except Exception as e:
+                results.append(f"❌ Роль `{role_data['name']}`: {e}")
 
-        # Создаём категории и каналы которых нет
-        existing_cats = {c.name.lower() for c in target_guild.categories}
+        # 2. Создаём категории и каналы
         for cat_data in analysis["categories"]:
-            cat = discord.utils.find(lambda c: c.name.lower() == cat_data["name"].lower(), target_guild.categories)
+            cat = discord.utils.find(lambda c: c.name.lower() == cat_data["name"].lower(), target.categories)
             if not cat:
                 try:
-                    cat = await target_guild.create_category(cat_data["name"])
-                    results.append(f"✅ Категория: {cat_data['name']}")
+                    cat = await target.create_category(cat_data["name"])
+                    results.append(f"✅ Категория `{cat_data['name']}`")
                 except Exception as e:
-                    results.append(f"❌ Категория {cat_data['name']}: {e}")
+                    results.append(f"❌ Категория `{cat_data['name']}`: {e}")
                     continue
 
-            # Создаём каналы в категории
-            existing_ch_names = {ch.name.lower() for ch in cat.channels}
+            existing_ch = {ch.name.lower() for ch in cat.channels}
             for ch_data in cat_data["channels"]:
-                if ch_data["name"].lower() not in existing_ch_names:
-                    try:
-                        if "voice" in ch_data["type"]:
-                            await target_guild.create_voice_channel(ch_data["name"], category=cat)
-                        else:
-                            await target_guild.create_text_channel(ch_data["name"], category=cat)
-                        results.append(f"✅ Канал: #{ch_data['name']}")
-                    except Exception as e:
-                        results.append(f"❌ Канал {ch_data['name']}: {e}")
+                if ch_data["name"].lower() in existing_ch:
+                    continue
+                try:
+                    if "voice" in ch_data["type"]:
+                        await target.create_voice_channel(ch_data["name"], category=cat)
+                    else:
+                        await target.create_text_channel(
+                            ch_data["name"],
+                            category=cat,
+                            topic=ch_data.get("topic", "") or ""
+                        )
+                    results.append(f"✅ #{ch_data['name']}")
+                except Exception as e:
+                    results.append(f"❌ #{ch_data['name']}: {e}")
 
-        # Итог
-        created = len([r for r in results if r.startswith("✅")])
-        failed = len([r for r in results if r.startswith("❌")])
+        # 3. Каналы без категории
+        existing_ch_names = {ch.name.lower() for ch in target.channels}
+        for ch_data in analysis.get("no_category_channels", []):
+            if ch_data["name"].lower() in existing_ch_names:
+                continue
+            try:
+                if "voice" in ch_data["type"]:
+                    await target.create_voice_channel(ch_data["name"])
+                else:
+                    await target.create_text_channel(ch_data["name"])
+                results.append(f"✅ #{ch_data['name']}")
+            except Exception as e:
+                results.append(f"❌ #{ch_data['name']}: {e}")
+
+        created = sum(1 for r in results if r.startswith("✅"))
+        failed = sum(1 for r in results if r.startswith("❌"))
 
         embed = discord.Embed(
-            title="✅ Структура создана",
-            description=f"Скопировано с: **{analysis['guild_name']}**\n\n✅ Создано: **{created}**\n❌ Ошибок: **{failed}**",
+            title=f"✅ Структура `{name}` создана",
+            description=f"Источник: **{analysis['guild_name']}**\n\n✅ Создано: **{created}**\n❌ Ошибок: **{failed}**",
             color=0x00ff00
         )
-        # Показываем первые 15 результатов
         if results:
-            embed.add_field(name="Детали", value="\n".join(results[:15]) + (f"\n...и ещё {len(results)-15}" if len(results) > 15 else ""), inline=False)
+            chunk = "\n".join(results[:20])
+            if len(results) > 20:
+                chunk += f"\n...и ещё {len(results)-20}"
+            embed.add_field(name="Детали", value=chunk, inline=False)
         embed.set_footer(text="☠️ Kanero")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
