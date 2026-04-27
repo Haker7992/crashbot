@@ -1956,10 +1956,13 @@ async def _post_news_and_sell(guild: discord.Guild):
     sell_ch = discord.utils.find(lambda c: "sell" in c.name.lower(), guild.text_channels)
     changelog_ch = discord.utils.find(lambda c: "changelog" in c.name.lower(), guild.text_channels)
     addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), guild.text_channels)
+    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "тикет" in c.name.lower(), guild.text_channels)
 
-    cl_mention = changelog_ch.mention if changelog_ch else "#changelog"
-    ab_mention = addbot_ch.mention if addbot_ch else "#addbot"
-    sell_mention = sell_ch.mention if sell_ch else "#sell"
+    # Обновляем ссылки на каналы (если канал не существует — "неизвестна")
+    cl_mention = changelog_ch.mention if changelog_ch else "неизвестна"
+    ab_mention = addbot_ch.mention if addbot_ch else "неизвестна"
+    sell_mention = sell_ch.mention if sell_ch else "неизвестна"
+    ticket_mention = ticket_ch.mention if ticket_ch else "неизвестна"
 
     # Новости — удаляем только ПЕРВОЕ (самое старое) сообщение бота и постим новое
     if news_ch:
@@ -2012,10 +2015,9 @@ async def _post_news_and_sell(guild: discord.Guild):
                 description=(
                     "**✅ White / 💎 Premium** — купить на FunPay:\n"
                     "https://funpay.com/users/16928925/\n\n"
-                    "**📋 Freelist (бесплатно)** — напиши в этот канал любое сообщение"
-                    if sell_ch and "sell" in sell_ch.name.lower() else
-                    "**✅ White / 💎 Premium** — купить на FunPay:\n"
-                    "https://funpay.com/users/16928925/"
+                    "**❓ Нужна помощь?**\n"
+                    f"Создай тикет: {ticket_mention}\n\n"
+                    "**📋 Freelist (бесплатно)** — напиши в {ab_mention}"
                 ),
                 color=0x0a0a0a
             )
@@ -2142,6 +2144,18 @@ async def setup(ctx):
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
     }, topic="Приветствие новых участников — бот пишет сюда автоматически")
+
+    # ━━ ℹ️ INFO — Guest+ читает, только Owner пишет ━━
+    cat_info = await guild.create_category("━━━━ ℹ️ INFO ━━━━", overwrites={
+        guild.default_role: _ow(), role_guest: _ow(True, False),
+        role_user: _ow(True, False), role_white: _ow(True, False),
+        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    })
+    info_ch = await guild.create_text_channel("ℹ️・info", category=cat_info, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(True, False),
+        role_user: _ow(True, False), role_white: _ow(True, False),
+        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Информация о покупке доступа и помощи")
 
     # ━━ 📢 ОСНОВНОЕ — Guest+ читает ━━
     cat_main = await guild.create_category("━━━━ 📢 ОСНОВНОЕ ━━━━", overwrites={
@@ -2333,6 +2347,22 @@ async def setup(ctx):
     r.set_footer(text="☠️ Kanero  |  Нарушение = бан")
     await rules_ch.send(embed=r)
 
+    # Отправляем сообщение в #info
+    info_embed = discord.Embed(
+        title="ℹ️ Информация — Kanero",
+        description=(
+            "**💰 Купить доступ (White / Premium):**\n"
+            "https://funpay.com/users/16928925/\n\n"
+            "**❓ Нужна помощь?**\n"
+            "Создай тикет: 🎫・create-ticket\n\n"
+            "**📋 Бесплатный доступ (Freelist):**\n"
+            "Напиши в 🤖・addbot"
+        ),
+        color=0x0a0a0a
+    )
+    info_embed.set_footer(text="☠️ Kanero  |  FunPay · Тикеты · Freelist")
+    await info_ch.send(embed=info_embed)
+
     a = discord.Embed(title="🤖 Получить доступ к Kanero", color=0x0a0a0a)
     a.add_field(name="📋 Freelist (бесплатно)", value="Напиши **любое сообщение** сюда\nПолучишь роль 👥 User:\n`!nuke` · `!auto_nuke` · `!help` · `!changelog`", inline=False)
     a.add_field(name="✅ White", value="`!nuke [текст]` · `!stop` · `!cleanup`\n`!rename` · `!nicks_all` · `!webhooks`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
@@ -2522,6 +2552,53 @@ async def setup_update(ctx):
                 results.append(f"✅ Создан {ch_name}")
             except Exception as e:
                 results.append(f"❌ {ch_name}: {e}")
+
+    # 6. Создаём категорию INFO и канал #info если их нет
+    cat_info = discord.utils.find(lambda c: "INFO" in c.name, guild.categories)
+    if not cat_info:
+        try:
+            ow_info = {guild.default_role: _ow()}
+            if role_guest: ow_info[role_guest] = _ow(True, False)
+            if role_user:  ow_info[role_user]  = _ow(True, False)
+            if role_white: ow_info[role_white] = _ow(True, False)
+            if role_prem:  ow_info[role_prem]  = _ow(True, False)
+            if role_owner: ow_info[role_owner] = _ow(True, True)
+            if role_dev:   ow_info[role_dev]   = _ow(True, True)
+            cat_info = await guild.create_category("━━━━ ℹ️ INFO ━━━━", overwrites=ow_info)
+            results.append("✅ Создана категория INFO")
+        except Exception as e:
+            results.append(f"❌ Категория INFO: {e}")
+    
+    if cat_info:
+        existing_info = [ch.name.lower() for ch in cat_info.channels]
+        if not any("info" in n for n in existing_info):
+            try:
+                ow_info_ch = {guild.default_role: _ow()}
+                if role_guest: ow_info_ch[role_guest] = _ow(True, False)
+                if role_user:  ow_info_ch[role_user]  = _ow(True, False)
+                if role_white: ow_info_ch[role_white] = _ow(True, False)
+                if role_prem:  ow_info_ch[role_prem]  = _ow(True, False)
+                if role_owner: ow_info_ch[role_owner] = _ow(True, True)
+                if role_dev:   ow_info_ch[role_dev]   = _ow(True, True)
+                info_ch = await guild.create_text_channel("ℹ️・info", category=cat_info, overwrites=ow_info_ch, topic="Информация о покупке доступа и помощи")
+                # Отправляем сообщение в #info
+                info_embed = discord.Embed(
+                    title="ℹ️ Информация — Kanero",
+                    description=(
+                        "**💰 Купить доступ (White / Premium):**\n"
+                        "https://funpay.com/users/16928925/\n\n"
+                        "**❓ Нужна помощь?**\n"
+                        "Создай тикет: 🎫・create-ticket\n\n"
+                        "**📋 Бесплатный доступ (Freelist):**\n"
+                        "Напиши в 🤖・addbot"
+                    ),
+                    color=0x0a0a0a
+                )
+                info_embed.set_footer(text="☠️ Kanero  |  FunPay · Тикеты · Freelist")
+                await info_ch.send(embed=info_embed)
+                results.append("✅ Создан ℹ️・info")
+            except Exception as e:
+                results.append(f"❌ ℹ️・info: {e}")
 
     # 7. Обновляем позиции ролей
     try:
