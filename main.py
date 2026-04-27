@@ -5082,7 +5082,18 @@ async def on_ready():
             return
 
         guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("❌ Команда должна использоваться на сервере.", ephemeral=True)
+            return
+
         await interaction.response.defer(ephemeral=True)
+
+        # Принудительно загружаем участников если нужно
+        if not guild.chunked:
+            try:
+                await guild.chunk()
+            except Exception:
+                pass
 
         # Собираем категории и каналы
         categories = []
@@ -5107,7 +5118,7 @@ async def on_ready():
             if ch.category is None and not isinstance(ch, discord.CategoryChannel):
                 no_cat.append({"name": ch.name, "type": str(ch.type)})
 
-        # Роли (без @everyone и бота)
+        # Роли (без @everyone и managed)
         roles = []
         for r in sorted(guild.roles, key=lambda x: x.position, reverse=True):
             if r.is_default() or r.managed:
@@ -5120,11 +5131,13 @@ async def on_ready():
                 "position": r.position
             })
 
+        member_count = guild.member_count or len(guild.members)
+
         # Сохраняем
         guild_analysis[name.lower()] = {
             "guild_name": guild.name,
             "guild_id": guild.id,
-            "member_count": guild.member_count,
+            "member_count": member_count,
             "categories": categories,
             "no_category_channels": no_cat,
             "roles": roles,
@@ -5140,6 +5153,8 @@ async def on_ready():
                 ch_names += f" +{len(cat['channels'])-4}"
             cat_lines.append(f"**{cat['name']}** — {ch_names or '—'}")
 
+        total_channels = sum(len(c["channels"]) for c in categories) + len(no_cat)
+
         embed = discord.Embed(
             title=f"🔍 Анализ сохранён: `{name}`",
             description=f"Сервер: **{guild.name}**",
@@ -5148,7 +5163,7 @@ async def on_ready():
         )
         embed.add_field(
             name="📊 Статистика",
-            value=f"Участников: **{guild.member_count}**\nКатегорий: **{len(categories)}**\nРолей: **{len(roles)}**\nКаналов: **{sum(len(c['channels']) for c in categories)}**",
+            value=f"Участников: **{member_count}**\nКатегорий: **{len(categories)}**\nРолей: **{len(roles)}**\nКаналов: **{total_channels}**",
             inline=False
         )
         embed.add_field(name="📁 Структура", value="\n".join(cat_lines) or "—", inline=False)
