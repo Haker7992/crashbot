@@ -2569,9 +2569,25 @@ async def setup_update(ctx):
             if role_owner: ow_info[role_owner] = _ow(True, True)
             if role_dev:   ow_info[role_dev]   = _ow(True, True)
             cat_info = await guild.create_category("━━━━ ℹ️ INFO ━━━━", overwrites=ow_info)
+            # Перемещаем INFO под WELCOME (позиция 1)
+            cat_welcome = discord.utils.find(lambda c: "WELCOME" in c.name, guild.categories)
+            if cat_welcome:
+                try:
+                    await cat_info.edit(position=cat_welcome.position + 1)
+                except Exception:
+                    pass
             results.append("✅ Создана категория INFO")
         except Exception as e:
             results.append(f"❌ Категория INFO: {e}")
+    else:
+        # Если INFO уже существует, проверяем её позицию
+        cat_welcome = discord.utils.find(lambda c: "WELCOME" in c.name, guild.categories)
+        if cat_welcome and cat_info.position != cat_welcome.position + 1:
+            try:
+                await cat_info.edit(position=cat_welcome.position + 1)
+                results.append("✅ Перемещена категория INFO под WELCOME")
+            except Exception:
+                pass
     
     # Переносим #changelog из ОСНОВНОЕ в INFO если он там
     changelog_ch = discord.utils.find(lambda c: "changelog" in c.name.lower(), guild.text_channels)
