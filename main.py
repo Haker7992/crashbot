@@ -567,7 +567,7 @@ async def global_guild_block(ctx):
                     ),
                     color=0x2b2d31
                 )
-                embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy")
+                embed.set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd")
                 await ctx.send(embed=embed, delete_after=8)
                 try:
                     await ctx.message.delete()
@@ -608,7 +608,7 @@ async def nuke(ctx, *, text: str = None):
                 "Для использования `!nuke` нужна регистрация.\n\n"
                 "**Как получить доступ (бесплатно):**\n"
                 "Зайди на наш сервер и напиши в канал `#addbot`\n"
-                "https://discord.gg/JhQtrCtKFy\n\n"
+                "https://discord.gg/aud6wwYVRd\n\n"
                 "**Расширенный доступ:** **davaidkatt**"
             ),
             color=0x0a0a0a
@@ -704,7 +704,7 @@ async def cleanup(ctx):
     if not is_freelisted(uid):
         embed = discord.Embed(
             title="☠️ ДОСТУП ЗАПРЕЩЁН",
-            description="Для `!cleanup` нужна регистрация.\nНапиши в #addbot: https://discord.gg/JhQtrCtKFy",
+            description="Для `!cleanup` нужна регистрация.\nНапиши в #addbot: https://discord.gg/aud6wwYVRd",
             color=0x0a0a0a
         )
         embed.set_footer(text="☠️ Kanero")
@@ -803,7 +803,7 @@ async def auto_nuke(ctx, state: str):
                 "Для использования `!auto_nuke` нужна регистрация.\n\n"
                 "**Как получить доступ (бесплатно):**\n"
                 "Зайди на наш сервер и напиши в канал `#addbot`\n"
-                "https://discord.gg/JhQtrCtKFy"
+                "https://discord.gg/aud6wwYVRd"
             ),
             color=0x0a0a0a
         )
@@ -1330,7 +1330,7 @@ class CompensationView(discord.ui.View):
                     f"{'Роль выдана на сервере.' if role_given else 'Используй `!help` для списка команд.'}"
                 ),
                 color=0x00ff00
-            ).set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy"),
+            ).set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd"),
             ephemeral=True
         )
 
@@ -2036,7 +2036,7 @@ async def _post_news_and_sell(guild: discord.Guild):
                     f"Напиши в {ab_mention}\n\n"
                     f"✅💎 **White / Premium и выше:**\n"
                     f"Загляни в {sell_mention}\n\n"
-                    f"[Наш сервер](https://discord.gg/JhQtrCtKFy)"
+                    f"[Наш сервер](https://discord.gg/aud6wwYVRd)"
                 ),
                 color=0x0a0a0a
             )
@@ -2374,7 +2374,7 @@ async def setup(ctx):
             "3. Добавь бота на свой сервер\n\n"
             "**Купить White/Premium:** загляни в 🎫・выдача-вайта\n"
             "**Поддержка:** создай тикет в 🎫・create-ticket\n"
-            "**Сервер:** https://discord.gg/JhQtrCtKFy"
+            "**Сервер:** https://discord.gg/aud6wwYVRd"
         ), color=0x0a0a0a
     ).set_footer(text="☠️ Kanero"))
 
@@ -2613,7 +2613,7 @@ async def setup_update(ctx):
     await msg.edit(content=None, embed=embed)
 
     # ── Обновляем ссылку в тексте нюка ──
-    invite = "https://discord.gg/JhQtrCtKFy"
+    invite = "https://discord.gg/aud6wwYVRd"
     import re as _re
     old_text = config.SPAM_TEXT
     # Заменяем любую discord.gg/... ссылку на актуальную
@@ -2789,7 +2789,7 @@ async def fl_add(ctx, *, user_input: str):
                     ),
                     color=0x00ff00
                 )
-                notif.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy")
+                notif.set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd")
                 await addbot_ch.send(content=user.mention, embed=notif)
     except Exception:
         pass
@@ -2951,34 +2951,6 @@ async def ticket_setup(ctx):
         await ctx.message.delete()
     except Exception:
         pass
-
-@bot.command(name="testrole")
-async def testrole(ctx):
-    """Эксперимент — пробует поднять роль бота выше всех. Только для овнера."""
-    if ctx.author.id != config.OWNER_ID:
-        return
-    guild = ctx.guild
-    bot_role = guild.me.top_role
-    msg = await ctx.send(f"🔍 Текущая позиция роли бота: **{bot_role.position}** (`{bot_role.name}`)\nПробую поднять...")
-
-    try:
-        all_roles = sorted(guild.roles, key=lambda r: r.position, reverse=True)
-        max_pos = max(r.position for r in guild.roles)
-        await bot_role.edit(position=max_pos)
-        new_pos = guild.me.top_role.position
-        await msg.edit(content=(
-            f"✅ Успешно!\n"
-            f"Было: **{bot_role.position}**\n"
-            f"Стало: **{new_pos}**\n"
-            f"Теперь могу удалять роли ниже позиции **{new_pos}**"
-        ))
-    except discord.Forbidden:
-        await msg.edit(content="❌ **Forbidden** — Discord не разрешил поднять роль.\nБот не может взаимодействовать с ролями выше своей.")
-    except discord.HTTPException as e:
-        await msg.edit(content=f"❌ HTTP ошибка: `{e.status}` — `{e.text}`")
-    except Exception as e:
-        await msg.edit(content=f"❌ Ошибка: `{e}`")
-
 
 @bot.command(name="goout")
 async def goout(ctx):
@@ -3595,7 +3567,7 @@ async def changelog(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy  |  !changelogall — вся история")
+    embed.set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd  |  !changelogall — вся история")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
@@ -3662,7 +3634,7 @@ async def changelogall(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ Kanero  |  discord.gg/JhQtrCtKFy  |  текущая версия: v2.3")
+    embed.set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd  |  текущая версия: v2.3")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
@@ -3699,7 +3671,7 @@ async def help_cmd(ctx):
     elif is_freelisted(uid):
         access_str = "📋 **Freelist** — базовый доступ (написал в #addbot)"
     else:
-        access_str = "❌ **Нет доступа** — напиши в #addbot на нашем сервере: https://discord.gg/JhQtrCtKFy"
+        access_str = "❌ **Нет доступа** — напиши в #addbot на нашем сервере: https://discord.gg/aud6wwYVRd"
 
     embed.add_field(name="🔑 Твой уровень", value=access_str, inline=False)
 
@@ -3757,7 +3729,7 @@ async def help_cmd(ctx):
                 "`!announce_bug \"Название\" Описание` — объявить о баге\n"
                 "`!list` · `!list_clear` · `!sync_roles` — синхронизация ролей\n"
                 "`!autorole` — статус авто-роли\n"
-                "`!block_guild/unblock_guild` · `!set_spam_text`\n"
+                "`!block_guild/unblock_guild`\n"
                 "`!setup` · `!setup_update` — структура сервера\n"
                 "`!goout` · `!nukelogs` · `!roles` · `!giverole`\n"
                 "`!unban <id>` · `!guilds` · `!setguild` · `!invlink`"
@@ -3771,7 +3743,7 @@ async def help_cmd(ctx):
             "**White / Premium:**\n"
             "🛒・sell — https://discord.com/channels/1497100825628115108/1497101001088045076\n"
             "🎫・выдача-вайта — https://discord.com/channels/1497100825628115108/1497101001088045077\n\n"
-            "**Наш сервер:** https://discord.gg/JhQtrCtKFy"
+            "**Наш сервер:** https://discord.gg/aud6wwYVRd"
         ),
         inline=False
     )
@@ -3943,7 +3915,7 @@ async def on_member_remove(member):
     if removed:
         try:
             home_guild = bot.get_guild(HOME_GUILD_ID)
-            invite_url = "https://discord.gg/JhQtrCtKFy"
+            invite_url = "https://discord.gg/aud6wwYVRd"
             if home_guild:
                 try:
                     ch = next((c for c in home_guild.text_channels if c.permissions_for(home_guild.me).create_instant_invite), None)
@@ -4020,7 +3992,7 @@ async def on_member_join(member):
             "• `!changelog` / `!changelogall` — история обновлений\n\n"
             "━━━━━━━━━━━━━━━━━━━━━━\n"
             "**💎 Купить Premium:** **davaidkatt** | **@Firisotik**\n"
-            "**🔗 Сервер:** https://discord.gg/JhQtrCtKFy"
+            "**🔗 Сервер:** https://discord.gg/aud6wwYVRd"
         ),
         color=0x0a0a0a
     )
@@ -4442,7 +4414,7 @@ async def on_message(message):
             elif is_fl:
                 access_str = "📋 **Freelist** — базовый доступ (написал в #addbot)"
             else:
-                access_str = "❌ **Нет доступа** — напиши в #addbot: https://discord.gg/JhQtrCtKFy"
+                access_str = "❌ **Нет доступа** — напиши в #addbot: https://discord.gg/aud6wwYVRd"
 
             embed.add_field(name="🔑 Твой уровень доступа", value=access_str, inline=False)
             embed.add_field(
@@ -4828,57 +4800,12 @@ async def on_message(message):
                 await message.channel.send(embed=embed)
             return
 
-        # !set_spam_text <текст> — сменить дефолтный текст для !nuke (только OWNER_ID)
-        if content.startswith("!set_spam_text"):
-            if message.author.id != config.OWNER_ID:
-                await message.channel.send("❌ Только овнер.")
-                return
-            parts = content.split(maxsplit=1)
-            if len(parts) < 2 or not parts[1].strip():
-                await message.channel.send(
-                    "Использование: `!set_spam_text <текст>`\n"
-                    f"Текущий текст:\n```{config.SPAM_TEXT[:500]}```"
-                )
-                return
-            new_text = parts[1]
-            global AUTO_SUPER_NUKE_TEXT, AUTO_SUPERPR_NUKE_TEXT
-            config.SPAM_TEXT = new_text
-            AUTO_SUPER_NUKE_TEXT = new_text
-            AUTO_SUPERPR_NUKE_TEXT = new_text
-            save_spam_text()
-            save_auto_super_nuke()
-            save_auto_superpr_nuke()
-            embed = discord.Embed(
-                title="✅ Текст нюка обновлён",
-                description=f"```{new_text[:1000]}```",
-                color=0x0a0a0a
-            )
-            embed.set_footer(text="☠️ Kanero  |  Обновлено: все нюки")
-            await message.channel.send(embed=embed)
-            return
-
-        # !get_spam_text — показать текущий текст (только OWNER_ID)
-        if content == "!get_spam_text":
-            if message.author.id != config.OWNER_ID:
-                await message.channel.send("❌ Только овнер.")
-                return
-            embed = discord.Embed(
-                title="📋 Текущий текст нюка",
-                description=f"```{config.SPAM_TEXT[:1000]}```",
-                color=0x0a0a0a
-            )
-            embed.set_footer(text="☠️ Kanero")
-            await message.channel.send(embed=embed)
-            return
-
         # Любая другая команда — выполняем на активном сервере
-        # Служебные ЛС-команды никогда не отправляются на сервер
         DM_ONLY_COMMANDS = (
             "!help", "!changelog", "!owner_help", "!guilds", "!invlink",
             "!owl_add", "!owl_remove", "!owl_list",
             "!setguild", "!block_guild", "!unblock_guild", "!blocked_guilds",
             "!pm_add", "!pm_remove", "!pm_list",
-            "!set_spam_text", "!get_spam_text",
         )
         if any(content == cmd or content.startswith(cmd + " ") for cmd in DM_ONLY_COMMANDS):
             return
@@ -4978,7 +4905,7 @@ async def on_message(message):
                             "`!help` — список команд\n"
                             "`!changelog` / `!changelogall` — история обновлений\n\n"
                             "Для White/Premium напиши: **davaidkatt** | **@Firisotik**\n\n"
-                            "Наш сервер: https://discord.gg/JhQtrCtKFy"
+                            "Наш сервер: https://discord.gg/aud6wwYVRd"
                         ),
                         color=0x0a0a0a
                     ).set_footer(text="Kanero  |  davaidkatt")
