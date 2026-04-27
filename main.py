@@ -1869,6 +1869,122 @@ async def sync_roles_cmd(ctx):
     await msg.edit(content=None, embed=embed)
 
 
+@bot.command(name="fix_role")
+async def fix_role_cmd(ctx, user: discord.Member = None):
+    """Проверяет и выдает роль конкретному пользователю, если он есть в списках."""
+    # Только овнер или на домашнем сервере
+    if ctx.author.id != config.OWNER_ID and ctx.guild.id != HOME_GUILD_ID:
+        return
+    
+    # Если пользователь не указан, проверяем автора команды
+    if user is None:
+        user = ctx.author
+    
+    guild = ctx.guild
+    if guild.id != HOME_GUILD_ID:
+        await ctx.send("❌ Команда работает только на домашнем сервере.")
+        return
+
+    # Находим роли
+    role_white   = discord.utils.find(lambda r: r.name == "✅ White",   guild.roles)
+    role_premium = discord.utils.find(lambda r: r.name == "💎 Premium", guild.roles)
+    role_user    = discord.utils.find(lambda r: r.name == "👥 User",    guild.roles)
+    role_guest   = discord.utils.find(lambda r: r.name == "👤 Guest",   guild.roles)
+
+    uid = user.id
+    changes = []
+    
+    # Проверяем в каких списках пользователь
+    in_premium = uid in PREMIUM_LIST
+    in_whitelist = uid in config.WHITELIST
+    in_freelist = uid in FREELIST
+    
+    # Выдаем Guest если его нет
+    if role_guest and role_guest not in user.roles:
+        try:
+            await user.add_roles(role_guest, reason="fix_role: авто Guest")
+            changes.append("👤 Guest — выдана")
+        except Exception as e:
+            changes.append(f"👤 Guest — ошибка: {e}")
+    
+    # Проверяем и выдаем основную роль
+    if in_premium:
+        if role_premium and role_premium not in user.roles:
+            try:
+                await user.add_roles(role_premium, reason="fix_role: в Premium листе")
+                changes.append("💎 Premium — выдана")
+            except Exception as e:
+                changes.append(f"💎 Premium — ошибка: {e}")
+        else:
+            changes.append("💎 Premium — уже есть")
+    elif in_whitelist:
+        if role_white and role_white not in user.roles:
+            try:
+                await user.add_roles(role_white, reason="fix_role: в Whitelist")
+                changes.append("✅ White — выдана")
+            except Exception as e:
+                changes.append(f"✅ White — ошибка: {e}")
+        else:
+            changes.append("✅ White — уже есть")
+    elif in_freelist:
+        if role_user and role_user not in user.roles:
+            try:
+                await user.add_roles(role_user, reason="fix_role: в Freelist")
+                changes.append("👥 User — выдана")
+            except Exception as e:
+                changes.append(f"👥 User — ошибка: {e}")
+        else:
+            changes.append("👥 User — уже есть")
+    else:
+        changes.append("❌ Не найден ни в одном списке")
+    
+    # Убираем лишние роли
+    if role_premium and role_premium in user.roles and not in_premium and uid != config.OWNER_ID:
+        try:
+            await user.remove_roles(role_premium, reason="fix_role: не в Premium листе")
+            changes.append("💎 Premium — убрана (не в списке)")
+        except Exception as e:
+            changes.append(f"💎 Premium — ошибка удаления: {e}")
+    
+    if role_white and role_white in user.roles and not in_whitelist and not in_premium and uid != config.OWNER_ID:
+        try:
+            await user.remove_roles(role_white, reason="fix_role: не в Whitelist")
+            changes.append("✅ White — убрана (не в списке)")
+        except Exception as e:
+            changes.append(f"✅ White — ошибка удаления: {e}")
+    
+    # Формируем ответ
+    if not changes:
+        description = "✅ Все роли в порядке, изменений не требуется."
+    else:
+        description = "\n".join(changes)
+    
+    embed = discord.Embed(
+        title=f"🔧 Проверка ролей — {user.display_name}",
+        description=description,
+        color=0x0a0a0a
+    )
+    
+    # Показываем текущие роли и статус в списках
+    status_lines = []
+    if in_premium:
+        status_lines.append("💎 Premium лист")
+    if in_whitelist:
+        status_lines.append("✅ Whitelist")
+    if in_freelist:
+        status_lines.append("📋 Freelist")
+    
+    if status_lines:
+        embed.add_field(name="📋 Статус в списках", value="\n".join(status_lines), inline=True)
+    
+    current_roles = [role.name for role in user.roles if role.name in ["💎 Premium", "✅ White", "👥 User", "👤 Guest"]]
+    if current_roles:
+        embed.add_field(name="🎭 Текущие роли", value="\n".join(current_roles), inline=True)
+    
+    embed.set_footer(text="☠️ Kanero  |  !fix_role [@пользователь]")
+    await ctx.send(embed=embed)
+
+
 @bot.command(name="list_clear")
 async def list_clear(ctx):
     if ctx.author.id != config.OWNER_ID:
@@ -2222,11 +2338,88 @@ async def setup(ctx):
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
     }, topic="Информация о покупке доступа и помощи")
-    await guild.create_text_channel("📋・changelog", category=cat_info, overwrites={
+    changelog_ch = await guild.create_text_channel("📋・changelog", category=cat_info, overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, False),
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
     }, topic="История обновлений — !changelogall")
+
+    # Отправляем полный changelog в канал #changelog
+    changelog_embed = discord.Embed(title="📋 CHANGELOG — Полная история  |  v1.0 → v2.0", color=0x0a0a0a)
+    changelog_embed.add_field(name="☠️ v1.0", value="• `!nuke`, `!stop`, `!webhooks`, логирование", inline=False)
+    changelog_embed.add_field(name="⚡ v1.1", value="• `!auto_nuke`, `/sp`, `/spkd`, whitelist, `!cleanup`, `!rename`", inline=False)
+    changelog_embed.add_field(name="🎨 v1.2", value="• Тёмный стиль, Owner Panel, `!owl_add`, `!invlink`", inline=False)
+    changelog_embed.add_field(name="🆕 v1.3", value="• Premium система, `!block_guild`, `!set_spam_text`", inline=False)
+    changelog_embed.add_field(name="🆕 v1.4", value="• `!massdm`, `!massban`, `!spam`, `!pingspam`, `!rolesdelete`, `!serverinfo`", inline=False)
+    changelog_embed.add_field(name="💀 v1.5-1.6", value="• `!super_nuke`, `!auto_super_nuke`, `!auto_superpr_nuke`", inline=False)
+    changelog_embed.add_field(name="🔥 v1.7", value="• MongoDB, `!pm_add` авто +whitelist, `!list`, `!list_clear`", inline=False)
+    changelog_embed.add_field(name="🔥 v1.8", value="• Freelist, `!owner_nuke`, `!auto_off`, `!setup`, `!nukelogs`, `!fl_add/remove/list/clear`", inline=False)
+    changelog_embed.add_field(
+        name="🔥🔥 v2.0 — ПОЛНЫЙ РЕДИЗАЙН",
+        value=(
+            "• Категории: СТАТИСТИКА · FREELIST · WHITE · PREMIUM\n"
+            "• Счётчики ролей, тикеты, роли User/Media/Moderator\n"
+            "• !wl_add/pm_add/fl_add по username/@mention/ID\n"
+            "• !setup_update — обновить без удаления каналов\n"
+            "• !list_clear — очищает все списки\n"
+            "• ADMIN — все видят, только Owner пишет\n"
+            "• Статистика обновляется авто"
+        ),
+        inline=False
+    )
+    changelog_embed.add_field(
+        name="🔥 v2.1 — Новые функции",
+        value=(
+            "• 🤝 Friend, 🎬 Media, 🛡️ Moderator — правильная иерархия\n"
+            "• Авто-роль 👤 Guest при входе\n"
+            "• 🛒・sell · 🎫・выдача-вайта\n"
+            "• !sync_roles — синхронизация ролей + авто-удаление из листа\n"
+            "• !autorole — статус авто-роли\n"
+            "• ЛС команды сразу на домашнем сервере"
+        ),
+        inline=False
+    )
+    changelog_embed.add_field(
+        name="🔥 v2.2",
+        value=(
+            "• 🌟 Fame → 🤝 Friend, стоит над 💎 Premium\n"
+            "• 🤝・admin-chat в ADMIN\n"
+            "• Нюки быстрее — удаление и создание параллельно\n"
+            "• Овнер всегда останавливает любой нюк\n"
+            "• Авто-лог в 📊・logs при каждом нюке\n"
+            "• Удалены `/sp` и `/spkd`"
+        ),
+        inline=False
+    )
+    changelog_embed.add_field(
+        name="🐛 v2.3 — Багфиксы",
+        value=(
+            "• Исправлен критический баг с автокрашем домашнего сервера\n"
+            "• Защита от авто-нюков на домашнем сервере\n"
+            "• Логирование всех типов нюков (auto_nuke, auto_super_nuke, auto_owner_nuke)\n"
+            "• Токен и OWNER_ID в переменных окружения\n"
+            "• `!help` и `!changelog` работают для всех на нашем сервере\n"
+            "• `!setup` и `!setup_update` автоматически выдают роль 👤 Guest\n"
+            "• `!compensate` — система компенсаций за найденные баги"
+        ),
+        inline=False
+    )
+    changelog_embed.add_field(
+        name="🔥 v2.4 — Текст, скорость, INFO",
+        value=(
+            "• Новый стильный текст нюка с рамками и разделителями\n"
+            "• Категория INFO с #info и #changelog\n"
+            "• `guild.chunk()` — мгновенная загрузка участников\n"
+            "• Авто-нюки работают максимально быстро\n"
+            "• Удалены `!owner_nuke` и `!auto_owner_nuke`\n"
+            "• Временные подписки в отдельной секции\n"
+            "• `!setup_update` переносит #changelog в INFO"
+        ),
+        inline=False
+    )
+    changelog_embed.set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd  |  текущая версия: v2.4")
+    changelog_embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+    await changelog_ch.send(embed=changelog_embed)
 
     # ━━ 📢 ОСНОВНОЕ — Guest+ читает ━━
     cat_main = await guild.create_category("━━━━ 📢 ОСНОВНОЕ ━━━━", overwrites={
