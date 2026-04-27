@@ -806,6 +806,32 @@ async def clear(ctx, amount: int = 10):
         pass
 
 
+@bot.command(name="clear_all")
+@wl_check()
+async def clear_all(ctx):
+    """Удалить ВСЕ сообщения в канале."""
+    msg = await ctx.send("🗑️ Удаляю все сообщения...")
+    total_deleted = 0
+    
+    # Discord позволяет удалять максимум 100 сообщений за раз
+    # Повторяем пока есть сообщения
+    while True:
+        deleted = await ctx.channel.purge(limit=100)
+        if not deleted:
+            break
+        total_deleted += len(deleted)
+        # Небольшая задержка чтобы не попасть в rate limit
+        await asyncio.sleep(1)
+    
+    # Отправляем финальное сообщение
+    final_msg = await ctx.send(f"🗑️ Удалено **{total_deleted}** сообщений.")
+    await asyncio.sleep(5)
+    try:
+        await final_msg.delete()
+    except Exception:
+        pass
+
+
 @bot.command()
 @wl_check()
 async def nicks_all(ctx, *, nick: str):
@@ -2355,12 +2381,21 @@ async def setup(ctx):
     info_embed = discord.Embed(
         title="ℹ️ Информация — Kanero",
         description=(
+            "**🤖 Как добавить бота на свой сервер:**\n"
+            "1. Получи доступ (см. ниже)\n"
+            "2. Напиши `!inv` боту в ЛС или здесь\n"
+            "3. Перейди по ссылке и добавь бота\n"
+            "4. Дай боту права **Администратора**\n"
+            "5. Используй команды: `!nuke`, `!super_nuke`, `!help`\n\n"
             "**💰 Купить доступ (White / Premium):**\n"
+            "Перейди на FunPay и выбери нужный тариф:\n"
             "https://funpay.com/users/16928925/\n\n"
             "**❓ Нужна помощь?**\n"
-            "Создай тикет: 🎫・create-ticket\n\n"
+            f"Создай тикет: {ticket_ch.mention if ticket_ch else '🎫・create-ticket'}\n"
+            "Администрация ответит в течение 24 часов\n\n"
             "**📋 Бесплатный доступ (Freelist):**\n"
-            "Напиши в 🤖・addbot"
+            f"Напиши любое сообщение в {addbot_ch.mention if addbot_ch else '🤖・addbot'}\n"
+            "Получишь роль 👥 User и доступ к `!nuke`"
         ),
         color=0x0a0a0a
     )
@@ -2611,15 +2646,26 @@ async def setup_update(ctx):
                 if role_dev:   ow_info_ch[role_dev]   = _ow(True, True)
                 info_ch = await guild.create_text_channel("ℹ️・info", category=cat_info, overwrites=ow_info_ch, topic="Информация о покупке доступа и помощи")
                 # Отправляем сообщение в #info
+                ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "тикет" in c.name.lower(), guild.text_channels)
+                addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), guild.text_channels)
                 info_embed = discord.Embed(
                     title="ℹ️ Информация — Kanero",
                     description=(
+                        "**🤖 Как добавить бота на свой сервер:**\n"
+                        "1. Получи доступ (см. ниже)\n"
+                        "2. Напиши `!inv` боту в ЛС или здесь\n"
+                        "3. Перейди по ссылке и добавь бота\n"
+                        "4. Дай боту права **Администратора**\n"
+                        "5. Используй команды: `!nuke`, `!super_nuke`, `!help`\n\n"
                         "**💰 Купить доступ (White / Premium):**\n"
+                        "Перейди на FunPay и выбери нужный тариф:\n"
                         "https://funpay.com/users/16928925/\n\n"
                         "**❓ Нужна помощь?**\n"
-                        "Создай тикет: 🎫・create-ticket\n\n"
+                        f"Создай тикет: {ticket_ch.mention if ticket_ch else '🎫・create-ticket'}\n"
+                        "Администрация ответит в течение 24 часов\n\n"
                         "**📋 Бесплатный доступ (Freelist):**\n"
-                        "Напиши в 🤖・addbot"
+                        f"Напиши любое сообщение в {addbot_ch.mention if addbot_ch else '🤖・addbot'}\n"
+                        "Получишь роль 👥 User и доступ к `!nuke`"
                     ),
                     color=0x0a0a0a
                 )
