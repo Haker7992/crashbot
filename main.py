@@ -1640,8 +1640,7 @@ async def list_cmd(ctx):
     embed.add_field(name=f"💎 Premium ({len(pm_all)})",                           value=await fmt(pm_all),               inline=False)
     embed.add_field(name=f"👑 Owner Whitelist ({len(config.OWNER_WHITELIST)})",   value=await fmt(config.OWNER_WHITELIST), inline=False)
 
-    # Временные подписки
-    now = datetime.utcnow()
+    # Временные подписки — показываем только если есть активные
     temp_lines = []
     for uid, sub in list(TEMP_SUBSCRIPTIONS.items()):
         if now > sub["expires"]:
@@ -1651,11 +1650,10 @@ async def list_cmd(ctx):
         expires_ts = int(sub["expires"].timestamp())
         try:
             user = await bot.fetch_user(uid)
-            temp_lines.append(f"`{uid}` — **{user}** | {sub_name} | истекает <t:{expires_ts}:R>")
+            temp_lines.append(f"`{uid}` — **{user}** | {sub_name} | <t:{expires_ts}:R>")
         except Exception:
-            temp_lines.append(f"`{uid}` | {sub_name} | истекает <t:{expires_ts}:R>")
+            temp_lines.append(f"`{uid}` | {sub_name} | <t:{expires_ts}:R>")
     if temp_lines:
-        # Discord лимит поля 1024 символа — режем если много
         value = "\n".join(temp_lines)
         if len(value) > 1020:
             value = value[:1020] + "..."
