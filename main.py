@@ -5086,62 +5086,101 @@ async def on_ready():
             await interaction.response.send_message("❌ Команда должна использоваться на сервере.", ephemeral=True)
             return
 
-        # Получаем полные данные гильдии через кэш бота
-        full_guild = bot.get_guild(guild.id)
-        if full_guild:
-            guild = full_guild
-
         await interaction.response.defer(ephemeral=True)
 
-        # Принудительно загружаем участников если нужно
-        if not guild.chunked:
-            try:
-                await guild.chunk()
-            except Exception:
-                pass
+        # Получаем полные данные через REST API Discord
+        import aiohttp
+        headers = {"Authorization": f"Bot {config.TOKEN}"}
+        guild_id = guild.id
 
-        # Собираем категории и каналы
-        categories = []
-        for cat in sorted(guild.categories, key=lambda c: c.position):
-            channels_in_cat = []
-            for ch in sorted(cat.channels, key=lambda c: c.position):
-                channels_in_cat.append({
-                    "name": ch.name,
-                    "type": str(ch.type),
-                    "position": ch.position,
-                    "topic": getattr(ch, "topic", None) or ""
+        async with aiohttp.ClientSession() as session:
+            # Каналы
+            async with session.get(f"https://discord.com/api/v10/guilds/{guild_id}/channels", headers=headers) as r:
+                if r.status == 200:
+                    raw_channels = await r.json()
+                else:
+                    # Бот не на сервере — пробуем через кэш
+                    raw_channels = None
+
+            # Роли
+            async with session.get(f"https://discord.com/api/v10/guilds/{guild_id}", headers=headers) as r:
+                if r.status == 200:
+                    raw_guild = await r.json()
+                else:
+                    raw_guild = None
+
+        # Если API вернул данные — используем их
+        if raw_channels and raw_guild:
+            guild_name = raw_guild.get("name", str(guild_id))
+            member_count = raw_guild.get("approximate_member_count") or raw_guild.get("member_count") or "?"
+
+            # Сортируем каналы по позиции
+            raw_channels.sort(key=lambda c: (c.get("position", 0),))
+
+            # Группируем по категориям
+            cats_map = {}  # cat_id -> {"name": ..., "position": ..., "channels": [...]}
+            no_cat = []
+
+            for ch in raw_channels:
+                ch_type = ch.get("type", 0)
+                if ch_type == 4:  # CategoryChannel
+                    cats_map[ch["id"]] = {
+                        "name": ch["name"],
+                        "position": ch.get("position", 0),
+                        "channels": []
+                    }
+
+            for ch in raw_channels:
+                ch_type = ch.get("type", 0)
+                if ch_type == 4:
+                    continue
+                parent_id = ch.get("parent_id")
+                ch_data = {
+                    "name": ch["name"],
+                    "type": "voice" if ch_type in (2, 13) else "text",
+                    "position": ch.get("position", 0),
+                    "topic": ch.get("topic") or "",
+                    "nsfw": ch.get("nsfw", False)
+                }
+                if parent_id and parent_id in cats_map:
+                    cats_map[parent_id]["channels"].append(ch_data)
+                else:
+                    no_cat.append(ch_data)
+
+            categories = sorted(cats_map.values(), key=lambda c: c["position"])
+
+            # Роли
+            roles = []
+            for r in sorted(raw_guild.get("roles", []), key=lambda x: x.get("position", 0), reverse=True):
+                if r["name"] == "@everyone" or r.get("managed"):
+                    continue
+                roles.append({
+                    "name": r["name"],
+                    "color": f"#{r.get('color', 0):06x}",
+                    "hoist": r.get("hoist", False),
+                    "mentionable": r.get("mentionable", False),
+                    "position": r.get("position", 0)
                 })
-            categories.append({
-                "name": cat.name,
-                "position": cat.position,
-                "channels": channels_in_cat
-            })
-
-        # Каналы без категории
-        no_cat = []
-        for ch in sorted(guild.channels, key=lambda c: c.position):
-            if ch.category is None and not isinstance(ch, discord.CategoryChannel):
-                no_cat.append({"name": ch.name, "type": str(ch.type)})
-
-        # Роли (без @everyone и managed)
-        roles = []
-        for r in sorted(guild.roles, key=lambda x: x.position, reverse=True):
-            if r.is_default() or r.managed:
-                continue
-            roles.append({
-                "name": r.name,
-                "color": str(r.color),
-                "hoist": r.hoist,
-                "mentionable": r.mentionable,
-                "position": r.position
-            })
-
-        member_count = guild.member_count or len(guild.members)
+        else:
+            # Fallback — данные из кэша бота
+            full_guild = bot.get_guild(guild_id)
+            if not full_guild:
+                await interaction.followup.send("❌ Не удалось получить данные сервера.", ephemeral=True)
+                return
+            guild = full_guild
+            guild_name = guild.name
+            member_count = guild.member_count or len(guild.members)
+            categories = []
+            for cat in sorted(guild.categories, key=lambda c: c.position):
+                channels_in_cat = [{"name": ch.name, "type": "voice" if isinstance(ch, discord.VoiceChannel) else "text", "position": ch.position, "topic": getattr(ch, "topic", "") or ""} for ch in sorted(cat.channels, key=lambda c: c.position)]
+                categories.append({"name": cat.name, "position": cat.position, "channels": channels_in_cat})
+            no_cat = [{"name": ch.name, "type": "voice" if isinstance(ch, discord.VoiceChannel) else "text"} for ch in guild.channels if ch.category is None and not isinstance(ch, discord.CategoryChannel)]
+            roles = [{"name": r.name, "color": str(r.color), "hoist": r.hoist, "mentionable": r.mentionable, "position": r.position} for r in sorted(guild.roles, key=lambda x: x.position, reverse=True) if not r.is_default() and not r.managed]
 
         # Сохраняем
         guild_analysis[name.lower()] = {
-            "guild_name": guild.name,
-            "guild_id": guild.id,
+            "guild_name": guild_name,
+            "guild_id": guild_id,
             "member_count": member_count,
             "categories": categories,
             "no_category_channels": no_cat,
@@ -5162,7 +5201,7 @@ async def on_ready():
 
         embed = discord.Embed(
             title=f"🔍 Анализ сохранён: `{name}`",
-            description=f"Сервер: **{guild.name}**",
+            description=f"Сервер: **{guild_name}**",
             color=0x5865f2,
             timestamp=datetime.utcnow()
         )
@@ -5174,6 +5213,31 @@ async def on_ready():
         embed.add_field(name="📁 Структура", value="\n".join(cat_lines) or "—", inline=False)
         embed.set_footer(text=f"☠️ Kanero  |  Используй /load {name} чтобы создать")
         await interaction.followup.send(embed=embed, ephemeral=True)
+
+
+    @bot.tree.command(name="analyze_delete", description="👑 [Owner] Удалить сохранённый анализ")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+    @app_commands.describe(name="Название анализа для удаления (или 'all' чтобы удалить все)")
+    async def slash_analyze_delete(interaction: discord.Interaction, name: str):
+        if interaction.user.id != config.OWNER_ID:
+            await interaction.response.send_message("❌ Только для овнера.", ephemeral=True)
+            return
+
+        if name.lower() == "all":
+            count = len(guild_analysis)
+            guild_analysis.clear()
+            save_analyses()
+            await interaction.response.send_message(f"🗑️ Удалено **{count}** анализов.", ephemeral=True)
+            return
+
+        if name.lower() in guild_analysis:
+            del guild_analysis[name.lower()]
+            save_analyses()
+            await interaction.response.send_message(f"🗑️ Анализ `{name}` удалён.", ephemeral=True)
+        else:
+            saved = ", ".join(f"`{k}`" for k in guild_analysis.keys()) or "пусто"
+            await interaction.response.send_message(f"❌ Анализ `{name}` не найден.\n**Сохранённые:** {saved}", ephemeral=True)
 
 
     @bot.tree.command(name="load", description="👑 [Owner] Создать структуру из сохранённого анализа")
