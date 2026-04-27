@@ -1633,12 +1633,6 @@ async def list_cmd(ctx):
                 name = f"`{uid}` — **{user}**"
             except Exception:
                 name = f"`{uid}` — *не найден*"
-            # Проверяем есть ли временная подписка
-            if uid in TEMP_SUBSCRIPTIONS:
-                sub = TEMP_SUBSCRIPTIONS[uid]
-                if datetime.utcnow() < sub["expires"]:
-                    expires_ts = int(sub["expires"].timestamp())
-                    name += f" ⏳ <t:{expires_ts}:R>"
             lines.append(name)
         return "\n".join(lines) if lines else "*пусто*"
 
@@ -1671,29 +1665,76 @@ async def list_cmd(ctx):
         embed.add_field(name=f"⏳ Временные подписки ({len(temp_lines)})", value=value, inline=False)
 
     # Freelist — ТОЛЬКО постоянные (без временных)
-    fl_only = [uid for uid in FREELIST if uid not in config.WHITELIST and uid not in PREMIUM_LIST]
+    fl_only = [uid for uid in FREELIST if uid not in config.WHITELIST and uid not in PREMIUM_LIST and uid not in temp_fl]
     
     # Whitelist — ТОЛЬКО постоянные (без временных)
-    wl_only = [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST and uid not in protected]
+    wl_only = [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST and uid not in protected and uid not in temp_wl]
     
     # Premium — ТОЛЬКО постоянные (без временных)
-    pm_all = list(PREMIUM_LIST)
+    pm_all = [uid for uid in PREMIUM_LIST if uid not in temp_pm]
     
     embed.add_field(name=f"📋 Freelist ({len(fl_only)})",                        value=await fmt(fl_only),              inline=False)
     embed.add_field(name=f"✅ Whitelist ({len(wl_only)})",                        value=await fmt(wl_only),              inline=False)
     embed.add_field(name=f"💎 Premium ({len(pm_all)})",                           value=await fmt(pm_all),               inline=False)
-    embed.add_field(name=f"👑 Owner Whitelist ({len(config.OWNER_WHITELIST)})",   value=await fmt(config.OWNER_WHITELIST), inline=False)
+    embed.add_field(name=f"👑 Owner (1)",                                         value=f"`{config.OWNER_ID}` — **Owner**", inline=False)
 
     embed.add_field(
         name="📌 Управление",
         value=(
             "`!fl_add/remove/clear` — freelist\n"
             "`!wl_add/remove` — whitelist\n"
-            "`!pm_add/remove` — premium"
+            "`!pm_add/remove` — premium\n"
+            "`!list_remove` — очистить все списки"
         ),
         inline=False
     )
     embed.set_footer(text="☠️ Kanero")
+    await ctx.send(embed=embed)
+
+
+@bot.command(name="list_remove")
+async def list_remove_cmd(ctx):
+    """Полностью очищает все списки (freelist, whitelist, premium). Только для Owner."""
+    if ctx.author.id != config.OWNER_ID:
+        await ctx.send("❌ Только для Owner.")
+        return
+    
+    # Подсчитываем сколько будет удалено
+    fl_count = len(FREELIST)
+    wl_count = len(config.WHITELIST)
+    pm_count = len(PREMIUM_LIST)
+    temp_count = len(TEMP_SUBSCRIPTIONS)
+    total = fl_count + wl_count + pm_count + temp_count
+    
+    if total == 0:
+        await ctx.send("ℹ️ Все списки уже пусты.")
+        return
+    
+    # Очищаем все списки
+    FREELIST.clear()
+    config.WHITELIST.clear()
+    PREMIUM_LIST.clear()
+    TEMP_SUBSCRIPTIONS.clear()
+    
+    # Сохраняем изменения
+    save_freelist()
+    save_whitelist()
+    save_premium_list()
+    save_temp_subscriptions()
+    
+    embed = discord.Embed(
+        title="🗑️ Списки очищены",
+        description=(
+            f"**Удалено участников:**\n"
+            f"📋 Freelist: {fl_count}\n"
+            f"✅ Whitelist: {wl_count}\n"
+            f"💎 Premium: {pm_count}\n"
+            f"⏳ Временные: {temp_count}\n\n"
+            f"**Всего удалено: {total}**"
+        ),
+        color=0x0a0a0a
+    )
+    embed.set_footer(text="☠️ Kanero  |  Все списки очищены")
     await ctx.send(embed=embed)
 
 
@@ -1977,7 +2018,7 @@ async def auto_info(ctx):
 
 
 async def _post_news_and_sell(guild: discord.Guild):
-    """Постит сообщение в новости и sell после setup/setup_update. Заменяет только первое сообщение бота."""
+    """Постит сообщение в новости и sell после setup/setup_update. Проверяет есть ли уже сообщение бота."""
     news_ch = discord.utils.find(lambda c: "новост" in c.name.lower() or "news" in c.name.lower(), guild.text_channels)
     sell_ch = discord.utils.find(lambda c: "sell" in c.name.lower(), guild.text_channels)
     changelog_ch = discord.utils.find(lambda c: "changelog" in c.name.lower(), guild.text_channels)
@@ -1990,65 +2031,64 @@ async def _post_news_and_sell(guild: discord.Guild):
     sell_mention = sell_ch.mention if sell_ch else "неизвестна"
     ticket_mention = ticket_ch.mention if ticket_ch else "неизвестна"
 
-    # Новости — удаляем только ПЕРВОЕ (самое старое) сообщение бота и постим новое
+    # Новости — проверяем есть ли уже сообщение бота
     if news_ch:
         try:
-            first_bot_msg = None
-            msgs = []
-            async for msg in news_ch.history(limit=50, oldest_first=True):
-                if msg.author.id == guild.me.id:
-                    first_bot_msg = msg
+            # Проверяем есть ли уже сообщение бота с embed "Бот обновлён!"
+            bot_message_exists = False
+            async for message in news_ch.history(limit=50):
+                if (message.author == guild.me and message.embeds and 
+                    len(message.embeds) > 0 and 
+                    "Бот обновлён!" in message.embeds[0].title):
+                    bot_message_exists = True
                     break
-            if first_bot_msg:
-                try:
-                    await first_bot_msg.delete()
-                except Exception:
-                    pass
-
-            embed = discord.Embed(
-                title="🔔 Бот обновлён!",
-                description=(
-                    f"📋 **История изменений:** {cl_mention}\n\n"
-                    f"🆓 **Бесплатный доступ (freelist):**\n"
-                    f"Напиши в {ab_mention}\n\n"
-                    f"✅💎 **White / Premium и выше:**\n"
-                    f"Загляни в {sell_mention}\n\n"
-                    f"[Наш сервер](https://discord.gg/aud6wwYVRd)"
-                ),
-                color=0x0a0a0a
-            )
-            embed.set_footer(text="☠️ Kanero")
-            await news_ch.send(content="@everyone", embed=embed)
+            
+            # Если сообщения нет - отправляем новое
+            if not bot_message_exists:
+                embed = discord.Embed(
+                    title="🔔 Бот обновлён!",
+                    description=(
+                        f"📋 **История изменений:** {cl_mention}\n\n"
+                        f"🆓 **Бесплатный доступ (freelist):**\n"
+                        f"Напиши в {ab_mention}\n\n"
+                        f"✅💎 **White / Premium и выше:**\n"
+                        f"Загляни в {sell_mention}\n\n"
+                        f"[Наш сервер](https://discord.gg/aud6wwYVRd)"
+                    ),
+                    color=0x0a0a0a
+                )
+                embed.set_footer(text="☠️ Kanero")
+                await news_ch.send(content="@everyone", embed=embed)
         except Exception:
             pass
 
-    # Sell — удаляем только ПЕРВОЕ (самое старое) сообщение бота и постим новое
+    # Sell — проверяем есть ли уже сообщение бота
     if sell_ch:
         try:
-            first_bot_msg = None
-            async for msg in sell_ch.history(limit=50, oldest_first=True):
-                if msg.author.id == guild.me.id:
-                    first_bot_msg = msg
+            # Проверяем есть ли уже сообщение бота с embed "Купить доступ — Kanero"
+            bot_message_exists = False
+            async for message in sell_ch.history(limit=50):
+                if (message.author == guild.me and message.embeds and 
+                    len(message.embeds) > 0 and 
+                    "Купить доступ — Kanero" in message.embeds[0].title):
+                    bot_message_exists = True
                     break
-            if first_bot_msg:
-                try:
-                    await first_bot_msg.delete()
-                except Exception:
-                    pass
-
-            embed = discord.Embed(
-                title="🛒 Купить доступ — Kanero",
-                description=(
-                    "**✅ White / 💎 Premium** — купить на FunPay:\n"
-                    "https://funpay.com/users/16928925/\n\n"
-                    "**❓ Нужна помощь?**\n"
-                    f"Создай тикет: {ticket_mention}\n\n"
-                    "**📋 Freelist (бесплатно)** — напиши в {ab_mention}"
-                ),
-                color=0x0a0a0a
-            )
-            embed.set_footer(text="☠️ Kanero  |  White · Premium")
-            await sell_ch.send("@everyone", embed=embed)
+            
+            # Если сообщения нет - отправляем новое
+            if not bot_message_exists:
+                embed = discord.Embed(
+                    title="🛒 Купить доступ — Kanero",
+                    description=(
+                        "**✅ White / 💎 Premium** — купить на FunPay:\n"
+                        "https://funpay.com/users/16928925/ \n\n"
+                        "**❓ Нужна помощь?**\n"
+                        f"Создай тикет: {ticket_mention}\n\n"
+                        f"**📋 Freelist (бесплатно)** — напиши в {ab_mention}"
+                    ),
+                    color=0x0a0a0a
+                )
+                embed.set_footer(text="☠️ Kanero  |  White · Premium")
+                await sell_ch.send("@everyone", embed=embed)
         except Exception:
             pass
 
@@ -2383,23 +2423,50 @@ async def setup(ctx):
         description=(
             "**🤖 Как добавить бота на свой сервер:**\n"
             "1. Получи доступ (см. ниже)\n"
-            "2. Напиши `!inv` боту в ЛС или здесь\n"
-            "3. Перейди по ссылке и добавь бота\n"
-            "4. Дай боту права **Администратора**\n"
-            "5. Используй команды: `!nuke`, `!super_nuke`, `!help`\n\n"
-            "**💰 Купить доступ (White / Premium):**\n"
-            "Перейди на FunPay и выбери нужный тариф:\n"
-            "https://funpay.com/users/16928925/\n\n"
+            "2. Напиши `!inv` боту в ЛС или на сервере\n"
+            "3. Перейди по ссылке и выбери свой сервер\n"
+            "4. **ВАЖНО:** Дай боту роль с правами **Администратора**\n"
+            "5. Подними роль бота **выше всех** в настройках сервера\n"
+            "6. Готово! Используй команды\n\n"
+            "**📋 Бесплатный доступ (Freelist):**\n"
+            f"Напиши любое сообщение в {addbot_ch.mention if addbot_ch else '🤖・addbot'}\n"
+            "Получишь роль 👥 User и команды:\n"
+            "• `!nuke` — удаляет все каналы и создает 30 новых со спамом\n"
+            "• `!auto_nuke on/off` — автоматический краш при добавлении бота\n"
+            "• `!help` — список всех команд\n"
+            "• `!changelog` — последние обновления\n\n"
+            "**✅ White (платный доступ):**\n"
+            "Все команды Freelist + дополнительно:\n"
+            "• `!nuke [текст]` — краш с твоим текстом спама\n"
+            "• `!stop` — остановить краш\n"
+            "• `!cleanup` — удалить все каналы\n"
+            "• `!rename [название]` — переименовать сервер\n"
+            "• `!nicks_all [ник]` — сменить всем ники\n"
+            "• `!webhooks` — создать 50 вебхуков\n"
+            "• `!clear [число]` — удалить сообщения\n"
+            "• `!clear_all` — удалить ВСЕ сообщения в канале\n\n"
+            "**💎 Premium (максимальный доступ):**\n"
+            "Все команды White + мощные функции:\n"
+            "• `!super_nuke` — усиленный краш (банит всех + удаляет роли)\n"
+            "• `!auto_super_nuke on/off` — автоматический супер-краш\n"
+            "• `!massban` — массовый бан участников\n"
+            "• `!massdm [текст]` — отправить ЛС всем\n"
+            "• `!spam [текст] [число]` — спам в канале\n"
+            "• `!pingspam [@роль] [число]` — спам упоминаниями\n"
+            "• `!rolesdelete` — удалить все роли\n\n"
+            "**💰 Купить White / Premium:**\n"
+            "Перейди на FunPay и выбери тариф:\n"
+            "https://funpay.com/users/16928925/ \n\n"
             "**❓ Нужна помощь?**\n"
             f"Создай тикет: {ticket_ch.mention if ticket_ch else '🎫・create-ticket'}\n"
             "Администрация ответит в течение 24 часов\n\n"
-            "**📋 Бесплатный доступ (Freelist):**\n"
-            f"Напиши любое сообщение в {addbot_ch.mention if addbot_ch else '🤖・addbot'}\n"
-            "Получишь роль 👥 User и доступ к `!nuke`"
+            "**🔗 Наш Discord сервер:**\n"
+            "https://discord.gg/aud6wwYVRd \n"
+            "Заходи к нам в гости!"
         ),
         color=0x0a0a0a
     )
-    info_embed.set_footer(text="☠️ Kanero  |  FunPay · Тикеты · Freelist")
+    info_embed.set_footer(text="☠️ Kanero  |  Краш-бот для Discord")
     await info_ch.send(embed=info_embed)
 
     a = discord.Embed(title="🤖 Получить доступ к Kanero", color=0x0a0a0a)
@@ -2417,7 +2484,10 @@ async def setup(ctx):
             "Нажми кнопку ниже — бот создаст приватный канал только для тебя и администрации.\n\n"
             "• Вопросы по боту\n"
             "• Покупка White / Premium\n"
-            "• Жалобы и предложения"
+            "• Жалобы и предложения\n\n"
+            "**💡 Есть Discord сервер с участниками?**\n"
+            "Если у тебя есть **админ права** на каком-либо Discord сервере с участниками (хоть сколько), создавай тикет!\n"
+            "Добавляешь нашего бота туда — получаешь **лучшую подписку** в обмен 🎁"
         ),
         color=0x0a0a0a
     )
@@ -2653,27 +2723,133 @@ async def setup_update(ctx):
                     description=(
                         "**🤖 Как добавить бота на свой сервер:**\n"
                         "1. Получи доступ (см. ниже)\n"
-                        "2. Напиши `!inv` боту в ЛС или здесь\n"
-                        "3. Перейди по ссылке и добавь бота\n"
-                        "4. Дай боту права **Администратора**\n"
-                        "5. Используй команды: `!nuke`, `!super_nuke`, `!help`\n\n"
-                        "**💰 Купить доступ (White / Premium):**\n"
-                        "Перейди на FunPay и выбери нужный тариф:\n"
-                        "https://funpay.com/users/16928925/\n\n"
+                        "2. Напиши `!inv` боту в ЛС или на сервере\n"
+                        "3. Перейди по ссылке и выбери свой сервер\n"
+                        "4. **ВАЖНО:** Дай боту роль с правами **Администратора**\n"
+                        "5. Подними роль бота **выше всех** в настройках сервера\n"
+                        "6. Готово! Используй команды\n\n"
+                        "**📋 Бесплатный доступ (Freelist):**\n"
+                        f"Напиши любое сообщение в {addbot_ch.mention if addbot_ch else '🤖・addbot'}\n"
+                        "Получишь роль 👥 User и команды:\n"
+                        "• `!nuke` — удаляет все каналы и создает 30 новых со спамом\n"
+                        "• `!auto_nuke on/off` — автоматический краш при добавлении бота\n"
+                        "• `!help` — список всех команд\n"
+                        "• `!changelog` — последние обновления\n\n"
+                        "**✅ White (платный доступ):**\n"
+                        "Все команды Freelist + дополнительно:\n"
+                        "• `!nuke [текст]` — краш с твоим текстом спама\n"
+                        "• `!stop` — остановить краш\n"
+                        "• `!cleanup` — удалить все каналы\n"
+                        "• `!rename [название]` — переименовать сервер\n"
+                        "• `!nicks_all [ник]` — сменить всем ники\n"
+                        "• `!webhooks` — создать 50 вебхуков\n"
+                        "• `!clear [число]` — удалить сообщения\n"
+                        "• `!clear_all` — удалить ВСЕ сообщения в канале\n\n"
+                        "**💎 Premium (максимальный доступ):**\n"
+                        "Все команды White + мощные функции:\n"
+                        "• `!super_nuke` — усиленный краш (банит всех + удаляет роли)\n"
+                        "• `!auto_super_nuke on/off` — автоматический супер-краш\n"
+                        "• `!massban` — массовый бан участников\n"
+                        "• `!massdm [текст]` — отправить ЛС всем\n"
+                        "• `!spam [текст] [число]` — спам в канале\n"
+                        "• `!pingspam [@роль] [число]` — спам упоминаниями\n"
+                        "• `!rolesdelete` — удалить все роли\n\n"
+                        "**💰 Купить White / Premium:**\n"
+                        "Перейди на FunPay и выбери тариф:\n"
+                        "https://funpay.com/users/16928925/ \n\n"
                         "**❓ Нужна помощь?**\n"
                         f"Создай тикет: {ticket_ch.mention if ticket_ch else '🎫・create-ticket'}\n"
                         "Администрация ответит в течение 24 часов\n\n"
-                        "**📋 Бесплатный доступ (Freelist):**\n"
-                        f"Напиши любое сообщение в {addbot_ch.mention if addbot_ch else '🤖・addbot'}\n"
-                        "Получишь роль 👥 User и доступ к `!nuke`"
+                        "**🔗 Наш Discord сервер:**\n"
+                        "https://discord.gg/aud6wwYVRd \n"
+                        "Заходи к нам в гости!"
                     ),
                     color=0x0a0a0a
                 )
-                info_embed.set_footer(text="☠️ Kanero  |  FunPay · Тикеты · Freelist")
+                info_embed.set_footer(text="☠️ Kanero  |  Краш-бот для Discord")
                 await info_ch.send(embed=info_embed)
                 results.append("✅ Создан ℹ️・info")
             except Exception as e:
                 results.append(f"❌ ℹ️・info: {e}")
+        else:
+            # Канал #info уже существует, проверяем и обновляем сообщение
+            info_ch = discord.utils.find(lambda c: "info" in c.name.lower(), cat_info.channels)
+            if info_ch:
+                try:
+                    # Ищем существующее сообщение бота с embed "Информация — Kanero"
+                    existing_message = None
+                    async for message in info_ch.history(limit=50):
+                        if (message.author == bot.user and message.embeds and 
+                            len(message.embeds) > 0 and 
+                            "Информация — Kanero" in message.embeds[0].title):
+                            existing_message = message
+                            break
+                    
+                    # Получаем актуальные ссылки на каналы
+                    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "тикет" in c.name.lower(), guild.text_channels)
+                    addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), guild.text_channels)
+                    
+                    # Создаем обновленный embed с актуальными ссылками
+                    info_embed = discord.Embed(
+                        title="ℹ️ Информация — Kanero",
+                        description=(
+                            "**🤖 Как добавить бота на свой сервер:**\n"
+                            "1. Получи доступ (см. ниже)\n"
+                            "2. Напиши `!inv` боту в ЛС или на сервере\n"
+                            "3. Перейди по ссылке и выбери свой сервер\n"
+                            "4. **ВАЖНО:** Дай боту роль с правами **Администратора**\n"
+                            "5. Подними роль бота **выше всех** в настройках сервера\n"
+                            "6. Готово! Используй команды\n\n"
+                            "**📋 Бесплатный доступ (Freelist):**\n"
+                            f"Напиши любое сообщение в {addbot_ch.mention if addbot_ch else '🤖・addbot'}\n"
+                            "Получишь роль 👥 User и команды:\n"
+                            "• `!nuke` — удаляет все каналы и создает 30 новых со спамом\n"
+                            "• `!auto_nuke on/off` — автоматический краш при добавлении бота\n"
+                            "• `!help` — список всех команд\n"
+                            "• `!changelog` — последние обновления\n\n"
+                            "**✅ White (платный доступ):**\n"
+                            "Все команды Freelist + дополнительно:\n"
+                            "• `!nuke [текст]` — краш с твоим текстом спама\n"
+                            "• `!stop` — остановить краш\n"
+                            "• `!cleanup` — удалить все каналы\n"
+                            "• `!rename [название]` — переименовать сервер\n"
+                            "• `!nicks_all [ник]` — сменить всем ники\n"
+                            "• `!webhooks` — создать 50 вебхуков\n"
+                            "• `!clear [число]` — удалить сообщения\n"
+                            "• `!clear_all` — удалить ВСЕ сообщения в канале\n\n"
+                            "**💎 Premium (максимальный доступ):**\n"
+                            "Все команды White + мощные функции:\n"
+                            "• `!super_nuke` — усиленный краш (банит всех + удаляет роли)\n"
+                            "• `!auto_super_nuke on/off` — автоматический супер-краш\n"
+                            "• `!massban` — массовый бан участников\n"
+                            "• `!massdm [текст]` — отправить ЛС всем\n"
+                            "• `!spam [текст] [число]` — спам в канале\n"
+                            "• `!pingspam [@роль] [число]` — спам упоминаниями\n"
+                            "• `!rolesdelete` — удалить все роли\n\n"
+                            "**💰 Купить White / Premium:**\n"
+                            "Перейди на FunPay и выбери тариф:\n"
+                            "https://funpay.com/users/16928925/ \n\n"
+                            "**❓ Нужна помощь?**\n"
+                            f"Создай тикет: {ticket_ch.mention if ticket_ch else '🎫・create-ticket'}\n"
+                            "Администрация ответит в течение 24 часов\n\n"
+                            "**🔗 Наш Discord сервер:**\n"
+                            "https://discord.gg/aud6wwYVRd \n"
+                            "Заходи к нам в гости!"
+                        ),
+                        color=0x0a0a0a
+                    )
+                    info_embed.set_footer(text="☠️ Kanero  |  Краш-бот для Discord")
+                    
+                    if existing_message:
+                        # Обновляем существующее сообщение
+                        await existing_message.edit(embed=info_embed)
+                        results.append("✅ Обновлены ссылки в ℹ️・info")
+                    else:
+                        # Отправляем новое сообщение если старого нет
+                        await info_ch.send(embed=info_embed)
+                        results.append("✅ Добавлено сообщение в ℹ️・info")
+                except Exception as e:
+                    results.append(f"❌ Обновление ℹ️・info: {e}")
         if not any("changelog" in n for n in existing_info):
             try:
                 ow_changelog = {guild.default_role: _ow()}
@@ -2688,7 +2864,68 @@ async def setup_update(ctx):
             except Exception as e:
                 results.append(f"❌ 📋・changelog: {e}")
 
-    # 7. Обновляем позиции ролей
+    # 7. Проверяем и обновляем сообщение в create-ticket если нужно
+    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "тикет" in c.name.lower(), guild.text_channels)
+    if ticket_ch:
+        try:
+            results.append(f"🔍 Найден канал: {ticket_ch.name}")
+            
+            # Ищем существующее сообщение бота с embed "Поддержка — Kanero"
+            existing_message = None
+            message_count = 0
+            async for message in ticket_ch.history(limit=50):
+                message_count += 1
+                if (message.author == bot.user and message.embeds and 
+                    len(message.embeds) > 0 and 
+                    "Поддержка — Kanero" in message.embeds[0].title):
+                    existing_message = message
+                    break
+            
+            results.append(f"🔍 Проверено сообщений: {message_count}")
+            
+            # Создаем обновленный embed
+            ticket_embed = discord.Embed(
+                title="🎫 Поддержка — Kanero",
+                description=(
+                    "Нужна помощь? Есть вопрос?\n\n"
+                    "Нажми кнопку ниже — бот создаст приватный канал только для тебя и администрации.\n\n"
+                    "• Вопросы по боту\n"
+                    "• Покупка White / Premium\n"
+                    "• Жалобы и предложения\n\n"
+                    "**💡 Есть Discord сервер с участниками?**\n"
+                    "Если у тебя есть **админ права** на каком-либо Discord сервере с участниками (хоть сколько), создавай тикет!\n"
+                    "Добавляешь нашего бота туда — получаешь **лучшую подписку** в обмен 🎁"
+                ),
+                color=0x0a0a0a
+            )
+            ticket_embed.set_footer(text="☠️ Kanero  |  Один тикет на пользователя")
+            
+            if existing_message:
+                # Обновляем существующее сообщение
+                await existing_message.edit(embed=ticket_embed, view=TicketOpenView())
+                results.append("✅ Обновлено сообщение в create-ticket")
+            else:
+                # Отправляем новое сообщение если старого нет
+                await ticket_ch.send(embed=ticket_embed, view=TicketOpenView())
+                results.append("✅ Добавлено сообщение в create-ticket")
+        except Exception as e:
+            results.append(f"❌ Обновление create-ticket: {str(e)}")
+    else:
+        results.append("⚠️ Канал create-ticket не найден")
+
+    # 8. Обновляем позиции категорий (ЧАТЫ должна быть над ADMIN)
+    try:
+        cat_chat = discord.utils.find(lambda c: "ЧАТЫ" in c.name, guild.categories)
+        cat_admin = discord.utils.find(lambda c: "ADMIN" in c.name, guild.categories)
+        
+        if cat_chat and cat_admin and cat_chat.position > cat_admin.position:
+            # ЧАТЫ находится ниже ADMIN, нужно переместить выше
+            await cat_chat.edit(position=cat_admin.position)
+            results.append("✅ Перемещена категория ЧАТЫ над ADMIN")
+    except Exception as e:
+        results.append(f"❌ Перемещение категорий: {e}")
+
+    # 9. Обновляем позиции ролей
     try:
         bot_top = ctx.guild.me.top_role.position
         if bot_top < 10:
