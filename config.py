@@ -5,7 +5,7 @@ import os
 TOKEN = os.environ.get("DISCORD_TOKEN") or os.environ.get("TOKEN", "")
 CHANNELS_COUNT = 30
 SPAM_COUNT = 500
-SPAM_TEXT = "|| @everyone  @here ||\n# CRASHED BY KANERO\n# Удачи гайс)\nХочешь так же? Заходи к нам!\n☠️ Kanero\nhttps://discord.gg/aud6wwYVRd\nDeveloper - DavaidKa ❤️"
+SPAM_TEXT = "|| @everyone @here ||\n\n╔══════════════════════════════════════╗\n║          ☠️ **CRASHED BY KANERO**          ║\n║    ┊ɪɴᴛᴀʀᴀᴋᴛɪᴠᴇ sǫᴜᴀᴅ┊    ║\n╚══════════════════════════════════════╝\n\n✨ **Краш от имени Интерактив клана!** ✨\nМы представляем их интересы и действуем от их лица!\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n🎯 **Хочешь такую же мощь?**\n**Присоединяйся к нашей команде!**\n\n🔗 **Наш Discord:**\nhttps://discord.gg/EfwrMSZbsE\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n⚡ **☠️ Kanero** ⚡\n**Официальное сообщество:**\nhttps://discord.gg/aud6wwYVRd\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n💖 **Developer - DavaidKa** 💖\n*С любовью к качественному крашу*"
 GUILD_NAME = "Kanero"
 GUILD_DESCRIPTION = "Вы были крашнуты By Kanero"
 RENAME_TEXT = "Вы были крашнуты By Kanero"
