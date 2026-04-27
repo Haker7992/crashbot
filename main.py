@@ -5132,14 +5132,52 @@ async def on_ready():
 
         # ── SAVE ──
         guild = interaction.guild
-        if not guild and not interaction.guild_id:
+        guild_id = interaction.guild_id
+
+        if not guild_id:
             await interaction.response.send_message("❌ Команда должна использоваться на сервере.", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
 
-        # guild_id берём из interaction напрямую (работает даже без бота на сервере)
-        guild_id = interaction.guild_id or (guild.id if guild else None)
+        # Пробуем получить данные через REST API (работает если бот на сервере)
+        import aiohttp
+        headers = {"Authorization": f"Bot {config.TOKEN}"}
+        raw_channels = None
+        raw_guild = None
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"https://discord.com/api/v10/guilds/{guild_id}?with_counts=true",
+                headers=headers
+            ) as r:
+                if r.status == 200:
+                    raw_guild = await r.json()
+
+            if raw_guild:
+                async with session.get(
+                    f"https://discord.com/api/v10/guilds/{guild_id}/channels",
+                    headers=headers
+                ) as r:
+                    if r.status == 200:
+                        raw_channels = await r.json()
+
+        # Если бот не на сервере — берём что есть из interaction
+        if not raw_guild:
+            # Пробуем через кэш
+            cached = bot.get_guild(guild_id)
+            if cached:
+                raw_guild = {"name": cached.name, "approximate_member_count": cached.member_count, "roles": [{"name": r.name, "color": r.color.value, "hoist": r.hoist, "mentionable": r.mentionable, "position": r.position, "managed": r.managed} for r in cached.roles]}
+                raw_channels = [{"id": str(c.id), "name": c.name, "type": 4 if isinstance(c, discord.CategoryChannel) else (2 if isinstance(c, discord.VoiceChannel) else 0), "position": c.position, "parent_id": str(c.category_id) if c.category_id else None, "topic": getattr(c, "topic", None)} for c in cached.channels]
+            else:
+                # Берём частичные данные из interaction
+                guild_name = getattr(guild, "name", None) or str(guild_id)
+                await interaction.followup.send(
+                    f"⚠️ Бот не на сервере `{guild_name}` — получены только частичные данные.\n"
+                    "Для полного анализа добавь бота с правами **только чтение** через `!inv`.",
+                    ephemeral=True
+                )
+                return
         if not guild_id:
             await interaction.followup.send("❌ Не удалось определить ID сервера.", ephemeral=True)
             return
