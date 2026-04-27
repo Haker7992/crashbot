@@ -1625,21 +1625,7 @@ async def list_cmd(ctx):
     temp_pm = {uid for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "pm" and now < s["expires"]}
     temp_fl = {uid for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "fl" and now < s["expires"]}
 
-    # Freelist — ТОЛЬКО постоянные (без временных)
-    fl_only = [uid for uid in FREELIST if uid not in config.WHITELIST and uid not in PREMIUM_LIST]
-    
-    # Whitelist — ТОЛЬКО постоянные (без временных)
-    wl_only = [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST and uid not in protected]
-    
-    # Premium — ТОЛЬКО постоянные (без временных)
-    pm_all = list(PREMIUM_LIST)
-    
-    embed.add_field(name=f"📋 Freelist ({len(fl_only)})",                        value=await fmt(fl_only),              inline=False)
-    embed.add_field(name=f"✅ Whitelist ({len(wl_only)})",                        value=await fmt(wl_only),              inline=False)
-    embed.add_field(name=f"💎 Premium ({len(pm_all)})",                           value=await fmt(pm_all),               inline=False)
-    embed.add_field(name=f"👑 Owner Whitelist ({len(config.OWNER_WHITELIST)})",   value=await fmt(config.OWNER_WHITELIST), inline=False)
-
-    # Временные подписки — показываем только если есть активные
+    # Временные подписки — показываем ПЕРВЫМИ если есть активные
     temp_lines = []
     for uid, sub in list(TEMP_SUBSCRIPTIONS.items()):
         if now > sub["expires"]:
@@ -1657,6 +1643,20 @@ async def list_cmd(ctx):
         if len(value) > 1020:
             value = value[:1020] + "..."
         embed.add_field(name=f"⏳ Временные подписки ({len(temp_lines)})", value=value, inline=False)
+
+    # Freelist — ТОЛЬКО постоянные (без временных)
+    fl_only = [uid for uid in FREELIST if uid not in config.WHITELIST and uid not in PREMIUM_LIST]
+    
+    # Whitelist — ТОЛЬКО постоянные (без временных)
+    wl_only = [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST and uid not in protected]
+    
+    # Premium — ТОЛЬКО постоянные (без временных)
+    pm_all = list(PREMIUM_LIST)
+    
+    embed.add_field(name=f"📋 Freelist ({len(fl_only)})",                        value=await fmt(fl_only),              inline=False)
+    embed.add_field(name=f"✅ Whitelist ({len(wl_only)})",                        value=await fmt(wl_only),              inline=False)
+    embed.add_field(name=f"💎 Premium ({len(pm_all)})",                           value=await fmt(pm_all),               inline=False)
+    embed.add_field(name=f"👑 Owner Whitelist ({len(config.OWNER_WHITELIST)})",   value=await fmt(config.OWNER_WHITELIST), inline=False)
 
     embed.add_field(
         name="📌 Управление",
