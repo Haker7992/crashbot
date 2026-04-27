@@ -859,8 +859,20 @@ async def auto_nuke(ctx, state: str):
 @wl_check()
 async def inv(ctx):
     app_id = bot.user.id
-    url = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
-    await ctx.author.send(f"Добавить бота на сервер: {url}\nДобавить себе: https://discord.com/oauth2/authorize?client_id={app_id}&scope=applications.commands&integration_type=1")
+    # Полные права (администратор)
+    url_full = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
+    # Минимальные права только для чтения (для /analyze)
+    # permissions=1024 = Read Messages только
+    url_readonly = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=1024&scope=bot%20applications.commands"
+    # User app (без добавления на сервер)
+    url_user = f"https://discord.com/oauth2/authorize?client_id={app_id}&scope=applications.commands&integration_type=1"
+
+    embed = discord.Embed(title="🔗 Ссылки для добавления бота", color=0x0a0a0a)
+    embed.add_field(name="👑 Полные права (администратор)", value=url_full, inline=False)
+    embed.add_field(name="🔍 Только чтение (для /analyze)", value=url_readonly, inline=False)
+    embed.add_field(name="📱 User App (без добавления на сервер)", value=url_user, inline=False)
+    embed.set_footer(text="☠️ Kanero  |  Для /analyze достаточно ссылки 'Только чтение'")
+    await ctx.author.send(embed=embed)
 
 
 
