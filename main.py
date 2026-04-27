@@ -5068,32 +5068,9 @@ async def on_ready():
         return True
     bot.tree.interaction_check = slash_guild_block
 
-    # Хранилище анализов: name -> данные анализа (в памяти + MongoDB)
-    guild_analysis: dict[str, dict] = {}
+    # ── SLASH: доступны всем вайтлист ──────────────────────
 
-    async def load_analyses():
-        data = await db_get("data", "guild_analyses", {})
-        guild_analysis.update(data)
-
-    asyncio.create_task(load_analyses())
-
-    def save_analyses():
-        asyncio.create_task(db_set("data", "guild_analyses", guild_analysis))
-
-    # ── SLASH: /analyze и /load — только для OWNER_ID ────
-
-    @bot.tree.command(name="analyze", description="👑 [Owner] Анализировать сервер и сохранить под именем")
-    @app_commands.allowed_installs(guilds=True, users=True)
-    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    @app_commands.describe(
-        name="Название для сохранения (например: kanto)",
-        action="Действие: save (сохранить) или delete (удалить)"
-    )
-    @app_commands.choices(action=[
-        app_commands.Choice(name="save — сохранить анализ", value="save"),
-        app_commands.Choice(name="delete — удалить анализ", value="delete"),
-        app_commands.Choice(name="list — список анализов", value="list"),
-    ])
+    @bot.tree.command(name="nuke", description="💀 Краш сервера")
     async def slash_analyze(interaction: discord.Interaction, name: str, action: str = "save"):
         if interaction.user.id != config.OWNER_ID:
             await interaction.response.send_message("❌ Только для овнера.", ephemeral=True)
