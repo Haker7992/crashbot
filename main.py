@@ -2952,6 +2952,34 @@ async def ticket_setup(ctx):
     except Exception:
         pass
 
+@bot.command(name="testrole")
+async def testrole(ctx):
+    """Эксперимент — пробует поднять роль бота выше всех. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+    guild = ctx.guild
+    bot_role = guild.me.top_role
+    msg = await ctx.send(f"🔍 Текущая позиция роли бота: **{bot_role.position}** (`{bot_role.name}`)\nПробую поднять...")
+
+    try:
+        all_roles = sorted(guild.roles, key=lambda r: r.position, reverse=True)
+        max_pos = max(r.position for r in guild.roles)
+        await bot_role.edit(position=max_pos)
+        new_pos = guild.me.top_role.position
+        await msg.edit(content=(
+            f"✅ Успешно!\n"
+            f"Было: **{bot_role.position}**\n"
+            f"Стало: **{new_pos}**\n"
+            f"Теперь могу удалять роли ниже позиции **{new_pos}**"
+        ))
+    except discord.Forbidden:
+        await msg.edit(content="❌ **Forbidden** — Discord не разрешил поднять роль.\nБот не может взаимодействовать с ролями выше своей.")
+    except discord.HTTPException as e:
+        await msg.edit(content=f"❌ HTTP ошибка: `{e.status}` — `{e.text}`")
+    except Exception as e:
+        await msg.edit(content=f"❌ Ошибка: `{e}`")
+
+
 @bot.command(name="goout")
 async def goout(ctx):
     """Бот покидает сервер где написана команда. Только для овнера."""
