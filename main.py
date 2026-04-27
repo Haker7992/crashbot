@@ -1263,7 +1263,7 @@ class CompensationView(discord.ui.View):
     """Кнопка получения компенсации. Работает пока не истечёт время."""
 
     def __init__(self, sub_type: str, hours: int, expires_at: datetime):
-        super().__init__(timeout=None)  # не таймаутим — храним в памяти
+        super().__init__(timeout=None)
         self.sub_type = sub_type
         self.hours = hours
         self.expires_at = expires_at
@@ -5043,9 +5043,8 @@ async def on_ready():
     # ── Регистрируем persistent views (кнопки выживают после перезапуска) ──
     bot.add_view(TicketCloseView())
     bot.add_view(TicketOpenView())
-    # CompensationView — регистрируем заглушку чтобы кнопка не давала "ошибку взаимодействия"
-    # Реальный expires_at уже прошёл — кнопка ответит что время истекло
-    bot.add_view(CompensationView("pm", 24, datetime.utcnow()))
+    # CompensationView — один экземпляр, custom_id="claim_comp_v2" покрывает все типы
+    bot.add_view(CompensationView("pm", 24, datetime.utcnow() + timedelta(days=365)))
 
     bot.tree.clear_commands(guild=None)
 
