@@ -2573,6 +2573,15 @@ async def setup_update(ctx):
         except Exception as e:
             results.append(f"❌ Категория INFO: {e}")
     
+    # Переносим #changelog из ОСНОВНОЕ в INFO если он там
+    changelog_ch = discord.utils.find(lambda c: "changelog" in c.name.lower(), guild.text_channels)
+    if changelog_ch and cat_info and changelog_ch.category != cat_info:
+        try:
+            await changelog_ch.edit(category=cat_info)
+            results.append("✅ Перенесен 📋・changelog в INFO")
+        except Exception as e:
+            results.append(f"❌ Перенос changelog: {e}")
+    
     if cat_info:
         existing_info = [ch.name.lower() for ch in cat_info.channels]
         if not any("info" in n for n in existing_info):
