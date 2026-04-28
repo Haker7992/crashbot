@@ -3417,7 +3417,7 @@ async def setup_update(ctx):
                 message_count += 1
                 if (message.author == bot.user and message.embeds and 
                     len(message.embeds) > 0 and 
-                    "Поддержка вKanero in message.embeds[0].title):
+                    "Поддержка в Kanero" in message.embeds[0].title):
                     existing_message = message
                     break
             
