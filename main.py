@@ -1761,7 +1761,7 @@ async def list_cmd(ctx):
             "`!fl_add/remove/clear` – freelist\n"
             "`!wl_add/remove` – whitelist\n"
             "`!pm_add/remove` – premium\n"
-            "`!tester_add/remove/list` – тестеры"
+            "`!ts_add/remove` – тестеры"
         ),
         inline=False
     )
@@ -2317,7 +2317,7 @@ async def _post_news_and_sell(guild: discord.Guild):
                     title="💰 Покупка доступа к Kanero",
                     description=(
                         "**✅ White / 💎 Premium** — покупка на FunPay:\n"
-                        "https://funpay.com/users/16928925/ \n\n"
+                        "https://funpay.com/users/16928925/\n\n"
                         "**❓ Нужна помощь?**\n"
                         f"Создай тикет: {ticket_mention}\n\n"
                         f"**📁 Freelist (бесплатно)** — зайди в {ab_mention}"
@@ -2325,7 +2325,7 @@ async def _post_news_and_sell(guild: discord.Guild):
                     color=0x0a0a0a
                 )
                 embed.set_footer(text="☠️ Kanero  |  White и Premium")
-                await sell_ch.send("@everyone", embed=embed)
+                await sell_ch.send(embed=embed)
         except Exception:
             pass
 
@@ -2575,7 +2575,7 @@ async def setup(ctx):
         name="🧪 v2.5 — Система Tester и оптимизация",
         value=(
             "• Создана роль 🧪 Tester с правами Premium\n"
-            "• Команды `!tester_add`, `!tester_remove`, `!tester_list`\n"
+            "• Команды `!ts_add`, `!ts_remove` (упрощённые)\n"
             "• Категория 🧪 TESTS с каналами для тестирования\n"
             "• Tester получает доступ к тикетам\n"
             "• Переименована категория ОБЩЕНИЕ → ОСНОВНОЕ\n"
@@ -3774,28 +3774,28 @@ async def fl_clear(ctx):
 
 # --- TESTER MANAGEMENT -------------------------------------
 
-@bot.command(name="tester_add")
-async def tester_add(ctx, *, user_input: str):
-    """�������� �������. ������ ��� ������.
-    �������������: !tester_add @user | !tester_add user_id
+@bot.command(name="ts_add")
+async def ts_add(ctx, *, user_input: str):
+    """Добавить тестера. Только для овнера.
+    Использование: !ts_add @user | !ts_add user_id
     """
     if ctx.author.id != config.OWNER_ID:
         return
 
     user = await resolve_user(ctx, user_input)
     if not user:
-        await ctx.send(f"? ������������ `{user_input}` �� ������.")
+        await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
         return
     
     user_id = user.id
     if user_id in TESTER_LIST:
-        await ctx.send(f"?? **{user}** ��� � ������ ��������.")
+        await ctx.send(f"⚠️ **{user}** уже в списке тестеров.")
         return
     
     TESTER_LIST.append(user_id)
     save_tester_list()
     
-    # ����� ���� �� �������� �������
+    # Выдаём роль на домашнем сервере
     try:
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if home_guild:
@@ -3806,47 +3806,60 @@ async def tester_add(ctx, *, user_input: str):
                 except Exception:
                     member = None
             if member:
-                tester_role = discord.utils.find(lambda r: r.name == "?? Tester", home_guild.roles)
+                tester_role = discord.utils.find(lambda r: r.name == "🧪 Tester", home_guild.roles)
                 if tester_role and tester_role not in member.roles:
-                    await member.add_roles(tester_role, reason="tester_add")
+                    await member.add_roles(tester_role, reason="ts_add")
     except Exception:
         pass
     
-    await ctx.send(f"? **{user}** (`{user_id}`) �������� � �������.")
+    await ctx.send(f"✅ **{user}** (`{user_id}`) добавлен в тестеры.")
 
 
-@bot.command(name="tester_remove")
-async def tester_remove(ctx, *, user_input: str):
-    """������ �������. ������ ��� ������."""
+@bot.command(name="ts_remove")
+async def ts_remove(ctx, *, user_input: str):
+    """Убрать тестера. Только для овнера."""
     if ctx.author.id != config.OWNER_ID:
         return
 
     user = await resolve_user(ctx, user_input)
     if not user:
-        await ctx.send(f"? ������������ `{user_input}` �� ������.")
+        await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
         return
     
     user_id = user.id
     if user_id not in TESTER_LIST:
-        await ctx.send(f"?? **{user}** �� � ������ ��������.")
+        await ctx.send(f"⚠️ **{user}** не в списке тестеров.")
         return
     
     TESTER_LIST.remove(user_id)
     save_tester_list()
     
-    # ������� ���� �� �������� �������
+    # Убираем роль на домашнем сервере
     try:
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if home_guild:
             member = home_guild.get_member(user_id)
             if member:
-                tester_role = discord.utils.find(lambda r: r.name == "?? Tester", home_guild.roles)
+                tester_role = discord.utils.find(lambda r: r.name == "🧪 Tester", home_guild.roles)
                 if tester_role and tester_role in member.roles:
-                    await member.remove_roles(tester_role, reason="tester_remove")
+                    await member.remove_roles(tester_role, reason="ts_remove")
     except Exception:
         pass
     
-    await ctx.send(f"? **{user}** ����� �� ��������.")
+    await ctx.send(f"✅ **{user}** убран из тестеров.")
+
+
+# Оставляем старые команды для совместимости
+@bot.command(name="tester_add")
+async def tester_add(ctx, *, user_input: str):
+    """Добавить тестера (старая команда, используй !ts_add)"""
+    await ts_add(ctx, user_input=user_input)
+
+
+@bot.command(name="tester_remove")
+async def tester_remove(ctx, *, user_input: str):
+    """Убрать тестера (старая команда, используй !ts_remove)"""
+    await ts_remove(ctx, user_input=user_input)
 
 
 # Удалена команда !tester_list - используй !list для просмотра всех листов
@@ -3968,36 +3981,6 @@ async def ticket_setup(ctx):
         await ctx.message.delete()
     except Exception:
         pass
-
-@bot.command(name="goout")
-async def goout(ctx):
-    """��� �������� ������ ��� �������� �������. ������ ��� ������."""
-    if ctx.author.id != config.OWNER_ID:
-        return
-    guild = ctx.guild
-    try:
-        await ctx.send("?? ������ � �������.")
-        await guild.leave()
-    except Exception as e:
-        await ctx.send(f"? ������: {e}")
-
-
-@bot.command(name="announce")
-async def announce(ctx):
-    """��������� ��������� � ������� ��������� �������. ������ ��� ������."""
-    if ctx.author.id != config.OWNER_ID:
-        return
-
-    class GetAccessView(discord.ui.View):
-        def __init__(self):
-            super().__init__(timeout=None)
-            app_id = ctx.bot.user.id
-            url = f"https://discord.com/users/{app_id}"
-            self.add_item(discord.ui.Button(
-                label="?? �������� ���� � ��",
-                url=url,
-                style=discord.ButtonStyle.link
-            ))
 
     embed = discord.Embed(
         title="?? Kanero � CRASH BOT",
@@ -4774,7 +4757,7 @@ async def help_cmd(ctx):
                 "`!auto_info` – показать все авто нуки\n"
                 "`!wl_add/remove/list` – `!pm_add/remove/list`\n"
                 "`!fl_add/remove/list/clear` – freelist\n"
-                "`!tester_add/remove/list` – управление тестерами\n"
+                "`!ts_add/remove` – управление тестерами\n"
                 "`!on_add/remove/list` – owner nuke list\n"
                 "`!compensate <тип> <часы>` – выдать компенсацию в чате\n"
                 "`!announce_bug \"название\" описание` – объявить о баге\n"
