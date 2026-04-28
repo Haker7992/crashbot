@@ -2457,6 +2457,7 @@ async def setup(ctx):
     
     cat_welcome = await guild.create_category("━━━━ 👋 WELCOME ━━━━", overwrites=welcome_ow())
     welcome_ch = await guild.create_text_channel("👋・welcome", category=cat_welcome, overwrites=welcome_ow(), topic="Приветствие новых участников и как стать юзер пользователем")
+    await asyncio.sleep(0.5)  # Задержка для Discord API
 
     # ℹ️ ━━ INFO — Guest+ читают, только Owner пишет ℹ️
     def info_ow():
@@ -2472,6 +2473,7 @@ async def setup(ctx):
     cat_info = await guild.create_category("━━━━ ℹ️ INFO ━━━━", overwrites=info_ow())
     info_ch = await guild.create_text_channel("ℹ️・info", category=cat_info, overwrites=info_ow(), topic="Информация о сервере правила и прочее")
     changelog_ch = await guild.create_text_channel("📋・changelog", category=cat_info, overwrites=info_ow(), topic="История обновлений с !changelogall")
+    await asyncio.sleep(0.5)  # Задержка для Discord API
 
     # Отправляем список changelog в канал #changelog
     changelog_embed = discord.Embed(title="📋 CHANGELOG — версии проекта  |  v1.0 > v2.0", color=0x0a0a0a)
@@ -2597,6 +2599,7 @@ async def setup(ctx):
     addbot_ch = await guild.create_text_channel("🤖・addbot",   category=cat_main, overwrites=addbot_ow(), topic="Добавь бота и получишь роль User и доступ к боту")
     await guild.create_text_channel("🤝・партнёрство",          category=cat_main, overwrites=readonly_ow(), topic="Предложения о партнёрстве и сотрудничестве")
     await guild.create_text_channel("💰・sell",                  category=cat_main, overwrites=readonly_ow(), topic="Покупка White/Premium и только только Owner")
+    await asyncio.sleep(0.5)  # Задержка для Discord API
 
     # 💬 ━━ ЧАТЫ — Guest+ пишут 💬
     def chat_ow():
@@ -2624,6 +2627,7 @@ async def setup(ctx):
     await guild.create_text_channel("🎮・игры", category=cat_chat, overwrites=chat_ow(), topic="Обсуждение и игры для совместной игры")
     # 🎫 create-ticket — видят все Guest+, только читают создавать тикет
     ticket_ch = await guild.create_text_channel("🎫・create-ticket", category=cat_chat, overwrites=ticket_ow(), topic="Чтобы создать тикет нажмите кнопку ниже")
+    await asyncio.sleep(0.5)  # Задержка для Discord API
 
     # 📋 ━━ ЛИСТ ЧАТЫ — User+ 📋
     def list_chats_ow():
@@ -2660,6 +2664,7 @@ async def setup(ctx):
     await guild.create_text_channel("📁・freelist-chat", category=cat_lists, overwrites=list_chats_ow(), topic="Чат для freelist с !nuke, !auto_nuke, !help, !changelog")
     await guild.create_text_channel("✅・white-chat", category=cat_lists, overwrites=white_chat_ow(), topic="Чат для White с !nuke [канал], !stop, !cleanup, !rename, !nicks_all")
     await guild.create_text_channel("💎・premium-chat", category=cat_lists, overwrites=premium_chat_ow(), topic="Чат для Premium пользователей с !super_nuke, !massban, !massdm")
+    await asyncio.sleep(0.5)  # Задержка для Discord API
 
     # 🧪 ━━ TESTS — Tester+ 🧪
     def tests_ow():
@@ -2770,6 +2775,7 @@ async def setup(ctx):
     await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=tests_ow(), topic="🐛 ОТЧЁТЫ О БАГАХ | Создай тред → Название бага → Шаги воспроизведения → Ожидаемый результат → Скриншоты")
     await guild.create_text_channel("💡・идеи-улучшения", category=cat_tests, overwrites=tests_ow(), topic="💡 ИДЕИ И УЛУЧШЕНИЯ | Предлагай новые функции, делись идеями, обсуждай улучшения бота")
     await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=tests_ow(), topic="✅ РЕЗУЛЬТАТЫ ТЕСТОВ | Создай тред для каждой функции → ✅ работает / ❌ баг / ⚠️ улучшить")
+    await asyncio.sleep(0.5)  # Задержка для Discord API
 
     # 🔊 🎙 ВОЙСЫ — видимые каналы для голоса 🔊🎙
     def voice_base_ow():
@@ -2808,6 +2814,7 @@ async def setup(ctx):
     for i in range(1, 4):
         await guild.create_voice_channel(f"🔊 voice-{i}", category=cat_voice, user_limit=10)
     await guild.create_voice_channel("💎 premium-voice", category=cat_voice, user_limit=20, overwrites=voice_premium_ow())
+    await asyncio.sleep(0.5)  # Задержка для Discord API
 
     # 🔧 ━━ ADMIN — только Owner+ 🔧
     cat_admin = await guild.create_category("━━━━ 🔧 ADMIN ━━━━", overwrites=admin_ow())
@@ -2830,6 +2837,7 @@ async def setup(ctx):
     await guild.create_text_channel("📊・logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков с !nukelogs и ссылками на серверы")
     await guild.create_text_channel("📝・выдача-листа", category=cat_admin, overwrites=admin_ow(), topic="Логи выдачи подписок и компенсаций")
     await guild.create_voice_channel("👑 admin-voice", category=cat_admin, overwrites=voice_admin_ow())
+    await asyncio.sleep(0.5)  # Задержка для Discord API
 
     # -- 5. Правила и инфо --
 
