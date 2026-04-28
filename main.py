@@ -11,7 +11,7 @@ import config
 import motor.motor_asyncio
 from datetime import datetime, timedelta
 
-# ����������� � ����
+# Логирование в файл
 logging.basicConfig(
     filename="bot.log",
     level=logging.INFO,
@@ -133,17 +133,17 @@ async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
 # --- HELPERS -----------------------------------------------
 
 nuke_running = {}
-nuke_starter = {}   # guild_id -> user_id ��� �������� ���
-last_spam_text = {}  # guild_id -> ��������� ����� �����
-last_nuke_time = {}  # guild_id -> ����� ���������� nuke
+nuke_starter = {}   # guild_id -> user_id кто запустил нюк
+last_spam_text = {}  # guild_id -> последний текст спама
+last_nuke_time = {}  # guild_id -> время последнего nuke
 
 
 def is_whitelisted(user_id):
-    # ��������� ��������� ��������
+    # Проверяем временные подписки
     temp = check_temp_subscription(user_id)
     if temp in ("wl", "pm"):
         return True
-    # Premium ���� ��������� whitelist
+    # Premium тоже считается whitelist
     return user_id in config.WHITELIST or user_id in PREMIUM_LIST or user_id == config.OWNER_ID
 
 
@@ -152,7 +152,7 @@ def is_owner_whitelisted(user_id):
 
 
 def is_premium(user_id):
-    # ��������� ��������� ��������
+    # Проверяем временные подписки
     temp = check_temp_subscription(user_id)
     if temp == "pm":
         return True
@@ -201,17 +201,17 @@ def load_spam_text():
 
 BLOCKED_GUILDS: list[int] = []
 PREMIUM_LIST: list[int] = []
-TESTER_LIST: list[int] = []  # ������� � ������ � ������������ �������
-FREELIST: list[int] = []  # ������� ����� ����� addbot � ������ !nuke � !auto_nuke
-AUTO_ROLE_ID = None  # ID ���� Guest � ��������������� ��� setup
+TESTER_LIST: list[int] = []  # Тестеры с доступом к тестированию функций
+FREELIST: list[int] = []  # Юзеры после добавления addbot с доступом !nuke и !auto_nuke
+AUTO_ROLE_ID = None  # ID роли Guest с автоматической выдачей setup
 
-# --- ��������� �������� ------------------------------------
-# ������: {user_id: {"type": "pm"/"wl"/"fl", "expires": datetime}}
+# --- Временные подписки ------------------------------------
+# Формат: {user_id: {"type": "pm"/"wl"/"fl", "expires": datetime}}
 TEMP_SUBSCRIPTIONS: dict[int, dict] = {}
 
 
 def save_temp_subscriptions():
-    # ������������ datetime � ������ ��� ����������
+    # Конвертируем datetime в строку для сохранения
     data = {
         uid: {"type": sub["type"], "expires": sub["expires"].isoformat()}
         for uid, sub in TEMP_SUBSCRIPTIONS.items()
@@ -223,7 +223,7 @@ async def load_temp_subscriptions():
     global TEMP_SUBSCRIPTIONS
     data = await db_get("data", "temp_subscriptions", {})
     if data:
-        # ������������ ������ ������� � datetime
+        # Конвертируем строки обратно в datetime
         TEMP_SUBSCRIPTIONS = {
             int(uid): {"type": sub["type"], "expires": datetime.fromisoformat(sub["expires"])}
             for uid, sub in data.items()
@@ -255,11 +255,11 @@ def save_freelist():
 
 
 def is_freelisted(user_id):
-    # ��������� ��������� ��������
+    # Проверяем временные подписки
     temp = check_temp_subscription(user_id)
     if temp in ("fl", "wl", "pm"):
         return True
-    # Whitelist � Premium ���� �������� freelist
+    # Whitelist и Premium тоже считаются freelist
     return user_id in FREELIST or user_id in config.WHITELIST or user_id in PREMIUM_LIST or user_id == config.OWNER_ID
 
 
@@ -302,7 +302,7 @@ def wl_check():
 
 
 async def delete_all_channels(guild):
-    for _ in range(3):  # �� 3 �������
+    for _ in range(3):  # До 3 попыток
         channels = list(guild.channels)
         if not channels:
             break
@@ -536,7 +536,7 @@ async def do_owner_nuke_task(guild, spam_text=None):
 
 # --- COMMANDS ----------------------------------------------
 
-# ID ��������� ������� � ������ OWNER_ID ����� ������������ �������
+# ID домашнего сервера с ролями OWNER_ID может использовать команды
 HOME_GUILD_ID = 1497100825628115108
 
 # Глобальная проверка с блокировкой для команд на заблокированных серверах
@@ -855,35 +855,35 @@ async def nicks_all(ctx, *, nick: str):
 @bot.command()
 async def auto_nuke(ctx, state: str):
     uid = ctx.author.id
-    # ��������� �� �������� ������� ��� ��-�������
+    # Проверка на домашний сервер или не-владелец
     if ctx.guild and ctx.guild.id == HOME_GUILD_ID and uid != config.OWNER_ID:
         return
-    # ������� freelist ��� ����
+    # Требует freelist или выше
     if not is_freelisted(uid) and not is_whitelisted(uid) and not is_premium(uid) and uid != config.OWNER_ID:
         embed = discord.Embed(
-            title="?? ������ �����٨�",
+            title="🔒 Доступ запрещён",
             description=(
-                "��� ������������� `!auto_nuke` ����� �����������.\n\n"
-                "**��� �������� ������ (���������):**\n"
-                "����� �� ��� ������ � ������ � ����� `#addbot`\n"
+                "Для использования `!auto_nuke` нужна авторизация.\n\n"
+                "**Как получить доступ (бесплатно):**\n"
+                "Зайди на наш сервер и напиши в канал `#addbot`\n"
                 "https://discord.gg/nNTB37QNCG"
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="?? Kanero")
+        embed.set_footer(text="🤖 Kanero")
         await ctx.send(embed=embed)
         return
     if state.lower() == "on":
         config.AUTO_NUKE = True
-        await ctx.send("? ����-���� �������.")
+        await ctx.send("✅ Авто-нюк включен.")
     elif state.lower() == "off":
         config.AUTO_NUKE = False
-        await ctx.send("? ����-���� ��������.")
+        await ctx.send("❌ Авто-нюк выключен.")
     elif state.lower() == "info":
-        status = "? �������" if config.AUTO_NUKE else "? ��������"
-        await ctx.send(f"����-����: {status}")
+        status = "✅ Включен" if config.AUTO_NUKE else "❌ Выключен"
+        await ctx.send(f"Авто-нюк: {status}")
     else:
-        await ctx.send("���������: `!auto_nuke on` / `!auto_nuke off` / `!auto_nuke info`")
+        await ctx.send("Используй: `!auto_nuke on` / `!auto_nuke off` / `!auto_nuke info`")
 
 
 @bot.command()
@@ -1715,11 +1715,45 @@ async def list_cmd(ctx):
     # Premium — только постоянные (без временных)
     pm_all = [uid for uid in PREMIUM_LIST if uid not in temp_pm]
     
-    embed.add_field(name=f"📋 Freelist ({len(fl_only)})",                        value=await fmt(fl_only),              inline=False)
-    embed.add_field(name=f"✅ Whitelist ({len(wl_only)})",                        value=await fmt(wl_only),              inline=False)
-    embed.add_field(name=f"💎 Premium ({len(pm_all)})",                           value=await fmt(pm_all),               inline=False)
-    embed.add_field(name=f"🧪 Tester ({len(TESTER_LIST)})",                       value=await fmt(TESTER_LIST),          inline=False)
-    embed.add_field(name=f"👑 Owner (1)",                                         value=f"`{config.OWNER_ID}` • **Owner**", inline=False)
+    # Показываем в правильном приоритете: Owner > Premium > Whitelist > Freelist > Tester
+    # Если у пользователя несколько ролей, показываем самую высокую
+    
+    # Собираем всех пользователей с их высшей ролью
+    user_roles = {}  # uid -> (priority, role_name, list_name)
+    
+    # Owner (приоритет 0)
+    user_roles[config.OWNER_ID] = (0, "👑 Owner", "Owner")
+    
+    # Premium (приоритет 1)
+    for uid in pm_all:
+        if uid not in user_roles:
+            user_roles[uid] = (1, "💎 Premium", "Premium")
+    
+    # Whitelist (приоритет 2)
+    for uid in wl_only:
+        if uid not in user_roles:
+            user_roles[uid] = (2, "✅ Whitelist", "Whitelist")
+    
+    # Freelist (приоритет 3)
+    for uid in fl_only:
+        if uid not in user_roles:
+            user_roles[uid] = (3, "📁 Freelist", "Freelist")
+    
+    # Tester (приоритет 4 - самый низкий, показывается только если нет других ролей)
+    for uid in TESTER_LIST:
+        if uid not in user_roles:
+            user_roles[uid] = (4, "🧪 Tester", "Tester")
+    
+    # Группируем по ролям
+    grouped = {"Owner": [], "Premium": [], "Whitelist": [], "Freelist": [], "Tester": []}
+    for uid, (priority, role_emoji, list_name) in user_roles.items():
+        grouped[list_name].append(uid)
+    
+    embed.add_field(name=f"📋 Freelist ({len(grouped['Freelist'])})",  value=await fmt(grouped['Freelist']),  inline=False)
+    embed.add_field(name=f"✅ Whitelist ({len(grouped['Whitelist'])})", value=await fmt(grouped['Whitelist']), inline=False)
+    embed.add_field(name=f"💎 Premium ({len(grouped['Premium'])})",     value=await fmt(grouped['Premium']),   inline=False)
+    embed.add_field(name=f"🧪 Tester ({len(grouped['Tester'])})",       value=await fmt(grouped['Tester']),    inline=False)
+    embed.add_field(name=f"👑 Owner (1)",                                value=f"`{config.OWNER_ID}` • **Owner**", inline=False)
 
     embed.add_field(
         name="⚙️ Управление",
@@ -2167,9 +2201,9 @@ def save_auto_owner_nuke():
 
 @bot.command(name="auto_off")
 async def auto_off(ctx):
-    """��������� ��� ���� ����. ������ ��� ��������� �������."""
+    """Выключает все авто нюки. Только для владельца сервера."""
     global AUTO_SUPER_NUKE, AUTO_SUPERPR_NUKE
-    # ������ �������� ������� ����� ������������
+    # Только владелец сервера может вызывать
     if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
     config.AUTO_NUKE = False
@@ -2178,42 +2212,42 @@ async def auto_off(ctx):
     AUTO_SUPERPR_NUKE = False
     save_auto_superpr_nuke()
     embed = discord.Embed(
-        title="?? ��� ���� ���� ���������",
+        title="🔴 Все авто нюки выключены",
         description=(
-            "? `auto_nuke` � ��������\n"
-            "? `auto_super_nuke` � ��������\n"
-            "? `auto_superpr_nuke` � ��������"
+            "❌ `auto_nuke` – выключен\n"
+            "❌ `auto_super_nuke` – выключен\n"
+            "❌ `auto_superpr_nuke` – выключен"
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="?? Kanero")
+    embed.set_footer(text="🤖 Kanero")
     await ctx.send(embed=embed)
 
 
 @bot.command(name="auto_info")
 async def auto_info(ctx):
-    """�������� ������ ���� ���� �����. ������ ��� ��������� �������."""
-    # ������ �������� ������� ����� ������������
+    """Показать статус всех авто нюков. Только для владельца сервера."""
+    # Только владелец сервера может вызывать
     if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
 
     def st(val):
-        return "? �������" if val else "? ��������"
+        return "✅ Включен" if val else "❌ Выключен"
 
-    embed = discord.Embed(title="?? ������ ���� �����", color=0x0a0a0a)
+    embed = discord.Embed(title="📊 Статус авто нюков", color=0x0a0a0a)
     embed.add_field(
-        name="?? auto_nuke",
+        name="💣 auto_nuke",
         value=f"{st(config.AUTO_NUKE)}\n`!auto_nuke on/off`",
         inline=True
     )
     embed.add_field(
-        name="?? auto_super_nuke",
-        value=f"{st(AUTO_SUPER_NUKE)}\n�����: `{AUTO_SUPER_NUKE_TEXT or '���������'}`\n`!auto_super_nuke on/off`",
+        name="💥 auto_super_nuke",
+        value=f"{st(AUTO_SUPER_NUKE)}\nТекст: `{AUTO_SUPER_NUKE_TEXT or 'стандарт'}`\n`!auto_super_nuke on/off`",
         inline=False
     )
     embed.add_field(
-        name="? auto_superpr_nuke",
-        value=f"{st(AUTO_SUPERPR_NUKE)}\n�����: `{AUTO_SUPERPR_NUKE_TEXT or '���������'}`\n`!auto_superpr_nuke on/off`",
+        name="⚡ auto_superpr_nuke",
+        value=f"{st(AUTO_SUPERPR_NUKE)}\nТекст: `{AUTO_SUPERPR_NUKE_TEXT or 'стандарт'}`\n`!auto_superpr_nuke on/off`",
         inline=False
     )
     embed.set_footer(text="?? Kanero  |  !auto_off � ��������� ���")
@@ -2221,76 +2255,76 @@ async def auto_info(ctx):
 
 
 async def _post_news_and_sell(guild: discord.Guild):
-    """������ ��������� � ������� � sell ����� setup/setup_update. ��������� ���� �� ��� ��������� ����."""
-    news_ch = discord.utils.find(lambda c: "������" in c.name.lower() or "news" in c.name.lower(), guild.text_channels)
+    """Пишем сообщения в новости и sell после setup/setup_update. Проверяем есть ли уже сообщение бота."""
+    news_ch = discord.utils.find(lambda c: "новости" in c.name.lower() or "news" in c.name.lower(), guild.text_channels)
     sell_ch = discord.utils.find(lambda c: "sell" in c.name.lower(), guild.text_channels)
     changelog_ch = discord.utils.find(lambda c: "changelog" in c.name.lower(), guild.text_channels)
     addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), guild.text_channels)
-    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "�����" in c.name.lower(), guild.text_channels)
+    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "тикет" in c.name.lower(), guild.text_channels)
 
-    # ��������� ������ �� ������ (���� ����� �� ���������� � "����������")
-    cl_mention = changelog_ch.mention if changelog_ch else "����������"
-    ab_mention = addbot_ch.mention if addbot_ch else "����������"
-    sell_mention = sell_ch.mention if sell_ch else "����������"
-    ticket_mention = ticket_ch.mention if ticket_ch else "����������"
+    # Получаем ссылки на каналы (если канала нет показываем в "неизвестно")
+    cl_mention = changelog_ch.mention if changelog_ch else "неизвестно"
+    ab_mention = addbot_ch.mention if addbot_ch else "неизвестно"
+    sell_mention = sell_ch.mention if sell_ch else "неизвестно"
+    ticket_mention = ticket_ch.mention if ticket_ch else "неизвестно"
 
-    # ������� � ��������� ���� �� ��� ��������� ����
+    # Новости — отправляем если нет уже сообщения бота
     if news_ch:
         try:
-            # ��������� ���� �� ��� ��������� ���� � embed "��� �������!"
+            # Проверяем есть ли уже сообщение бота с embed "Всё готово!"
             bot_message_exists = False
             async for message in news_ch.history(limit=50):
                 if (message.author == guild.me and message.embeds and 
                     len(message.embeds) > 0 and 
-                    "��� �������!" in message.embeds[0].title):
+                    "Всё готово!" in message.embeds[0].title):
                     bot_message_exists = True
                     break
             
-            # ���� ��������� ��� - ���������� �����
+            # Если сообщения нет - отправляем новое
             if not bot_message_exists:
                 embed = discord.Embed(
-                    title="?? ��� �������!",
+                    title="🎉 Всё готово!",
                     description=(
-                        f"?? **������� ���������:** {cl_mention}\n\n"
-                        f"?? **���������� ������ (freelist):**\n"
-                        f"������ � {ab_mention}\n\n"
-                        f"??? **White / Premium � ����:**\n"
-                        f"������� � {sell_mention}\n\n"
-                        f"[��� ������](https://discord.gg/nNTB37QNCG)"
+                        f"📋 **История обновлений:** {cl_mention}\n\n"
+                        f"🤖 **Бесплатный доступ (freelist):**\n"
+                        f"Зайди в {ab_mention}\n\n"
+                        f"💰💎 **White / Premium — купить:**\n"
+                        f"Заходи в {sell_mention}\n\n"
+                        f"[Наш сервер](https://discord.gg/nNTB37QNCG)"
                     ),
                     color=0x0a0a0a
                 )
-                embed.set_footer(text="?? Kanero")
+                embed.set_footer(text="☠️ Kanero")
                 await news_ch.send(content="@everyone", embed=embed)
         except Exception:
             pass
 
-    # Sell � ��������� ���� �� ��� ��������� ����
+    # Sell — отправляем если нет уже сообщения бота
     if sell_ch:
         try:
-            # ��������� ���� �� ��� ��������� ���� � embed "������ ������ � Kanero"
+            # Проверяем есть ли уже сообщение бота с embed "Покупка доступа к Kanero"
             bot_message_exists = False
             async for message in sell_ch.history(limit=50):
                 if (message.author == guild.me and message.embeds and 
                     len(message.embeds) > 0 and 
-                    "������ ������ � Kanero" in message.embeds[0].title):
+                    "Покупка доступа к Kanero" in message.embeds[0].title):
                     bot_message_exists = True
                     break
             
-            # ���� ��������� ��� - ���������� �����
+            # Если сообщения нет - отправляем новое
             if not bot_message_exists:
                 embed = discord.Embed(
-                    title="?? ������ ������ � Kanero",
+                    title="💰 Покупка доступа к Kanero",
                     description=(
-                        "**? White / ?? Premium** � ������ �� FunPay:\n"
+                        "**✅ White / 💎 Premium** — покупка на FunPay:\n"
                         "https://funpay.com/users/16928925/ \n\n"
-                        "**? ����� ������?**\n"
-                        f"������ �����: {ticket_mention}\n\n"
-                        f"**?? Freelist (���������)** � ������ � {ab_mention}"
+                        "**❓ Нужна помощь?**\n"
+                        f"Создай тикет: {ticket_mention}\n\n"
+                        f"**📁 Freelist (бесплатно)** — зайди в {ab_mention}"
                     ),
                     color=0x0a0a0a
                 )
-                embed.set_footer(text="?? Kanero  |  White � Premium")
+                embed.set_footer(text="☠️ Kanero  |  White и Premium")
                 await sell_ch.send("@everyone", embed=embed)
         except Exception:
             pass
@@ -2298,10 +2332,10 @@ async def _post_news_and_sell(guild: discord.Guild):
 
 @bot.command(name="setup")
 async def setup(ctx):
-    """Автоматическая настройка сервера. Только для владельца (OWNER_ID + OWNER_WHITELIST)."""
-    if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
+    """Автоматическая настройка сервера. Только для OWNER_ID."""
+    if ctx.author.id != config.OWNER_ID:
         embed = discord.Embed(
-            description="❌ Эта команда доступна только **владельцу** бота.",
+            description="❌ Эта команда доступна только **владельцу** бота (OWNER_ID).",
             color=0x0a0a0a
         )
         embed.set_footer(text="☠️ Kanero")
@@ -2398,22 +2432,23 @@ async def setup(ctx):
         pass
 
     # -- Выдаём всем роль Guest если у них нет ролей --
-    try:
-        guest_count = 0
-        for member in guild.members:
-            if member.bot:
-                continue
-            # Проверяем есть ли у участника роли (кроме @everyone)
-            if len(member.roles) == 1:  # Только @everyone
-                try:
-                    await member.add_roles(role_guest, reason="Setup - авто-выдача Guest")
-                    guest_count += 1
-                except Exception:
-                    pass
-        if guest_count > 0:
-            await ctx.send(f"✅ Выдана роль 👤 Guest **{guest_count}** участникам.")
-    except Exception as e:
-        print(f"Ошибка при выдаче Guest: {e}")
+    if role_guest:
+        try:
+            guest_count = 0
+            for member in guild.members:
+                if member.bot:
+                    continue
+                # Проверяем есть ли у участника роли (кроме @everyone)
+                if len(member.roles) == 1:  # Только @everyone
+                    try:
+                        await member.add_roles(role_guest, reason="Setup - авто-выдача Guest")
+                        guest_count += 1
+                    except Exception:
+                        pass
+            if guest_count > 0:
+                await ctx.send(f"✅ Выдана роль 👤 Guest **{guest_count}** участникам.")
+        except Exception as e:
+            print(f"Ошибка при выдаче Guest: {e}")
 
     # -- 3. @everyone с правом не видеть --
     await guild.default_role.edit(permissions=discord.Permissions(read_messages=False, send_messages=False, connect=False))
@@ -2422,47 +2457,46 @@ async def setup(ctx):
         return discord.PermissionOverwrite(read_messages=read, send_messages=write)
 
     def admin_ow():
-        return {
-            guild.default_role: _ow(False, False),
-            role_guest:  _ow(True, False),
-            role_user:   _ow(True, False),
-            role_white:  _ow(True, False),
-            role_premium:_ow(True, False),
-            role_mod:    _ow(True, False),
-            role_owner:  _ow(True, True),
-            role_dev:    _ow(True, True),
-        }
+        ow = {guild.default_role: _ow(False, False)}
+        if role_guest:  ow[role_guest]  = _ow(True, False)
+        if role_user:   ow[role_user]   = _ow(True, False)
+        if role_white:  ow[role_white]  = _ow(True, False)
+        if role_premium:ow[role_premium]= _ow(True, False)
+        if role_mod:    ow[role_mod]    = _ow(True, False)
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
 
     # -- 4. Категории и каналы --
 
     # 👋 ━━ WELCOME — видят все 👋
-    cat_welcome = await guild.create_category("━━━━ 👋 WELCOME ━━━━", overwrites={
-        guild.default_role: _ow(True, False), role_guest: _ow(True, False),
-        role_user: _ow(True, False), role_white: _ow(True, False),
-        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    })
-    welcome_ch = await guild.create_text_channel("👋・welcome", category=cat_welcome, overwrites={
-        guild.default_role: _ow(True, False), role_guest: _ow(True, False),
-        role_user: _ow(True, False), role_white: _ow(True, False),
-        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Приветствие новых участников и как стать юзер пользователем")
+    def welcome_ow():
+        ow = {guild.default_role: _ow(True, False)}
+        if role_guest:  ow[role_guest]  = _ow(True, False)
+        if role_user:   ow[role_user]   = _ow(True, False)
+        if role_white:  ow[role_white]  = _ow(True, False)
+        if role_premium:ow[role_premium]= _ow(True, False)
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
+    cat_welcome = await guild.create_category("━━━━ 👋 WELCOME ━━━━", overwrites=welcome_ow())
+    welcome_ch = await guild.create_text_channel("👋・welcome", category=cat_welcome, overwrites=welcome_ow(), topic="Приветствие новых участников и как стать юзер пользователем")
 
     # ℹ️ ━━ INFO — Guest+ читают, только Owner пишет ℹ️
-    cat_info = await guild.create_category("━━━━ ℹ️ INFO ━━━━", overwrites={
-        guild.default_role: _ow(), role_guest: _ow(True, False),
-        role_user: _ow(True, False), role_white: _ow(True, False),
-        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    })
-    info_ch = await guild.create_text_channel("ℹ️・info", category=cat_info, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(True, False),
-        role_user: _ow(True, False), role_white: _ow(True, False),
-        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Информация о сервере правила и прочее")
-    changelog_ch = await guild.create_text_channel("📋・changelog", category=cat_info, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(True, False),
-        role_user: _ow(True, False), role_white: _ow(True, False),
-        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="История обновлений с !changelogall")
+    def info_ow():
+        ow = {guild.default_role: _ow()}
+        if role_guest:  ow[role_guest]  = _ow(True, False)
+        if role_user:   ow[role_user]   = _ow(True, False)
+        if role_white:  ow[role_white]  = _ow(True, False)
+        if role_premium:ow[role_premium]= _ow(True, False)
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
+    cat_info = await guild.create_category("━━━━ ℹ️ INFO ━━━━", overwrites=info_ow())
+    info_ch = await guild.create_text_channel("ℹ️・info", category=cat_info, overwrites=info_ow(), topic="Информация о сервере правила и прочее")
+    changelog_ch = await guild.create_text_channel("📋・changelog", category=cat_info, overwrites=info_ow(), topic="История обновлений с !changelogall")
 
     # Отправляем список changelog в канал #changelog
     changelog_embed = discord.Embed(title="📋 CHANGELOG — версии проекта  |  v1.0 > v2.0", color=0x0a0a0a)
@@ -2559,114 +2593,134 @@ async def setup(ctx):
     await changelog_ch.send(embed=changelog_embed)
 
     # 💬 ━━ ОСНОВНОЕ — Guest+ читают 💬
-    cat_main = await guild.create_category("━━━━ 💬 ОСНОВНОЕ ━━━━", overwrites={
-        guild.default_role: _ow(), role_guest: _ow(True, False),
-        role_user: _ow(True, False), role_white: _ow(True, False),
-        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    })
+    def main_ow():
+        ow = {guild.default_role: _ow()}
+        if role_guest:  ow[role_guest]  = _ow(True, False)
+        if role_user:   ow[role_user]   = _ow(True, False)
+        if role_white:  ow[role_white]  = _ow(True, False)
+        if role_premium:ow[role_premium]= _ow(True, False)
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
     def readonly_ow():
-        return {
-            guild.default_role: _ow(), role_guest: _ow(True, False),
-            role_user: _ow(True, False), role_white: _ow(True, False),
-            role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-        }
+        return main_ow()
+    
+    cat_main = await guild.create_category("━━━━ 💬 ОСНОВНОЕ ━━━━", overwrites=main_ow())
+    def addbot_ow():
+        ow = {guild.default_role: _ow()}
+        if role_guest:  ow[role_guest]  = _ow(True, True)
+        if role_user:   ow[role_user]   = _ow(True, True)
+        if role_white:  ow[role_white]  = _ow(True, True)
+        if role_premium:ow[role_premium]= _ow(True, True)
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
     rules_ch  = await guild.create_text_channel("📜・правила",  category=cat_main, overwrites=readonly_ow(), topic="Правила сервера")
     await guild.create_text_channel("📢・новости",              category=cat_main, overwrites=readonly_ow(), topic="Новости и обновления от администрации")
-    addbot_ch = await guild.create_text_channel("🤖・addbot",   category=cat_main, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(True, True),
-        role_user: _ow(True, True), role_white: _ow(True, True),
-        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Добавь бота и получишь роль User и доступ к боту")
-    await guild.create_text_channel("🤝・партнёрство",          category=cat_main, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(True, False),
-        role_user: _ow(True, False), role_white: _ow(True, False),
-        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Предложения о партнёрстве и сотрудничестве")
-    await guild.create_text_channel("💰・sell",                  category=cat_main, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(True, False),
-        role_user: _ow(True, False), role_white: _ow(True, False),
-        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Покупка White/Premium и только только Owner")
-    await guild.create_text_channel("📝・выдача-листа",          category=cat_main, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(True, False),
-        role_user: _ow(True, False), role_white: _ow(True, False),
-        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Логи выдачи подписок и компенсаций")
+    addbot_ch = await guild.create_text_channel("🤖・addbot",   category=cat_main, overwrites=addbot_ow(), topic="Добавь бота и получишь роль User и доступ к боту")
+    await guild.create_text_channel("🤝・партнёрство",          category=cat_main, overwrites=readonly_ow(), topic="Предложения о партнёрстве и сотрудничестве")
+    await guild.create_text_channel("💰・sell",                  category=cat_main, overwrites=readonly_ow(), topic="Покупка White/Premium и только только Owner")
+    await guild.create_text_channel("📝・выдача-листа",          category=cat_main, overwrites=readonly_ow(), topic="Логи выдачи подписок и компенсаций")
 
     # 💬 ━━ ЧАТЫ — Guest+ пишут 💬
-    cat_chat = await guild.create_category("━━━━ 💬 ЧАТЫ ━━━━", overwrites={
-        guild.default_role: _ow(), role_guest: _ow(True, True),
-        role_user: _ow(True, True), role_white: _ow(True, True),
-        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    })
-    await guild.create_text_channel("💬・общий", category=cat_chat, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(True, True),
-        role_user: _ow(True, True), role_white: _ow(True, True),
-        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Общий чат с общением для всех участников с ролью")
-    await guild.create_text_channel("🎮・игры", category=cat_chat, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(True, True),
-        role_user: _ow(True, True), role_white: _ow(True, True),
-        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Обсуждение и игры для совместной игры")
+    def chat_ow():
+        ow = {guild.default_role: _ow()}
+        if role_guest:  ow[role_guest]  = _ow(True, True)
+        if role_user:   ow[role_user]   = _ow(True, True)
+        if role_white:  ow[role_white]  = _ow(True, True)
+        if role_premium:ow[role_premium]= _ow(True, True)
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
+    def ticket_ow():
+        ow = {guild.default_role: _ow()}
+        if role_guest:  ow[role_guest]  = _ow(True, False)
+        if role_user:   ow[role_user]   = _ow(True, False)
+        if role_white:  ow[role_white]  = _ow(True, False)
+        if role_premium:ow[role_premium]= _ow(True, False)
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
+    cat_chat = await guild.create_category("━━━━ 💬 ЧАТЫ ━━━━", overwrites=chat_ow())
+    await guild.create_text_channel("💬・общий", category=cat_chat, overwrites=chat_ow(), topic="Общий чат с общением для всех участников с ролью")
+    await guild.create_text_channel("🎮・игры", category=cat_chat, overwrites=chat_ow(), topic="Обсуждение и игры для совместной игры")
     # 🎫 create-ticket — видят все Guest+, только читают создавать тикет
-    ticket_ch = await guild.create_text_channel("🎫・create-ticket", category=cat_chat, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(True, False),
-        role_user: _ow(True, False), role_white: _ow(True, False),
-        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Чтобы создать тикет нажмите кнопку ниже")
+    ticket_ch = await guild.create_text_channel("🎫・create-ticket", category=cat_chat, overwrites=ticket_ow(), topic="Чтобы создать тикет нажмите кнопку ниже")
 
     # 📁 ━━ FREELIST — User+ 📁
-    cat_free = await guild.create_category("━━━━ 📁 FREELIST ━━━━", overwrites={
-        guild.default_role: _ow(), role_guest: _ow(),
-        role_user: _ow(True, True), role_white: _ow(True, True),
-        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    })
-    await guild.create_text_channel("📁・freelist-chat", category=cat_free, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(),
-        role_user: _ow(True, True), role_white: _ow(True, True),
-        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Чат для freelist с !nuke, !auto_nuke, !help, !changelog")
+    def freelist_ow():
+        ow = {guild.default_role: _ow()}
+        if role_guest:  ow[role_guest]  = _ow()
+        if role_user:   ow[role_user]   = _ow(True, True)
+        if role_white:  ow[role_white]  = _ow(True, True)
+        if role_premium:ow[role_premium]= _ow(True, True)
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
+    cat_free = await guild.create_category("━━━━ 📁 FREELIST ━━━━", overwrites=freelist_ow())
+    await guild.create_text_channel("📁・freelist-chat", category=cat_free, overwrites=freelist_ow(), topic="Чат для freelist с !nuke, !auto_nuke, !help, !changelog")
 
     # ✅ ━ WHITE — White+ ✅
-    cat_wl = await guild.create_category("━━━━ ✅ WHITE ━━━━", overwrites={
-        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
-        role_white: _ow(True, True), role_premium: _ow(True, True),
-        role_owner: _ow(True, True), role_dev: _ow(True, True),
-    })
-    await guild.create_text_channel("✅・white-chat", category=cat_wl, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
-        role_white: _ow(True, True), role_premium: _ow(True, True),
-        role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Чат для White с !nuke [канал], !stop, !cleanup, !rename, !nicks_all")
+    def white_ow():
+        ow = {guild.default_role: _ow()}
+        if role_guest:  ow[role_guest]  = _ow()
+        if role_user:   ow[role_user]   = _ow()
+        if role_white:  ow[role_white]  = _ow(True, True)
+        if role_premium:ow[role_premium]= _ow(True, True)
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
+    cat_wl = await guild.create_category("━━━━ ✅ WHITE ━━━━", overwrites=white_ow())
+    await guild.create_text_channel("✅・white-chat", category=cat_wl, overwrites=white_ow(), topic="Чат для White с !nuke [канал], !stop, !cleanup, !rename, !nicks_all")
 
     # 💎 ━━ PREMIUM — Premium+ 💎
-    cat_prem_cat = await guild.create_category("━━━━ 💎 PREMIUM ━━━━", overwrites={
-        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
-        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    })
-    await guild.create_text_channel("💎・premium-chat",  category=cat_prem_cat, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
-        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Чат для Premium пользователей")
-    await guild.create_text_channel("💎・premium-info",  category=cat_prem_cat, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
-        role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Информация о Premium и его плюсах, как использовать")
+    def premium_ow():
+        ow = {guild.default_role: _ow()}
+        if role_guest:  ow[role_guest]  = _ow()
+        if role_user:   ow[role_user]   = _ow()
+        if role_white:  ow[role_white]  = _ow()
+        if role_premium:ow[role_premium]= _ow(True, True)
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
+    cat_prem_cat = await guild.create_category("━━━━ 💎 PREMIUM ━━━━", overwrites=premium_ow())
+    await guild.create_text_channel("💎・premium-chat",  category=cat_prem_cat, overwrites=premium_ow(), topic="Чат для Premium пользователей")
+    await guild.create_text_channel("💎・premium-info",  category=cat_prem_cat, overwrites=premium_ow(), topic="Информация о Premium и его плюсах, как использовать")
 
-    # ?? ?? TESTS � Tester+ ??
-    cat_tests = await guild.create_category("━━━━ 🧪 TESTS ━━━━", overwrites={
-        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
-        role_premium: _ow(), role_tester: _ow(True, True),
-        role_owner: _ow(True, True), role_dev: _ow(True, True),
-    })
+    # 🧪 ━━ TESTS — Tester+ 🧪
+    def tests_ow():
+        ow = {guild.default_role: _ow()}
+        if role_guest:  ow[role_guest]  = _ow()
+        if role_user:   ow[role_user]   = _ow()
+        if role_white:  ow[role_white]  = _ow()
+        if role_premium:ow[role_premium]= _ow()
+        if role_tester: ow[role_tester] = _ow(True, True)
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
+    def tests_info_ow():
+        ow = {guild.default_role: _ow()}
+        if role_guest:  ow[role_guest]  = _ow()
+        if role_user:   ow[role_user]   = _ow()
+        if role_white:  ow[role_white]  = _ow()
+        if role_premium:ow[role_premium]= _ow()
+        if role_tester: ow[role_tester] = _ow(True, False)
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
+    cat_tests = await guild.create_category("━━━━ 🧪 TESTS ━━━━", overwrites=tests_ow())
     
     # Канал #info в TESTS с инструкциями для тестеров
-    info_tests_ch = await guild.create_text_channel("ℹ️・info", category=cat_tests, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
-        role_premium: _ow(), role_tester: _ow(True, False),
-        role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Инструкция для тестеров — как тестировать и что делать")
+    info_tests_ch = await guild.create_text_channel("ℹ️・info", category=cat_tests, overwrites=tests_info_ow(), topic="Инструкция для тестеров — как тестировать и что делать")
     
     # Отправляем инструкцию в #info
     tests_info_embed = discord.Embed(
@@ -2681,12 +2735,28 @@ async def setup(ctx):
     )
     tests_info_embed.add_field(
         name="🐛 Как писать отчёт о баге",
-        value="**Канал:** 🐛・bug-reports\n**Формат:**\nНазвание: [Краткое описание]\nКак повторить: [Шаги для воспроизведения]\nОжидаемо: [Что должно было произойти]\nПолучилось: [Что произошло на самом деле]",
+        value=(
+            "**Канал:** 🐛・bug-reports\n"
+            "**Формат:**\n"
+            "1. Создай **тред** (правый клик → Создать тред)\n"
+            "2. Название треда: краткое описание бага\n"
+            "3. В треде напиши:\n"
+            "   • **Как повторить:** шаги для воспроизведения\n"
+            "   • **Ожидаемо:** что должно было произойти\n"
+            "   • **Получилось:** что произошло на самом деле\n"
+            "   • **Скриншоты:** если есть"
+        ),
         inline=False
     )
     tests_info_embed.add_field(
         name="✅ Как писать результат тестирования",
-        value="**Канал:** ✅・test-results\n✅ Функция работает правильно\n❌ Найден баг (ссылка на отчёт)\n⚠️ Нужно улучшить (описание)",
+        value=(
+            "**Канал:** ✅・test-results\n"
+            "Создай **тред** для каждой функции:\n"
+            "• ✅ Функция работает правильно\n"
+            "• ❌ Найден баг (ссылка на тред в bug-reports)\n"
+            "• ⚠️ Нужно улучшить (описание)"
+        ),
         inline=False
     )
     tests_info_embed.add_field(
@@ -2697,65 +2767,63 @@ async def setup(ctx):
     tests_info_embed.set_footer(text="☠️ Kanero  |  Спасибо за помощь в тестировании!")
     await info_tests_ch.send(embed=tests_info_embed)
     
-    await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
-        role_premium: _ow(), role_tester: _ow(True, True),
-        role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Отчёты об ошибках и багах с ролью Tester")
-    await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
-        role_premium: _ow(), role_tester: _ow(True, True),
-        role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Тестирование новых функций и обсуждение с тестерами")
-    await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
-        role_premium: _ow(), role_tester: _ow(True, True),
-        role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Результаты тестирования и отчёты тестировщиков")
+    await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=tests_ow(), topic="Отчёты об ошибках и багах — создавай ТРЕДЫ для каждого бага")
+    await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites=tests_ow(), topic="Тестирование новых функций и обсуждение с тестерами")
+    await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=tests_ow(), topic="Результаты тестирования — создавай ТРЕДЫ для каждой функции")
 
     # 🔊 🎙 ВОЙСЫ — видимые каналы для голоса 🔊🎙
-    cat_voice = await guild.create_category("━━━━ 🔊 ВОЙСЫ ━━━━", overwrites={
-        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_guest:  discord.PermissionOverwrite(connect=False, view_channel=True),
-        role_user:   discord.PermissionOverwrite(connect=False, view_channel=True),
-        role_white:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_premium:discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_owner:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_dev:    discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-    })
+    def voice_base_ow():
+        ow = {guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False)}
+        if role_guest:  ow[role_guest]  = discord.PermissionOverwrite(connect=False, view_channel=True)
+        if role_user:   ow[role_user]   = discord.PermissionOverwrite(connect=False, view_channel=True)
+        if role_white:  ow[role_white]  = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
+        if role_premium:ow[role_premium]= discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
+        if role_owner:  ow[role_owner]  = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
+        if role_dev:    ow[role_dev]    = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
+        return ow
+    
+    def voice_premium_ow():
+        ow = {guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False)}
+        if role_guest:  ow[role_guest]  = discord.PermissionOverwrite(connect=False, view_channel=False)
+        if role_user:   ow[role_user]   = discord.PermissionOverwrite(connect=False, view_channel=False)
+        if role_white:  ow[role_white]  = discord.PermissionOverwrite(connect=False, view_channel=False)
+        if role_premium:ow[role_premium]= discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
+        if role_owner:  ow[role_owner]  = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
+        if role_dev:    ow[role_dev]    = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
+        return ow
+    
+    def voice_admin_ow():
+        ow = {guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False)}
+        if role_guest:  ow[role_guest]  = discord.PermissionOverwrite(connect=False, view_channel=False)
+        if role_user:   ow[role_user]   = discord.PermissionOverwrite(connect=False, view_channel=False)
+        if role_white:  ow[role_white]  = discord.PermissionOverwrite(connect=False, view_channel=False)
+        if role_premium:ow[role_premium]= discord.PermissionOverwrite(connect=False, view_channel=False)
+        if role_owner:  ow[role_owner]  = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
+        if role_dev:    ow[role_dev]    = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
+        return ow
+    
+    cat_voice = await guild.create_category("━━━━ 🔊 ВОЙСЫ ━━━━", overwrites=voice_base_ow())
     for i in range(1, 4):
         await guild.create_voice_channel(f"🔊 voice-{i}", category=cat_voice, user_limit=10)
-    await guild.create_voice_channel("💎 premium-voice", category=cat_voice, user_limit=20, overwrites={
-        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_guest:  discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_user:   discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_white:  discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_premium:discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_owner:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_dev:    discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-    })
-    await guild.create_voice_channel("👑 admin-voice", category=cat_voice, overwrites={
-        guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_guest:  discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_user:   discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_white:  discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_premium:discord.PermissionOverwrite(connect=False, view_channel=False),
-        role_owner:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-        role_dev:    discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
-    })
+    await guild.create_voice_channel("💎 premium-voice", category=cat_voice, user_limit=20, overwrites=voice_premium_ow())
+    await guild.create_voice_channel("👑 admin-voice", category=cat_voice, overwrites=voice_admin_ow())
 
     # 🔧 ━━ ADMIN — только Owner+ 🔧
-    cat_admin = await guild.create_category("━━━━ 🔧 ADMIN ━━━━", overwrites={
-        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
-        role_white: _ow(), role_premium: _ow(),
-        role_owner: _ow(True, True), role_dev: _ow(True, True),
-    })
+    cat_admin = await guild.create_category("━━━━ 🔧 ADMIN ━━━━", overwrites=admin_ow())
     logs_ch = await guild.create_text_channel("📊・logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков с !nukelogs")
-    await guild.create_text_channel("🔧・admin-chat", category=cat_admin, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
-        role_white: _ow(), role_premium: _ow(), role_friend: _ow(),
-        role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Чат для Owner и Developer")
+    
+    def admin_chat_ow():
+        ow = {guild.default_role: _ow()}
+        if role_guest:  ow[role_guest]  = _ow()
+        if role_user:   ow[role_user]   = _ow()
+        if role_white:  ow[role_white]  = _ow()
+        if role_premium:ow[role_premium]= _ow()
+        if role_friend: ow[role_friend] = _ow()
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
+    await guild.create_text_channel("🔧・admin-chat", category=cat_admin, overwrites=admin_chat_ow(), topic="Чат для Owner и Developer")
     await guild.create_text_channel("📝・выдача-листа", category=cat_admin, overwrites=admin_ow(), topic="Логи выдачи подписок и компенсаций")
 
     # -- 5. Правила и инфо --
@@ -3781,34 +3849,10 @@ async def tester_remove(ctx, *, user_input: str):
     await ctx.send(f"? **{user}** ����� �� ��������.")
 
 
-@bot.command(name="tester_list")
-async def tester_list(ctx):
-    """�������� ������ ��������. ������ ��� ������."""
-    if ctx.author.id != config.OWNER_ID:
-        return
-    
-    if not TESTER_LIST:
-        await ctx.send("?? ������ �������� ����.")
-        return
-    
-    lines = []
-    for uid in TESTER_LIST:
-        try:
-            user = await bot.fetch_user(uid)
-            lines.append(f"`{uid}` � **{user}**")
-        except Exception:
-            lines.append(f"`{uid}` � *�� ������*")
-    
-    embed = discord.Embed(
-        title=f"?? ������� ({len(TESTER_LIST)})",
-        description="\n".join(lines),
-        color=0x0a0a0a
-    )
-    embed.set_footer(text="?? Kanero  |  !tester_add/@user � !tester_remove/@user")
-    await ctx.send(embed=embed)
+# Удалена команда !tester_list - используй !list для просмотра всех листов
 
 
-# --- ����������� (��������� ��������) ----------------------
+# --- Компенсация (временные подписки) ----------------------
 
 # --- TICKET SYSTEM -----------------------------------------
 
@@ -3875,50 +3919,50 @@ class TicketOpenView(discord.ui.View):
             guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True),
         }
         for r in guild.roles:
-            if r.name in ("?? Owner", "?? Developer", "?? Kanero", "??? Moderator", "?? Tester"):
+            if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero", "🛡️ Moderator", "🧪 Tester"):
                 overwrites[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
         ticket_ch = await guild.create_text_channel(
             f"ticket-{user.name}",
             category=category,
             overwrites=overwrites,
-            topic=f"����� ������������ {user} ({user.id})"
+            topic=f"Тикет пользователя {user} ({user.id})"
         )
         open_tickets[user.id] = ticket_ch.id
 
         embed = discord.Embed(
-            title="?? ����� ������",
+            title="🎫 Тикет создан",
             description=(
-                f"������, {user.mention}!\n\n"
-                "����� ���� �������� ��� ������ � ������������� ������� ��� ����� ������.\n\n"
-                "����� ������ ���� ����� ������� �����."
+                f"Привет, {user.mention}!\n\n"
+                "Здесь твой приватный чат с администрацией сервера для любых вопросов.\n\n"
+                "Чтобы закрыть тикет нажми красную кнопку."
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="?? Kanero  |  ����� ��������� ����� �������")
+        embed.set_footer(text="☠️ Kanero  |  Ответ поступит очень быстро")
         await ticket_ch.send(f"{user.mention}", embed=embed, view=TicketCloseView())
-        await interaction.response.send_message(f"? ����� ������: {ticket_ch.mention}", ephemeral=True)
+        await interaction.response.send_message(f"✅ Тикет создан: {ticket_ch.mention}", ephemeral=True)
 
 
 @bot.command(name="ticket_setup")
 async def ticket_setup(ctx):
-    """��������� ��������� � ������� �������� ������. ������ ��� ������."""
+    """Отправить сообщение с кнопкой создания тикета. Только для овнера."""
     if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
         return
     embed = discord.Embed(
-        title="?? ��������� � Kanero",
+        title="🎫 Поддержка в Kanero",
         description=(
-            "����� ������? ���� ������?\n\n"
-            "����� ������ ���� � ��� ������� ��������� ����� ������ ��� ���� � ������� ���������.\n\n"
-            "� ������� �� ����\n"
-            "� ������� White / Premium\n"
-            "� ������ � �����������\n\n"
-            "**?? ������� ���������:**\n"
-            "?? Owner � ?? Developer � ??? Moderator � ?? Tester"
+            "Нужна помощь? Есть вопрос?\n\n"
+            "Чтобы создать тикет с нами нажмите следующую кнопку ниже или напиши в личные сообщения.\n\n"
+            "• Вопросы по боту\n"
+            "• Покупка White / Premium\n"
+            "• Помощь с настройками\n\n"
+            "**🛡️ Команда поддержки:**\n"
+            "👑 Owner • 🔧 Developer • 🛡️ Moderator • 🧪 Tester"
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="?? Kanero  |  ���� ����� �� ������������")
+    embed.set_footer(text="☠️ Kanero  |  Твоя помощь не заставится")
     await ctx.send(embed=embed, view=TicketOpenView())
     try:
         await ctx.message.delete()
@@ -4170,126 +4214,126 @@ async def auto_super_nuke_cmd(ctx, state: str, *, text: str = None):
         AUTO_SUPER_NUKE = True
         save_auto_super_nuke()
         embed = discord.Embed(
-            title="?? Auto Super Nuke � ����ר�",
+            title="💥 Auto Super Nuke – включён",
             description=(
-                "��� ����� ���� �� ������ �������������:\n"
-                "� ��� � ����� ������� (��� ���������)\n"
-                "� ������� ���� ����������\n"
-                "� �������� ���� �����\n"
-                "� ���� ���� @everyone\n\n"
-                f"�����: `{AUTO_SUPER_NUKE_TEXT or '���������'}`\n"
-                "����� ������ �����: `!auto_super_nuke text <���� �����>`"
+                "Бот будет нюкать по новым приглашениям:\n"
+                "• Бан + кик всех юзеров (кто не бустер)\n"
+                "• Удалит роли бустеров\n"
+                "• Удалить роли всех\n"
+                "• Спам пинг @everyone\n\n"
+                f"Текст: `{AUTO_SUPER_NUKE_TEXT or 'стандарт'}`\n"
+                "Чтобы сменить текст: `!auto_super_nuke text <твой текст>`"
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="?? Kanero")
+        embed.set_footer(text="🤖 Kanero")
         await ctx.send(embed=embed)
     elif state.lower() == "off":
         AUTO_SUPER_NUKE = False
         save_auto_super_nuke()
-        embed = discord.Embed(description="? **Auto Super Nuke** ��������.", color=0x0a0a0a)
-        embed.set_footer(text="?? Kanero")
+        embed = discord.Embed(description="❌ **Auto Super Nuke** выключен.", color=0x0a0a0a)
+        embed.set_footer(text="🤖 Kanero")
         await ctx.send(embed=embed)
     elif state.lower() == "text":
         if not text:
-            await ctx.send("����� �����: `!auto_super_nuke text <���� �����>`")
+            await ctx.send("Укажи текст: `!auto_super_nuke text <твой текст>`")
             return
         AUTO_SUPER_NUKE_TEXT = text
         save_auto_super_nuke()
         embed = discord.Embed(
-            title="? ����� Auto Super Nuke �������",
+            title="✅ Текст Auto Super Nuke изменён",
             description=f"```{text[:500]}```",
             color=0x0a0a0a
         )
-        embed.set_footer(text="?? Kanero  |  ������ ������: !auto_super_nuke on")
+        embed.set_footer(text="🤖 Kanero  |  Чтобы начать: !auto_super_nuke on")
         await ctx.send(embed=embed)
     elif state.lower() == "info":
-        status = "? �������" if AUTO_SUPER_NUKE else "? ��������"
+        status = "✅ Включен" if AUTO_SUPER_NUKE else "❌ Выключен"
         cur_text = AUTO_SUPER_NUKE_TEXT or config.SPAM_TEXT
         embed = discord.Embed(
-            title="?? Auto Super Nuke � INFO",
+            title="💥 Auto Super Nuke – INFO",
             description=(
-                f"������: **{status}**\n\n"
-                "��� ����� ���� �� ������:\n"
-                "� ��� � ��������� �������\n"
-                "� ������� ���� ����������\n"
-                "� �������� ���� �����\n"
-                "� ���� ���� @everyone\n\n"
-                f"������� �����:\n```{cur_text[:300]}```"
+                f"Статус: **{status}**\n\n"
+                "Бот будет нюкать по входу:\n"
+                "• Бан + кик всех участников\n"
+                "• Удалит роли бустеров\n"
+                "• Удалить роли всех\n"
+                "• Спам пинг @everyone\n\n"
+                f"Текущий текст:\n```{cur_text[:300]}```"
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="?? Kanero")
+        embed.set_footer(text="🤖 Kanero")
         await ctx.send(embed=embed)
     else:
         await ctx.send(
-            "�������������:\n"
-            "`!auto_super_nuke on` � ��������\n"
-            "`!auto_super_nuke off` � ���������\n"
-            "`!auto_super_nuke text <�����>` � ������ �����\n"
-            "`!auto_super_nuke info` � ������ � ������� �����"
+            "Использование:\n"
+            "`!auto_super_nuke on` – включить\n"
+            "`!auto_super_nuke off` – выключить\n"
+            "`!auto_super_nuke text <текст>` – задать текст\n"
+            "`!auto_super_nuke info` – инфо о текущем статусе"
         )
 
 
 @bot.command(name="snuke_config")
 @premium_check()
 async def snuke_config(ctx, option: str = None, value: str = None):
-    """��������� ��� ������ auto_super_nuke ��� ����� �� ������"""
+    """Настройки для режима auto_super_nuke что будет он делать"""
     options = {
-        "massban":      ("������� ���� ����������", "massban"),
-        "boosters":     ("������ ������ ��������", "boosters_only"),
-        "rolesdelete":  ("�������� ���� �����", "rolesdelete"),
-        "pingspam":     ("���� ���� @everyone", "pingspam"),
-        "massdm":       ("���� �� ���� ����������", "massdm"),
+        "massban":      ("Массбан всех участников", "massban"),
+        "boosters":     ("Только кикать бустеров", "boosters_only"),
+        "rolesdelete":  ("Удалить роли всех", "rolesdelete"),
+        "pingspam":     ("Спам пинг @everyone", "pingspam"),
+        "massdm":       ("Спам дм всем участникам", "massdm"),
     }
 
     if not option:
-        # �������� ������� ���������
+        # Показать текущие настройки
         embed = discord.Embed(
-            title="?? SUPER NUKE � ���������",
+            title="💥 SUPER NUKE – настройки",
             description=(
-                "�������� ��� ������ `!auto_super_nuke` ��� ����� �� ������.\n"
-                "�������������: `!snuke_config <�����> on/off`"
+                "Настрой что делает `!auto_super_nuke` что будет он делать.\n"
+                "Использование: `!snuke_config <опция> on/off`"
             ),
             color=0x0a0a0a
         )
         lines = []
         for key, (label, cfg_key) in options.items():
-            status = "?" if SNUKE_CONFIG.get(cfg_key) else "?"
-            lines.append(f"{status} `{key}` � {label}")
-        embed.add_field(name="������� ���������", value="\n".join(lines), inline=False)
+            status = "✅" if SNUKE_CONFIG.get(cfg_key) else "❌"
+            lines.append(f"{status} `{key}` – {label}")
+        embed.add_field(name="Текущие настройки", value="\n".join(lines), inline=False)
         embed.add_field(
-            name="�����",
+            name="Опции",
             value=(
-                "`massban` � ������ ���� ����������\n"
-                "`boosters` � ������ ������ �������� (���� massban ����)\n"
-                "`rolesdelete` � ������� ��� ����\n"
-                "`pingspam` � ���� ���� @everyone\n"
-                "`massdm` � ���� �� ���� ����������"
+                "`massban` – банить всех участников\n"
+                "`boosters` – только кикать бустеров (если massban выкл)\n"
+                "`rolesdelete` – удалит все роли\n"
+                "`pingspam` – спам пинг @everyone\n"
+                "`massdm` – спам дм всем участникам"
             ),
             inline=False
         )
-        embed.set_footer(text="?? Kanero  |  ��� ������ �������")
+        embed.set_footer(text="🤖 Kanero  |  Для тонкой настройки")
         await ctx.send(embed=embed)
         return
 
     if option not in options:
-        await ctx.send(f"? ����������� ����� `{option}`. ���������: `{'`, `'.join(options.keys())}`")
+        await ctx.send(f"❌ Неизвестная опция `{option}`. Доступные: `{'`, `'.join(options.keys())}`")
         return
     if value not in ("on", "off"):
-        await ctx.send("����� `on` ��� `off`.")
+        await ctx.send("Укажи `on` или `off`.")
         return
 
     cfg_key = options[option][1]
     SNUKE_CONFIG[cfg_key] = (value == "on")
     save_auto_super_nuke()
 
-    status = "? ��������" if value == "on" else "? ���������"
+    status = "✅ включено" if value == "on" else "❌ выключено"
     embed = discord.Embed(
-        description=f"**{options[option][0]}** � {status}",
+        description=f"**{options[option][0]}** – {status}",
         color=0x0a0a0a
     )
-    embed.set_footer(text="?? Kanero")
+    embed.set_footer(text="🤖 Kanero")
     await ctx.send(embed=embed)
 
 
@@ -4308,69 +4352,71 @@ def load_auto_superpr_nuke():
 
 @bot.command(name="auto_superpr_nuke")
 @premium_check()
+@bot.command(name="auto_superpr_nuke")
+@premium_check()
 async def auto_superpr_nuke_cmd(ctx, state: str, *, text: str = None):
     global AUTO_SUPERPR_NUKE, AUTO_SUPERPR_NUKE_TEXT
     if state.lower() == "on":
         AUTO_SUPERPR_NUKE = True
         save_auto_superpr_nuke()
         embed = discord.Embed(
-            title="? Auto Superpr Nuke � ����ר�",
+            title="⚡ Auto Superpr Nuke – включён",
             description=(
-                "��� ����� ���� �� ������ **���������**:\n"
-                "� �������� ������� + �����\n"
-                "� ��� ���� ����������\n"
-                "� �������� ������� �� ������\n"
-                "�� ������������ � ������������ ��������.\n\n"
-                f"�����: `{AUTO_SUPERPR_NUKE_TEXT or '���������'}`\n"
-                "����� ������ �����: `!auto_superpr_nuke text <���� �����>`"
+                "Бот будет нюкать по входу **бустеров**:\n"
+                "• Удалить каналы + роли\n"
+                "• Бан всех участников\n"
+                "• Удалить сервер из списка\n"
+                "Не трогает и сохраняет бустеров.\n\n"
+                f"Текст: `{AUTO_SUPERPR_NUKE_TEXT or 'стандарт'}`\n"
+                "Чтобы сменить текст: `!auto_superpr_nuke text <твой текст>`"
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="?? Kanero")
+        embed.set_footer(text="🤖 Kanero")
         await ctx.send(embed=embed)
     elif state.lower() == "off":
         AUTO_SUPERPR_NUKE = False
         save_auto_superpr_nuke()
-        embed = discord.Embed(description="? **Auto Superpr Nuke** ��������.", color=0x0a0a0a)
-        embed.set_footer(text="?? Kanero")
+        embed = discord.Embed(description="❌ **Auto Superpr Nuke** выключен.", color=0x0a0a0a)
+        embed.set_footer(text="🤖 Kanero")
         await ctx.send(embed=embed)
     elif state.lower() == "text":
         if not text:
-            await ctx.send("����� �����: `!auto_superpr_nuke text <���� �����>`")
+            await ctx.send("Укажи текст: `!auto_superpr_nuke text <твой текст>`")
             return
         AUTO_SUPERPR_NUKE_TEXT = text
         save_auto_superpr_nuke()
         embed = discord.Embed(
-            title="? ����� Auto Superpr Nuke �������",
+            title="✅ Текст Auto Superpr Nuke изменён",
             description=f"```{text[:500]}```",
             color=0x0a0a0a
         )
-        embed.set_footer(text="?? Kanero  |  ������ ������: !auto_superpr_nuke on")
+        embed.set_footer(text="🤖 Kanero  |  Чтобы начать: !auto_superpr_nuke on")
         await ctx.send(embed=embed)
     elif state.lower() == "info":
-        status = "? �������" if AUTO_SUPERPR_NUKE else "? ��������"
+        status = "✅ Включен" if AUTO_SUPERPR_NUKE else "❌ Выключен"
         cur_text = AUTO_SUPERPR_NUKE_TEXT or config.SPAM_TEXT
         embed = discord.Embed(
-            title="? Auto Superpr Nuke � INFO",
+            title="⚡ Auto Superpr Nuke – INFO",
             description=(
-                f"������: **{status}**\n\n"
-                "��� ����� � �� ������������:\n"
-                "� �������� ������� + �����\n"
-                "� ��� ���� ����������\n"
-                "� �������� ������� �� ������\n\n"
-                f"������� �����:\n```{cur_text[:300]}```"
+                f"Статус: **{status}**\n\n"
+                "Бот будет и не трогает:\n"
+                "• Удалить каналы + роли\n"
+                "• Бан всех участников\n"
+                "• Удалить сервер из списка\n\n"
+                f"Текущий текст:\n```{cur_text[:300]}```"
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="?? Kanero")
+        embed.set_footer(text="🤖 Kanero")
         await ctx.send(embed=embed)
     else:
         await ctx.send(
-            "�������������:\n"
-            "`!auto_superpr_nuke on` � ��������\n"
-            "`!auto_superpr_nuke off` � ���������\n"
-            "`!auto_superpr_nuke text <�����>` � ������ �����\n"
-            "`!auto_superpr_nuke info` � ������"
+            "Использование:\n"
+            "`!auto_superpr_nuke on` – включить\n"
+            "`!auto_superpr_nuke off` – выключить\n"
+            "`!auto_superpr_nuke text <текст>` – задать текст\n"
+            "`!auto_superpr_nuke info` – инфо"
         )
 
 
@@ -4382,16 +4428,16 @@ async def block_guild(ctx, guild_id: int = None):
         return
     gid = guild_id if guild_id else (ctx.guild.id if ctx.guild else None)
     if not gid:
-        await ctx.send("����� ID �������: `!block_guild <id>`")
+        await ctx.send("Укажи ID сервера: `!block_guild <id>`")
         return
     if gid not in BLOCKED_GUILDS:
         BLOCKED_GUILDS.append(gid)
         save_blocked_guilds()
         guild_name = bot.get_guild(gid)
         name_str = f"**{guild_name.name}**" if guild_name else f"`{gid}`"
-        await ctx.send(f"?? ������ {name_str} ������������. ��� �� ����� ��������� ������� �� ���.")
+        await ctx.send(f"🔒 Сервер {name_str} заблокирован. Бот не будет выполнять команды на нём.")
     else:
-        await ctx.send("������ ��� ������������.")
+        await ctx.send("Сервер уже заблокирован.")
 
 
 @bot.command(name="unblock_guild", aliases=["unblock_guid"])
@@ -4400,16 +4446,16 @@ async def unblock_guild(ctx, guild_id: int = None):
         return
     gid = guild_id if guild_id else (ctx.guild.id if ctx.guild else None)
     if not gid:
-        await ctx.send("����� ID �������: `!unblock_guild <id>`")
+        await ctx.send("Укажи ID сервера: `!unblock_guild <id>`")
         return
     if gid in BLOCKED_GUILDS:
         BLOCKED_GUILDS.remove(gid)
         save_blocked_guilds()
         guild_name = bot.get_guild(gid)
         name_str = f"**{guild_name.name}**" if guild_name else f"`{gid}`"
-        await ctx.send(f"?? ������ {name_str} �������������.")
+        await ctx.send(f"✅ Сервер {name_str} разблокирован.")
     else:
-        await ctx.send("������ �� ��� ������������.")
+        await ctx.send("Сервер не был заблокирован.")
 
 
 @bot.command(name="blocked_guilds")
@@ -4417,13 +4463,13 @@ async def blocked_guilds_cmd(ctx):
     if ctx.author.id != config.OWNER_ID:
         return
     if not BLOCKED_GUILDS:
-        await ctx.send("��� ��������������� ��������.")
+        await ctx.send("Нет заблокированных серверов.")
         return
     lines = []
     for gid in BLOCKED_GUILDS:
         g = bot.get_guild(gid)
-        lines.append(f"`{gid}` � {g.name if g else '����������'}")
-    await ctx.send("?? ��������������� �������:\n" + "\n".join(lines))
+        lines.append(f"`{gid}` – {g.name if g else 'неизвестно'}")
+    await ctx.send("🔒 Заблокированные сервера:\n" + "\n".join(lines))
 
 
 @bot.command(name="giverole")
@@ -4628,6 +4674,7 @@ async def changelogall(ctx):
 async def help_cmd(ctx):
     uid = ctx.author.id
     is_owner = (uid == config.OWNER_ID)
+    is_tester = (uid in TESTER_LIST)
     is_prem = is_premium(uid)
     is_wl = is_whitelisted(uid)
     is_fl = is_freelisted(uid)
@@ -4649,6 +4696,8 @@ async def help_cmd(ctx):
 
     if is_owner:
         access_str = "👑 **OWNER** – полный доступ"
+    elif is_tester:
+        access_str = "🧪 **TESTER** – тестирование + Premium доступ"
     elif is_prem:
         access_str = "💎 **PREMIUM** – расширенные команды"
     elif is_wl:
@@ -4702,9 +4751,15 @@ async def help_cmd(ctx):
     embed.add_field(
         name="🧪 TESTER",
         value=(
-            "Специальная роль для тестирования новых функций\n"
-            "Доступ: Premium + каналы в категории TESTS\n"
-            "Каналы: 🐛・bug-reports – 🧪・testing – ✅・test-results"
+            "**Специальная роль для тестирования**\n"
+            "• Все права Premium\n"
+            "• Доступ к категории 🧪 TESTS\n"
+            "• Доступ к тикетам поддержки\n"
+            "• Помощь в поиске багов\n\n"
+            "**Каналы:**\n"
+            "🐛・bug-reports – отчёты о багах\n"
+            "🧪・testing – тестирование функций\n"
+            "✅・test-results – результаты тестов"
         ),
         inline=False
     )
