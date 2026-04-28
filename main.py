@@ -2078,13 +2078,13 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
         status_lines.append("👥 Freelist")
     
     if status_lines:
-        embed.add_field(name="?? ������ � �������", value="\n".join(status_lines), inline=True)
+        embed.add_field(name="📋 Статус в списках", value="\n".join(status_lines), inline=True)
     
-    current_roles = [role.name for role in user.roles if role.name in ["??"💎 Premium", "✅ White", "??"👥 User", "?? Guest"]]
+    current_roles = [role.name for role in user.roles if role.name in ["💎 Premium", "✅ White", "👥 User", "👤 Guest"]]
     if current_roles:
-        embed.add_field(name="?? ������� ����", value="\n".join(current_roles), inline=True)
+        embed.add_field(name="🎭 Текущие роли", value="\n".join(current_roles), inline=True)
     
-    embed.set_footer(text="?? Kanero  |  !fix_role [@������������]")
+    embed.set_footer(text="☠️ Kanero  |  !fix_role [@пользователь]")
     await ctx.send(embed=embed)
 
 
