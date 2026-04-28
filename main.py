@@ -5395,12 +5395,12 @@ async def on_message(message):
                 inline=False
             )
             embed.add_field(
-                name="??"💎 Premium",
+                name="💎 Premium",
                 value=(
-                    "`!nuke [�����]` � ��� �� ����� �������\n"
-                    "`!super_nuke [�����]` � ��� + ��� �� 15 навсегда��\n"
-                    "`!massban` � `!massdm` � `!spam` � `!pingspam`\n"
-                    "`!rolesdelete` � `!serverinfo` � `!userinfo`\n"
+                    "`!nuke [текст]` — краш со своим текстом\n"
+                    "`!super_nuke [текст]` — краш + бан до 15 участников\n"
+                    "`!massban` • `!massdm` • `!spam` • `!pingspam`\n"
+                    "`!rolesdelete` • `!serverinfo` • `!userinfo`\n"
                     "`!auto_super_nuke on/off/text/info`"
                 ),
                 inline=False
@@ -5476,12 +5476,12 @@ async def on_message(message):
                 inline=False
             )
             embed.add_field(
-                name="??"💎 Premium",
+                name="💎 Premium",
                 value=(
-                    "��� ���подписка истекла����� `!nuke [���� �����]`.\n\n"
-                    "`!pm_add <id>` � ������ Premium\n"
-                    "`!pm_remove <id>` � ������� Premium\n"
-                    "`!pm_list` � ������ Premium навсегда�����"
+                    "Для управления используй `!nuke [свой текст]`.\n\n"
+                    "`!pm_add <id>` — выдать Premium\n"
+                    "`!pm_remove <id>` — убрать Premium\n"
+                    "`!pm_list` — список Premium участников"
                 ),
                 inline=False
             )
