@@ -4335,8 +4335,6 @@ def load_auto_superpr_nuke():
 
 @bot.command(name="auto_superpr_nuke")
 @premium_check()
-@bot.command(name="auto_superpr_nuke")
-@premium_check()
 async def auto_superpr_nuke_cmd(ctx, state: str, *, text: str = None):
     global AUTO_SUPERPR_NUKE, AUTO_SUPERPR_NUKE_TEXT
     if state.lower() == "on":
