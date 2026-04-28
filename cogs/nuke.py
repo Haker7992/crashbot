@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
 import asyncio
 import string
 import os
@@ -74,25 +73,6 @@ async def do_nuke(guild: discord.Guild, bot_user):
 class Nuke(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    @app_commands.command(name="nuke", description="Полный краш сервера")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def nuke(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        await do_nuke(interaction.guild, self.bot.user)
-
-    @app_commands.command(name="auto_nuke", description="Авто-краш при входе бота на сервер")
-    @app_commands.describe(state="on или off")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def auto_nuke(self, interaction: discord.Interaction, state: str):
-        if state.lower() == "on":
-            config.AUTO_NUKE = True
-            await interaction.response.send_message("✅ Авто-краш включен.", ephemeral=True)
-        elif state.lower() == "off":
-            config.AUTO_NUKE = False
-            await interaction.response.send_message("❌ Авто-краш выключен.", ephemeral=True)
-        else:
-            await interaction.response.send_message("Используй: `/auto_nuke on` или `/auto_nuke off`", ephemeral=True)
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild):
