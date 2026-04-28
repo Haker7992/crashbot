@@ -2337,6 +2337,8 @@ async def setup(ctx):
     # Выполняем все удаления одновременно
     if delete_tasks:
         await asyncio.gather(*delete_tasks, return_exceptions=True)
+        # Ждём чтобы Discord API успел обработать удаления
+        await asyncio.sleep(4)
 
     # -- 2. Параллельное создание ролей --
     guest_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False)
