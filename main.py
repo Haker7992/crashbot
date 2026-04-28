@@ -4691,32 +4691,6 @@ async def help_cmd(ctx):
     embed.set_footer(text="☠️ Kanero  |  !changelogall – все обновления  |  v2.5")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
-
-        name="?? ���������",
-        value=(
-            "`!set_spam_text <�����>` � ������� ��������� ����� ����\n"
-            "`!get_spam_text` � �������� ������� �����\n"
-            "`!owl_add/remove/list` � owner whitelist"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="??? � ��",
-        value=(
-            "`!owner_help` � ������ ������ ����������\n"
-            "`!guilds` � ������ ��������\n"
-            "`!setguild <id>` � ������� ������\n"
-            "`!invlink` � ������� �� ���� ��������"
-        ),
-        inline=False
-    )
-    embed.set_footer(text="?? Kanero")
-    await ctx.send(embed=embed)
-
-
-# --- EVENTS ------------------------------------------------
-
-@bot.event
 async def on_member_remove(member):
     """��� ������ � ��������� ������� � ������� �� whitelist � ����� � ��."""
     if member.guild.id != HOME_GUILD_ID:
