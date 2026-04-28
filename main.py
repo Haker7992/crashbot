@@ -2767,9 +2767,9 @@ async def setup(ctx):
     tests_info_embed.set_footer(text="☠️ Kanero  |  Спасибо за помощь в тестировании!")
     await info_tests_ch.send(embed=tests_info_embed)
     
-    await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=tests_ow(), topic="Отчёты об ошибках и багах — создавай ТРЕДЫ для каждого бага")
-    await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites=tests_ow(), topic="Тестирование новых функций и обсуждение с тестерами")
-    await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=tests_ow(), topic="Результаты тестирования — создавай ТРЕДЫ для каждой функции")
+    await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=tests_ow(), topic="🐛 ОТЧЁТЫ О БАГАХ | Создай тред → Название бага → Шаги воспроизведения → Ожидаемый результат → Скриншоты")
+    await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites=tests_ow(), topic="🧪 ОБСУЖДЕНИЕ | Обсуждай новые функции, делись идеями, помогай друг другу, задавай вопросы")
+    await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=tests_ow(), topic="✅ РЕЗУЛЬТАТЫ ТЕСТОВ | Создай тред для каждой функции → ✅ работает / ❌ баг / ⚠️ улучшить")
 
     # 🔊 🎙 ВОЙСЫ — видимые каналы для голоса 🔊🎙
     def voice_base_ow():
@@ -3448,9 +3448,9 @@ async def setup_update(ctx):
             cat_tests = await guild.create_category("━━━━ 🧪 TESTS ━━━━", overwrites=ow_tests)
             
             # Создаём каналы в TESTS
-            await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=ow_tests, topic="Отчёты об ошибках и багах с ролью Tester")
-            await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites=ow_tests, topic="Тестирование новых функций и обсуждение с тестерами")
-            await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=ow_tests, topic="Результаты тестирования и отчёты тестировщиков")
+            await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=ow_tests, topic="🐛 ОТЧЁТЫ О БАГАХ | Создай тред → Название бага → Шаги воспроизведения → Ожидаемый результат → Скриншоты")
+            await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites=ow_tests, topic="🧪 ОБСУЖДЕНИЕ | Обсуждай новые функции, делись идеями, помогай друг другу, задавай вопросы")
+            await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=ow_tests, topic="✅ РЕЗУЛЬТАТЫ ТЕСТОВ | Создай тред для каждой функции → ✅ работает / ❌ баг / ⚠️ улучшить")
             
             results.append("✅ Создана категория 🧪 TESTS с каналами")
         except Exception as e:
@@ -3470,19 +3470,19 @@ async def setup_update(ctx):
         
         if not any("bug" in n for n in existing_tests):
             try:
-                await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=ow_tests, topic="Отчёты об ошибках и багах с ролью Tester")
+                await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=ow_tests, topic="🐛 ОТЧЁТЫ О БАГАХ | Создай тред → Название бага → Шаги воспроизведения → Ожидаемый результат → Скриншоты")
                 results.append("✅ Создан 🐛・bug-reports")
             except Exception as e:
                 results.append(f"❌ 🐛・bug-reports: {e}")
         if not any("testing" in n for n in existing_tests):
             try:
-                await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites=ow_tests, topic="Тестирование новых функций и обсуждение с тестерами")
+                await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites=ow_tests, topic="🧪 ОБСУЖДЕНИЕ | Обсуждай новые функции, делись идеями, помогай друг другу, задавай вопросы")
                 results.append("✅ Создан 🧪・testing")
             except Exception as e:
                 results.append(f"❌ 🧪・testing: {e}")
         if not any("test-results" in n or "результат" in n for n in existing_tests):
             try:
-                await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=ow_tests, topic="Результаты тестирования и отчёты тестировщиков")
+                await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=ow_tests, topic="✅ РЕЗУЛЬТАТЫ ТЕСТОВ | Создай тред для каждой функции → ✅ работает / ❌ баг / ⚠️ улучшить")
                 results.append("✅ Создан ✅・test-results")
             except Exception as e:
                 results.append(f"❌ ✅・test-results: {e}")
