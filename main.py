@@ -3715,9 +3715,9 @@ async def fl_add(ctx, *, user_input: str):
         if not home_guild:
             await ctx.send("❌ Домашний сервер не найден.")
             return
-        msg = await ctx.send("? ����� Freelist ���� навсегда��...")
+        msg = await ctx.send("⏳ Выдаю Freelist роль всем участникам...")
         count = 0
-        user_role = discord.utils.find(lambda r: r.name == "??"👥 User", home_guild.roles)
+        user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
         for member in home_guild.members:
             if member.bot:
                 continue
@@ -3768,7 +3768,7 @@ async def fl_add(ctx, *, user_input: str):
                 except Exception:
                     member = None
             if member:
-                user_role = discord.utils.find(lambda r: r.name == "??"👥 User", home_guild.roles)
+                user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
                 if user_role and user_role not in member.roles:
                     await member.add_roles(user_role, reason="fl_add")
             await update_stats_channels(home_guild)
@@ -3817,7 +3817,7 @@ async def fl_remove(ctx, *, user_input: str):
             if home_guild:
                 member = home_guild.get_member(user_id)
                 if member:
-                    user_role = discord.utils.find(lambda r: r.name == "??"👥 User", home_guild.roles)
+                    user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
                     if user_role and user_role in member.roles:
                         await member.remove_roles(user_role, reason="fl_remove")
                 await update_stats_channels(home_guild)
@@ -5845,9 +5845,9 @@ async def on_message(message):
                     if not member:
                         member = await home_guild.fetch_member(uid)
                     if member:
-                        user_role = discord.utils.find(lambda r: r.name == "??"👥 User", home_guild.roles)
+                        user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
                         if user_role:
-                            await member.add_roles(user_role, reason="Freelist � ������� � addbot")
+                            await member.add_roles(user_role, reason="Freelist выдана через addbot")
             except Exception:
                 pass
             try:
