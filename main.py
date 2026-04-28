@@ -1914,20 +1914,20 @@ async def sync_roles_cmd(ctx):
                 pass
         if role_white and role_white in member.roles and uid not in wl_ids and uid not in pm_ids and uid != config.OWNER_ID:
             try:
-                await member.remove_roles(role_white, reason="sync_roles: �� � whitelist")
-                removed.append(f"? {member} < ������"✅ White")
+                await member.remove_roles(role_white, reason="sync_roles: не в whitelist")
+                removed.append(f"❌ {member} < убрана ✅ White")
             except Exception:
                 pass
 
     lines = []
     if given:
-        lines.append("**������:**\n" + "\n".join(given))
+        lines.append("**Выдано:**\n" + "\n".join(given))
     if removed:
-        lines.append("**�����:**\n" + "\n".join(removed))
+        lines.append("**Убрано:**\n" + "\n".join(removed))
     if missing:
-        lines.append(f"**�� �� ������� � ������� �� ������ ({len(missing)}):**\n" + "\n".join(missing))
+        lines.append(f"**Не на сервере и удалены из списков ({len(missing)}):**\n" + "\n".join(missing))
     if not given and not removed and not missing:
-        lines.append("? ��� ���� � �������, ������ �� навсегда.")
+        lines.append("✅ Всё ОК и синхронно, ничего не изменено.")
 
     embed = discord.Embed(
         title="✅ Синхронизация ролей",
