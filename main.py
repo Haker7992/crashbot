@@ -2341,12 +2341,12 @@ async def setup(ctx):
         if role_bot: position_tasks.append(role_bot.edit(position=max(1, bot_top - 1)))
         if role_dev: position_tasks.append(role_dev.edit(position=max(1, bot_top - 2)))
         if role_owner: position_tasks.append(role_owner.edit(position=max(1, bot_top - 3)))
-        if role_media: position_tasks.append(role_media.edit(position=max(1, bot_top - 4)))
+        if role_tester: position_tasks.append(role_tester.edit(position=max(1, bot_top - 4)))
         if role_mod: position_tasks.append(role_mod.edit(position=max(1, bot_top - 5)))
         if role_friend: position_tasks.append(role_friend.edit(position=max(1, bot_top - 6)))
-        if role_tester: position_tasks.append(role_tester.edit(position=max(1, bot_top - 7)))
-        if role_premium: position_tasks.append(role_premium.edit(position=max(1, bot_top - 8)))
-        if role_white: position_tasks.append(role_white.edit(position=max(1, bot_top - 9)))
+        if role_premium: position_tasks.append(role_premium.edit(position=max(1, bot_top - 7)))
+        if role_white: position_tasks.append(role_white.edit(position=max(1, bot_top - 8)))
+        if role_media: position_tasks.append(role_media.edit(position=max(1, bot_top - 9)))
         if role_user: position_tasks.append(role_user.edit(position=max(1, bot_top - 10)))
         if role_guest: position_tasks.append(role_guest.edit(position=1))
         
@@ -3293,12 +3293,13 @@ async def setup_update(ctx):
                 ("🤖 Kanero",     bot_top - 1),
                 ("🔧 Developer",  bot_top - 2),
                 ("👑 Owner",      bot_top - 3),
-                ("🎬 Media",      bot_top - 4),
+                ("🧪 Tester",     bot_top - 4),
                 ("🛡️ Moderator",  bot_top - 5),
-                ("🤝 Friend",       bot_top - 6),
+                ("🤝 Friend",     bot_top - 6),
                 ("💎 Premium",    bot_top - 7),
                 ("✅ White",      bot_top - 8),
-                ("👥 User",       bot_top - 9),
+                ("🎬 Media",      bot_top - 9),
+                ("👥 User",       bot_top - 10),
                 ("👤 Guest",      1),
             ]
             for rname, pos in order:
