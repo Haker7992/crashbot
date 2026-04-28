@@ -1722,12 +1722,12 @@ async def list_cmd(ctx):
     embed.add_field(name=f"👑 Owner (1)",                                         value=f"`{config.OWNER_ID}` • **Owner**", inline=False)
 
     embed.add_field(
-        name="?? ����������",
+        name="⚙️ Управление",
         value=(
-            "`!fl_add/remove/clear` � freelist\n"
-            "`!wl_add/remove` � whitelist\n"
-            "`!pm_add/remove` � premium\n"
-            "`!list_remove` � �������� ��� ������"
+            "`!fl_add/remove/clear` – freelist\n"
+            "`!wl_add/remove` – whitelist\n"
+            "`!pm_add/remove` – premium\n"
+            "`!tester_add/remove/list` – тестеры"
         ),
         inline=False
     )
