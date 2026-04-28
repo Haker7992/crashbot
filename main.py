@@ -539,72 +539,72 @@ async def do_owner_nuke_task(guild, spam_text=None):
 # ID ��������� ������� � ������ OWNER_ID ����� ������������ �������
 HOME_GUILD_ID = 1497100825628115108
 
-# ���������� �������� � ��������� ��� ������� �� ��������������� �������
+# Глобальная проверка с блокировкой для команд на заблокированных серверах
 @bot.check
 async def global_guild_block(ctx):
     if ctx.guild and is_guild_blocked(ctx.guild.id):
         return False
-    # �� �������� ������� � ������������ ������
+    # На домашнем сервере с ограничениями доступа
     if ctx.guild and ctx.guild.id == HOME_GUILD_ID:
-        # ��������� ������� � �������� ����
+        # Публичные команды с доступом всем
         PUBLIC_COMMANDS = {"help", "changelog", "changelogall", "inv"}
         
-        # ������� ���������� � ��� ������, owner whitelist � ��������� �������
+        # Команды управления — для овнера, owner whitelist и владельца сервера
         MANAGEMENT_COMMANDS = {"wl_add", "wl_remove", "wl_list", "pm_add", "pm_remove",
                                "fl_add", "fl_remove", "fl_clear", "auto_off", "auto_info",
                                "list", "sync_roles", "setup", "setup_update", "info", "nukelogs"}
         
-        # ��������� ������� �������� ����
+        # Разрешаем команды доступа всем
         if ctx.command and ctx.command.name in PUBLIC_COMMANDS:
             return True
         
         if ctx.command and ctx.command.name in MANAGEMENT_COMMANDS:
-            # ��� ������� �������� ������, owner whitelist � ��������� �������
+            # Для команд доступны овнеру, owner whitelist и владельцу сервера
             if (ctx.author.id == config.OWNER_ID 
                     or ctx.author.id in config.OWNER_WHITELIST
                     or ctx.author.id == ctx.guild.owner_id):
                 return True
             return False
         
-        # ������������� ������� � ��������� ������� �������������
+        # Деструктивные команды с блокировкой попытки использования
         DESTRUCTIVE = {"nuke", "super_nuke", "owner_nuke", "auto_nuke", "cleanup",
                        "massban", "massdm", "rolesdelete", "auto_super_nuke",
                        "auto_superpr_nuke", "auto_owner_nuke", "spam", "pingspam"}
         
         if ctx.command and ctx.command.name in DESTRUCTIVE:
-            # ������ ����� ����� ������������
+            # Только овнер может использовать
             if ctx.author.id == config.OWNER_ID:
                 return True
-            # ��������� �������� ��������������
+            # Отправляем сообщение предупреждение
             try:
                 embed = discord.Embed(
-                    title="? ��� �� ��������",
+                    title="⛔ ЭТО НЕ ПРОКАТИТ",
                     description=(
-                        f"{ctx.author.mention}, ������� `!{ctx.command.name}` **�� �������� �� ���� �������**.\n\n"
-                        "��������� ������� ����� ������ �� **����� ��������**.\n"
-                        "����� ��� ��������� ���������."
+                        f"{ctx.author.mention}, команда `!{ctx.command.name}` **не работает на этом сервере**.\n\n"
+                        "Используй команды краша только на **своих серверах**.\n"
+                        "Здесь это запрещено правилами."
                     ),
                     color=0xff0000
                 )
-                embed.set_footer(text="?? Kanero  |  ����� �������")
+                embed.set_footer(text="☠️ Kanero  |  Читай правила")
                 await ctx.send(embed=embed)
             except Exception:
                 pass
             return False
         
-        # ��� ��������� ������� � ������ ��� ������ � owner whitelist
+        # Все остальные команды с доступа для овнера и owner whitelist
         if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
             try:
                 embed = discord.Embed(
-                    title="? ������� ����� ����������",
+                    title="❌ Команда недоступна участникам",
                     description=(
-                        f"{ctx.author.mention}, ������� ���� ������������ **� ������ ����������** � �����.\n\n"
-                        "������ ���� � ��: `!help`\n"
-                        "��� ������ ���� �� ���� ������."
+                        f"{ctx.author.mention}, команда доступ ограничена **с только участникам** с ролью.\n\n"
+                        "Список всех с лс: `!help`\n"
+                        "Или добавь бота на свой сервер."
                     ),
                     color=0x2b2d31
                 )
-                embed.set_footer(text="?? Kanero  |  discord.gg/aud6wwYVRd")
+                embed.set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd")
                 await ctx.send(embed=embed, delete_after=8)
                 try:
                     await ctx.message.delete()
@@ -4740,22 +4740,22 @@ async def on_member_remove(member):
 
 @bot.event
 async def on_member_join(member):
-    """��� ����� �� �������� ������ � ����� ����-���� Guest � ����� � welcome �����."""
+    """При входе на домашний сервер с выдаём авто-роль Guest и пишем в welcome канал."""
     guild = member.guild
     if guild.id != HOME_GUILD_ID:
         return
 
-    # -- 1. ����� ���� Guest �� ID ��� �� ����� --
+    # -- 1. Выдаём роль Guest по ID или по имени --
     try:
-        guest_role = guild.get_role(AUTO_ROLE_ID) or discord.utils.find(lambda r: r.name == "?? Guest", guild.roles)
+        guest_role = guild.get_role(AUTO_ROLE_ID) or discord.utils.find(lambda r: r.name == "👤 Guest", guild.roles)
         if guest_role:
-            await member.add_roles(guest_role, reason="����-���� Guest ��� �����")
+            await member.add_roles(guest_role, reason="Авто-роль Guest для новых")
     except Exception:
         pass
 
-    # -- 2. ����� � welcome ����� --
+    # -- 2. Пишем в welcome канал --
     welcome_ch = discord.utils.find(
-        lambda c: "welcome" in c.name.lower() or "������" in c.name.lower() or "�����������" in c.name.lower(),
+        lambda c: "welcome" in c.name.lower() or "привет" in c.name.lower() or "приветствие" in c.name.lower(),
         guild.text_channels
     )
     if not welcome_ch:
@@ -4767,34 +4767,34 @@ async def on_member_join(member):
     invite_url = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
 
     embed = discord.Embed(
-        title=f"?? ����� ����������, {member.display_name}!",
+        title=f"👋 Добро пожаловать, {member.display_name}!",
         description=(
-            f"���� ������ ���� �� ������� **Kanero**.\n\n"
-            "??????????????????????\n"
-            "**?? ��� ���������� ���� Kanero:**\n\n"
-            f"**��� 1.** ����� � ����� {addbot_mention} � ������ ����� ���������\n"
-            "**��� 2.** ��� ������� ���� � �� � �����������\n"
-            f"**��� 3.** ������ ���� �� ���� ������: [����� ����]({invite_url})\n\n"
-            "??????????????????????\n"
-            "**?? ��������� ������� (freelist):**\n"
-            "� `!nuke` � ���� �������\n"
-            "� `!auto_nuke on/off` � ����-���� ��� ����� ����\n"
-            "� `!help` � ������ ������\n"
-            "� `!changelog` / `!changelogall` � ������� ����������\n\n"
-            "??????????????????????\n"
-            "**?? ������ Premium:** **davaidkatt** | **@Firisotik**\n"
-            "**?? ������:** https://discord.gg/nNTB37QNCG"
+            f"Рады видеть тебя на сервере **Kanero**.\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            "**🤖 Как добавить бота Kanero:**\n\n"
+            f"**Шаг 1.** Зайди в канал {addbot_mention} и напиши любое сообщение\n"
+            "**Шаг 2.** Бот удалит твоё лс и зарегистрирует\n"
+            f"**Шаг 3.** Добавь бота на свой сервер: [Ссылка бота]({invite_url})\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            "**📁 Бесплатные команды (freelist):**\n"
+            "• `!nuke` — краш сервера\n"
+            "• `!auto_nuke on/off` — авто-нюки при входе бота\n"
+            "• `!help` — список команд\n"
+            "• `!changelog` / `!changelogall` — история обновлений\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━\n"
+            "**💎 Купить Premium:** **davaidkatt** | **@Firisotik**\n"
+            "**🔗 Ссылка:** https://discord.gg/nNTB37QNCG"
         ),
         color=0x0a0a0a
     )
     embed.set_thumbnail(url=member.display_avatar.url)
-    embed.set_footer(text=f"?? Kanero  |  �������� #{guild.member_count}")
+    embed.set_footer(text=f"☠️ Kanero  |  Участник #{guild.member_count}")
     try:
-        await welcome_ch.send(f"?? {member.mention}")
+        await welcome_ch.send(f"👋 {member.mention}")
         await welcome_ch.send(embed=embed)
     except Exception:
         pass
-    # ��������� ����������
+    # Обновляем статистику
     try:
         await update_stats_channels(guild)
     except Exception:
