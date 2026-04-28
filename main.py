@@ -2538,14 +2538,19 @@ async def setup(ctx):
         inline=False
     )
     changelog_embed.add_field(
-        name="🧪 v2.5 — Система Tester",
+        name="🧪 v2.5 — Система Tester и оптимизация",
         value=(
             "• Создана роль 🧪 Tester с правами Premium\n"
             "• Команды `!tester_add`, `!tester_remove`, `!tester_list`\n"
             "• Категория 🧪 TESTS с каналами для тестирования\n"
             "• Tester получает доступ к тикетам\n"
-            "• `!setup` автоматически создаёт TESTS\n"
-            "• Обновлена документация и правила"
+            "• Переименована категория ОБЩЕНИЕ → ОСНОВНОЕ\n"
+            "• Удалены каналы: панель-бота, команды, статистика, медиа, объявления\n"
+            "• Удалены каналы: бонусы (FREELIST), утилиты (WHITE), premium-tools (PREMIUM)\n"
+            "• Канал 📝・выдача-листа добавлен в ADMIN\n"
+            "• Исправлены все кодировки русского текста\n"
+            "• Обновлены правила с информацией о тестерах\n"
+            "• Улучшена структура сервера"
         ),
         inline=False
     )
@@ -2745,24 +2750,25 @@ async def setup(ctx):
         role_white: _ow(), role_premium: _ow(),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
     })
-    logs_ch = await guild.create_text_channel("???logs", category=cat_admin, overwrites=admin_ow(), topic="���� ����� � !nukelogs")
-    await guild.create_text_channel("???admin-chat", category=cat_admin, overwrites={
+    logs_ch = await guild.create_text_channel("📊・logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков с !nukelogs")
+    await guild.create_text_channel("🔧・admin-chat", category=cat_admin, overwrites={
         guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(),
         role_white: _ow(), role_premium: _ow(), role_friend: _ow(),
         role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="��� ��� Owner � Developer")
+    }, topic="Чат для Owner и Developer")
+    await guild.create_text_channel("📝・выдача-листа", category=cat_admin, overwrites=admin_ow(), topic="Логи выдачи подписок и компенсаций")
 
-    # -- 5. ������� � ������ --
+    # -- 5. Правила и инфо --
 
     await welcome_ch.send(embed=discord.Embed(
-        title="?? ����� ���������� �� ������ Kanero!",
+        title="👋 Добро пожаловать на сервер Kanero!",
         description=(
-            "��� ������������� ����� ���� ��� ����� ������ ���������.\n\n"
-            "**��� ������:**\n"
-            "1. ����� � ???addbot � ������ ����� ���������\n"
-            "2. �������� ���� ?? User � ������ � ����\n"
-            "3. ������ ���� �� ���� ������\n\n"
-            "**������ White/Premium:** ������� � ???������-�����\n"
+            "Это официальный сервер бота для краша серверов.\n\n"
+            "**Как начать:**\n"
+            "1. Зайди в 🤖・addbot и добавь бота на сервер\n"
+            "2. Получишь роль 👥 User и доступ к боту\n"
+            "3. Начинай юзать на своих серверах\n\n"
+            "**Купить White/Premium:** заходи в 💰・sell\n"
             "**Поддержка:** создай тикет в 🎫・create-ticket\n"
             "**Ссылка:** https://discord.gg/nNTB37QNCG"
         ), color=0x0a0a0a
@@ -2912,14 +2918,14 @@ async def setup(ctx):
             "**Каналы:**\n"
             "👋 WELCOME: welcome (все видят)\n"
             "ℹ️ INFO: info и changelog (Guest+)\n"
-            "💬 ОБЩЕНИЕ: правила и команды и addbot и медиа и объявления и sell и панель-бота и статистика\n"
-            "💬 ЧАТЫ: общий и игры и create-ticket (Guest+)\n"
-            "📁 FREELIST: freelist-chat и бонусы (User+)\n"
-            "✅ WHITE: white-chat и утилиты (White+)\n"
-            "💎 PREMIUM: premium-chat и premium-info и premium-tools (Premium+)\n"
-            "🧪 TESTS: bug-reports и testing и test-results (Tester+)\n"
-            "🔊 ВОЙСЫ: voice-1/2/3 и premium-voice и admin-voice\n"
-            "🔧 ADMIN: logs и admin-chat (Owner+)\n\n"
+            "💬 ОСНОВНОЕ: правила, новости, addbot, партнёрство, sell, выдача-листа (Guest+)\n"
+            "💬 ЧАТЫ: общий, игры, create-ticket (Guest+)\n"
+            "📁 FREELIST: freelist-chat (User+)\n"
+            "✅ WHITE: white-chat (White+)\n"
+            "💎 PREMIUM: premium-chat, premium-info (Premium+)\n"
+            "🧪 TESTS: info, bug-reports, testing, test-results (Tester+)\n"
+            "🔊 ВОЙСЫ: voice-1/2/3, premium-voice, admin-voice\n"
+            "🔧 ADMIN: logs, admin-chat, выдача-листа (Owner+)\n\n"
             f"Авто-роль для новых: {f'<@&{role_guest.id}>' if role_guest else '👤 Guest'}\n"
             "Роль 👥 User выдаётся при добавлении в addbot."
         ),
@@ -3044,17 +3050,40 @@ async def setup_update(ctx):
                 results.append("✅ Создан 🔧・admin-chat")
             except Exception as e:
                 results.append(f"❌ admin-chat: {e}")
+        # Создаём выдача-листа если нет
+        if not any("выдача" in n for n in existing_names):
+            try:
+                ow = {guild.default_role: _ow()}
+                if role_guest:  ow[role_guest]  = _ow(False, False)
+                if role_user:   ow[role_user]   = _ow(False, False)
+                if role_white:  ow[role_white]  = _ow(False, False)
+                if role_prem:   ow[role_prem]   = _ow(False, False)
+                if role_friend: ow[role_friend] = _ow(False, False)
+                if role_owner:  ow[role_owner]  = _ow(True, True)
+                if role_dev:    ow[role_dev]    = _ow(True, True)
+                await guild.create_text_channel("📝・выдача-листа", category=admin_cat, overwrites=ow, topic="Логи выдачи подписок и компенсаций")
+                results.append("✅ Создан 📝・выдача-листа")
+            except Exception as e:
+                results.append(f"❌ выдача-листа: {e}")
         results.append("✅ ADMIN обновлён")
 
     # 5. Создаём недостающие каналы в ОСНОВНОЕ
-    cat_main = discord.utils.find(lambda c: "ОБЩЕНИЕ" in c.name, guild.categories)
+    cat_main = discord.utils.find(lambda c: "ОСНОВНОЕ" in c.name or "ОБЩЕНИЕ" in c.name, guild.categories)
     if cat_main:
+        # Переименовываем категорию если нужно
+        if "ОБЩЕНИЕ" in cat_main.name:
+            try:
+                await cat_main.edit(name="━━━━ 💬 ОСНОВНОЕ ━━━━")
+                results.append("✅ Переименована категория ОБЩЕНИЕ → ОСНОВНОЕ")
+            except Exception as e:
+                results.append(f"❌ Переименование категории: {e}")
+        
         existing = [ch.name.lower() for ch in cat_main.channels]
         missing_channels = []
         if not any("sell" in n for n in existing):
             missing_channels.append(("💰・sell", "Покупка White/Premium и только только Owner"))
-        if not any("панель" in n for n in existing):
-            missing_channels.append(("🔧・панель-бота", "!wl_add, !pm_add, !fl_add и только Owner"))
+        if not any("выдача" in n for n in existing):
+            missing_channels.append(("📝・выдача-листа", "Логи выдачи подписок и компенсаций"))
         for ch_name, topic in missing_channels:
             try:
                 ow = {guild.default_role: _ow()}
@@ -3080,35 +3109,35 @@ async def setup_update(ctx):
             if role_prem:  ow_info[role_prem]  = _ow(True, False)
             if role_owner: ow_info[role_owner] = _ow(True, True)
             if role_dev:   ow_info[role_dev]   = _ow(True, True)
-            cat_info = await guild.create_category("???? ?? INFO ????", overwrites=ow_info)
-            # ���������� INFO ��� WELCOME (������� 1)
+            cat_info = await guild.create_category("━━━━ ℹ️ INFO ━━━━", overwrites=ow_info)
+            # Позиционируем INFO под WELCOME (позиция 1)
             cat_welcome = discord.utils.find(lambda c: "WELCOME" in c.name, guild.categories)
             if cat_welcome:
                 try:
                     await cat_info.edit(position=cat_welcome.position + 1)
                 except Exception:
                     pass
-            results.append("? ������� ��������� INFO")
+            results.append("✅ Создана категория INFO")
         except Exception as e:
-            results.append(f"? ��������� INFO: {e}")
+            results.append(f"❌ Категория INFO: {e}")
     else:
-        # ���� INFO ��� ����������, ��������� � �������
+        # Если INFO уже существует, позиционируем её правильно
         cat_welcome = discord.utils.find(lambda c: "WELCOME" in c.name, guild.categories)
         if cat_welcome and cat_info.position != cat_welcome.position + 1:
             try:
                 await cat_info.edit(position=cat_welcome.position + 1)
-                results.append("? ���������� ��������� INFO ��� WELCOME")
+                results.append("✅ Перемещена категория INFO под WELCOME")
             except Exception:
                 pass
     
-    # ��������� #changelog �� �������� � INFO ���� �� ���
+    # Перемещаем #changelog из основного в INFO если он там
     changelog_ch = discord.utils.find(lambda c: "changelog" in c.name.lower(), guild.text_channels)
     if changelog_ch and cat_info and changelog_ch.category != cat_info:
         try:
             await changelog_ch.edit(category=cat_info)
-            results.append("? ��������� ???changelog � INFO")
+            results.append("✅ Перемещён 📋・changelog в INFO")
         except Exception as e:
-            results.append(f"? ������� changelog: {e}")
+            results.append(f"❌ Перенос changelog: {e}")
     
     if cat_info:
         existing_info = [ch.name.lower() for ch in cat_info.channels]
@@ -3121,142 +3150,142 @@ async def setup_update(ctx):
                 if role_prem:  ow_info_ch[role_prem]  = _ow(True, False)
                 if role_owner: ow_info_ch[role_owner] = _ow(True, True)
                 if role_dev:   ow_info_ch[role_dev]   = _ow(True, True)
-                info_ch = await guild.create_text_channel("???info", category=cat_info, overwrites=ow_info_ch, topic="���������� � ������� ������� � ������")
-                # ���������� ��������� � #info
-                ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "�����" in c.name.lower(), guild.text_channels)
+                info_ch = await guild.create_text_channel("ℹ️・info", category=cat_info, overwrites=ow_info_ch, topic="Информация о сервере правила и прочее")
+                # Отправляем сообщение в #info
+                ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "тикет" in c.name.lower(), guild.text_channels)
                 addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), guild.text_channels)
                 info_embed = discord.Embed(
-                    title="?? ���������� � Kanero",
+                    title="ℹ️ Информация о Kanero",
                     description=(
-                        "**?? ��� �������� ���� �� ���� ������:**\n"
-                        "1. ������ ������ (��. ����)\n"
-                        "2. ������ `!inv` ���� � �� ��� �� �������\n"
-                        "3. ������� �� ������ � ������ ���� ������\n"
-                        "4. **�����:** ��� ���� ���� � ������� **��������������**\n"
-                        "5. ������� ���� ���� **���� ����** � ���������� �������\n"
-                        "6. ������! ��������� �������\n\n"
-                        "**?? ���������� ������ (Freelist):**\n"
-                        f"������ ����� ��������� � {addbot_ch.mention if addbot_ch else '???addbot'}\n"
-                        "�������� ���� ?? User � �������:\n"
-                        "� `!nuke` � ������� ��� ������ � ������� 30 ����� �� ������\n"
-                        "� `!auto_nuke on/off` � �������������� ���� ��� ���������� ����\n"
-                        "� `!help` � ������ ���� ������\n"
-                        "� `!changelog` � ��������� ����������\n\n"
-                        "**? White (������� ������):**\n"
-                        "��� ������� Freelist + �������������:\n"
-                        "� `!nuke [�����]` � ���� � ����� ������� �����\n"
-                        "� `!stop` � ���������� ����\n"
-                        "� `!cleanup` � ������� ��� ������\n"
-                        "� `!rename [��������]` � ������������� ������\n"
-                        "� `!nicks_all [���]` � ������� ���� ����\n"
-                        "� `!webhooks` � ������� 50 ��������\n"
-                        "� `!clear [�����]` � ������� ���������\n"
-                        "� `!clear_all` � ������� ��� ��������� � ������\n\n"
-                        "**?? Premium (������������ ������):**\n"
-                        "��� ������� White + ������ �������:\n"
-                        "� `!super_nuke` � ��������� ���� (����� ���� + ������� ����)\n"
-                        "� `!auto_super_nuke on/off` � �������������� �����-����\n"
-                        "� `!massban` � �������� ��� ����������\n"
-                        "� `!massdm [�����]` � ��������� �� ����\n"
-                        "� `!spam [�����] [�����]` � ���� � ������\n"
-                        "� `!pingspam [@����] [�����]` � ���� ������������\n"
-                        "� `!rolesdelete` � ������� ��� ����\n\n"
-                        "**?? ������ White / Premium:**\n"
-                        "������� �� FunPay � ������ �����:\n"
+                        "**🤖 Как добавить бота на свой сервер:**\n"
+                        "1. Читаем правила (см. выше)\n"
+                        "2. Пишешь `!inv` боту в лс или тут на сервере\n"
+                        "3. Жмёшь на ссылку и даёшь боту права\n"
+                        "4. **ВАЖНО:** все роли бота в иерархии **САМЫЕ ВЕРХНИЕ**\n"
+                        "5. Готово! Твой бота **готов нюки** и выполнять команды\n"
+                        "6. Начни! Используй команды\n\n"
+                        "**📁 Бесплатный доступ (Freelist):**\n"
+                        f"Добавь бота используя в {addbot_ch.mention if addbot_ch else '🤖・addbot'}\n"
+                        "Получишь роль 👥 User и команды:\n"
+                        "• `!nuke` — удаляет все каналы и создаёт 30 новых за секунду\n"
+                        "• `!auto_nuke on/off` — автоматический нюки при добавлении бота\n"
+                        "• `!help` — список всех команд\n"
+                        "• `!changelog` — последние обновления\n\n"
+                        "**✅ White (платная версия):**\n"
+                        "Все команды Freelist + дополнительно:\n"
+                        "• `!nuke [канал]` — нюки с любым текстом канала\n"
+                        "• `!stop` — остановить нюки\n"
+                        "• `!cleanup` — удалить все каналы\n"
+                        "• `!rename [название]` — переименовать сервер\n"
+                        "• `!nicks_all [имя]` — сменить всем ники\n"
+                        "• `!webhooks` — создать 50 вебхуков\n"
+                        "• `!clear [канал]` — удалить сообщения\n"
+                        "• `!clear_all` — удалить все сообщения в канале\n\n"
+                        "**💎 Premium (максимальная версия):**\n"
+                        "Все команды White + мощные команды:\n"
+                        "• `!super_nuke` — усиленный нюки (новые роли + удалить всех)\n"
+                        "• `!auto_super_nuke on/off` — автоматический супер-нюки\n"
+                        "• `!massban` — забанить всех участников\n"
+                        "• `!massdm [текст]` — отправить лс всем\n"
+                        "• `!spam [канал] [текст]` — спам в канале\n"
+                        "• `!pingspam [@роль] [текст]` — спам упоминаниями\n"
+                        "• `!rolesdelete` — удалить все роли\n\n"
+                        "**💰 Купить White / Premium:**\n"
+                        "Покупка на FunPay с любым методом:\n"
                         "https://funpay.com/users/16928925/ \n\n"
-                        "**? ����� ������?**\n"
-                        f"������ �����: {ticket_ch.mention if ticket_ch else '???create-ticket'}\n"
-                        "������������� ������� � ������� 24 �����\n\n"
-                        "**?? ��� Discord ������:**\n"
+                        "**❓ Нужна помощь?**\n"
+                        f"Создай тикет: {ticket_ch.mention if ticket_ch else '🎫・create-ticket'}\n"
+                        "Администрация ответит в течение 24 часов\n\n"
+                        "**🔗 Наш Discord сервер:**\n"
                         "https://discord.gg/nNTB37QNCG \n"
-                        "������ � ��� � �����!"
+                        "Заходи к нам в гости!"
                     ),
                     color=0x0a0a0a
                 )
-                info_embed.set_footer(text="?? Kanero  |  ����-��� ��� Discord")
+                info_embed.set_footer(text="☠️ Kanero  |  Нюки-бот для Discord")
                 await info_ch.send(embed=info_embed)
-                results.append("? ������ ???info")
+                results.append("✅ Создан ℹ️・info")
             except Exception as e:
-                results.append(f"? ???info: {e}")
+                results.append(f"❌ ℹ️・info: {e}")
         else:
-            # ����� #info ��� ����������, ��������� � ��������� ���������
+            # Канал #info уже существует, обновляем в нём старое сообщение
             info_ch = discord.utils.find(lambda c: "info" in c.name.lower(), cat_info.channels)
             if info_ch:
                 try:
-                    # ���� ������������ ��������� ���� � embed "���������� � Kanero"
+                    # Ищем существующее сообщение бота с embed "Информация о Kanero"
                     existing_message = None
                     async for message in info_ch.history(limit=50):
                         if (message.author == bot.user and message.embeds and 
                             len(message.embeds) > 0 and 
-                            "���������� � Kanero" in message.embeds[0].title):
+                            "Информация о Kanero" in message.embeds[0].title):
                             existing_message = message
                             break
                     
-                    # �������� ���������� ������ �� ������
-                    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "�����" in c.name.lower(), guild.text_channels)
+                    # Получаем актуальные каналы из сервера
+                    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "тикет" in c.name.lower(), guild.text_channels)
                     addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), guild.text_channels)
                     
-                    # ������� ����������� embed � ����������� ��������
+                    # Создаём обновлённый embed с актуальными каналами
                     info_embed = discord.Embed(
-                        title="?? ���������� � Kanero",
+                        title="ℹ️ Информация о Kanero",
                         description=(
-                            "**?? ��� �������� ���� �� ���� ������:**\n"
-                            "1. ������ ������ (��. ����)\n"
-                            "2. ������ `!inv` ���� � �� ��� �� �������\n"
-                            "3. ������� �� ������ � ������ ���� ������\n"
-                            "4. **�����:** ��� ���� ���� � ������� **��������������**\n"
-                            "5. ������� ���� ���� **���� ����** � ���������� �������\n"
-                            "6. ������! ��������� �������\n\n"
-                            "**?? ���������� ������ (Freelist):**\n"
-                            f"������ ����� ��������� � {addbot_ch.mention if addbot_ch else '???addbot'}\n"
-                            "�������� ���� ?? User � �������:\n"
-                            "� `!nuke` � ������� ��� ������ � ������� 30 ����� �� ������\n"
-                            "� `!auto_nuke on/off` � �������������� ���� ��� ���������� ����\n"
-                            "� `!help` � ������ ���� ������\n"
-                            "� `!changelog` � ��������� ����������\n\n"
-                            "**? White (������� ������):**\n"
-                            "��� ������� Freelist + �������������:\n"
-                            "� `!nuke [�����]` � ���� � ����� ������� �����\n"
-                            "� `!stop` � ���������� ����\n"
-                            "� `!cleanup` � ������� ��� ������\n"
-                            "� `!rename [��������]` � ������������� ������\n"
-                            "� `!nicks_all [���]` � ������� ���� ����\n"
-                            "� `!webhooks` � ������� 50 ��������\n"
-                            "� `!clear [�����]` � ������� ���������\n"
-                            "� `!clear_all` � ������� ��� ��������� � ������\n\n"
-                            "**?? Premium (������������ ������):**\n"
-                            "��� ������� White + ������ �������:\n"
-                            "� `!super_nuke` � ��������� ���� (����� ���� + ������� ����)\n"
-                            "� `!auto_super_nuke on/off` � �������������� �����-����\n"
-                            "� `!massban` � �������� ��� ����������\n"
-                            "� `!massdm [�����]` � ��������� �� ����\n"
-                            "� `!spam [�����] [�����]` � ���� � ������\n"
-                            "� `!pingspam [@����] [�����]` � ���� ������������\n"
-                            "� `!rolesdelete` � ������� ��� ����\n\n"
-                            "**?? ������ White / Premium:**\n"
-                            "������� �� FunPay � ������ �����:\n"
+                            "**🤖 Как добавить бота на свой сервер:**\n"
+                            "1. Читаем правила (см. выше)\n"
+                            "2. Пишешь `!inv` боту в лс или тут на сервере\n"
+                            "3. Жмёшь на ссылку и даёшь боту права\n"
+                            "4. **ВАЖНО:** все роли бота в иерархии **САМЫЕ ВЕРХНИЕ**\n"
+                            "5. Готово! Твой бота **готов нюки** и выполнять команды\n"
+                            "6. Начни! Используй команды\n\n"
+                            "**📁 Бесплатный доступ (Freelist):**\n"
+                            f"Добавь бота используя в {addbot_ch.mention if addbot_ch else '🤖・addbot'}\n"
+                            "Получишь роль 👥 User и команды:\n"
+                            "• `!nuke` — удаляет все каналы и создаёт 30 новых за секунду\n"
+                            "• `!auto_nuke on/off` — автоматический нюки при добавлении бота\n"
+                            "• `!help` — список всех команд\n"
+                            "• `!changelog` — последние обновления\n\n"
+                            "**✅ White (платная версия):**\n"
+                            "Все команды Freelist + дополнительно:\n"
+                            "• `!nuke [канал]` — нюки с любым текстом канала\n"
+                            "• `!stop` — остановить нюки\n"
+                            "• `!cleanup` — удалить все каналы\n"
+                            "• `!rename [название]` — переименовать сервер\n"
+                            "• `!nicks_all [имя]` — сменить всем ники\n"
+                            "• `!webhooks` — создать 50 вебхуков\n"
+                            "• `!clear [канал]` — удалить сообщения\n"
+                            "• `!clear_all` — удалить все сообщения в канале\n\n"
+                            "**💎 Premium (максимальная версия):**\n"
+                            "Все команды White + мощные команды:\n"
+                            "• `!super_nuke` — усиленный нюки (новые роли + удалить всех)\n"
+                            "• `!auto_super_nuke on/off` — автоматический супер-нюки\n"
+                            "• `!massban` — забанить всех участников\n"
+                            "• `!massdm [текст]` — отправить лс всем\n"
+                            "• `!spam [канал] [текст]` — спам в канале\n"
+                            "• `!pingspam [@роль] [текст]` — спам упоминаниями\n"
+                            "• `!rolesdelete` — удалить все роли\n\n"
+                            "**💰 Купить White / Premium:**\n"
+                            "Покупка на FunPay с любым методом:\n"
                             "https://funpay.com/users/16928925/ \n\n"
-                            "**? ����� ������?**\n"
-                            f"������ �����: {ticket_ch.mention if ticket_ch else '???create-ticket'}\n"
-                            "������������� ������� � ������� 24 �����\n\n"
-                            "**?? ��� Discord ������:**\n"
+                            "**❓ Нужна помощь?**\n"
+                            f"Создай тикет: {ticket_ch.mention if ticket_ch else '🎫・create-ticket'}\n"
+                            "Администрация ответит в течение 24 часов\n\n"
+                            "**🔗 Наш Discord сервер:**\n"
                             "https://discord.gg/nNTB37QNCG \n"
-                            "������ � ��� � �����!"
+                            "Заходи к нам в гости!"
                         ),
                         color=0x0a0a0a
                     )
-                    info_embed.set_footer(text="?? Kanero  |  ����-��� ��� Discord")
+                    info_embed.set_footer(text="☠️ Kanero  |  Нюки-бот для Discord")
                     
                     if existing_message:
-                        # ��������� ������������ ���������
+                        # Обновляем существующее сообщение
                         await existing_message.edit(embed=info_embed)
-                        results.append("? ��������� ������ � ???info")
+                        results.append("✅ Обновлено инфо в ℹ️・info")
                     else:
-                        # ���������� ����� ��������� ���� ������� ���
+                        # Отправляем новое сообщение если старого нет
                         await info_ch.send(embed=info_embed)
-                        results.append("? ��������� ��������� � ???info")
+                        results.append("✅ Отправлено сообщение в ℹ️・info")
                 except Exception as e:
-                    results.append(f"? ���������� ???info: {e}")
+                    results.append(f"❌ Обновление ℹ️・info: {e}")
         if not any("changelog" in n for n in existing_info):
             try:
                 ow_changelog = {guild.default_role: _ow()}
@@ -3266,79 +3295,79 @@ async def setup_update(ctx):
                 if role_prem:  ow_changelog[role_prem]  = _ow(True, False)
                 if role_owner: ow_changelog[role_owner] = _ow(True, True)
                 if role_dev:   ow_changelog[role_dev]   = _ow(True, True)
-                await guild.create_text_channel("???changelog", category=cat_info, overwrites=ow_changelog, topic="������� ���������� � !changelogall")
-                results.append("? ������ ???changelog")
+                await guild.create_text_channel("📋・changelog", category=cat_info, overwrites=ow_changelog, topic="История обновлений с !changelogall")
+                results.append("✅ Создан 📋・changelog")
             except Exception as e:
-                results.append(f"? ???changelog: {e}")
+                results.append(f"❌ 📋・changelog: {e}")
 
-    # 7. ��������� � ��������� ��������� � create-ticket ���� �����
-    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "�����" in c.name.lower(), guild.text_channels)
+    # 7. Обновляем и отправляем сообщение в create-ticket если нужно
+    ticket_ch = discord.utils.find(lambda c: "create-ticket" in c.name.lower() or "тикет" in c.name.lower(), guild.text_channels)
     if ticket_ch:
         try:
-            results.append(f"?? ������ �����: {ticket_ch.name}")
+            results.append(f"🔍 Найден канал: {ticket_ch.name}")
             
-            # ���� ������������ ��������� ���� � embed "��������� � Kanero"
+            # Ищем существующее сообщение бота с embed "Поддержка в Kanero"
             existing_message = None
             message_count = 0
             async for message in ticket_ch.history(limit=50):
                 message_count += 1
                 if (message.author == bot.user and message.embeds and 
                     len(message.embeds) > 0 and 
-                    "��������� � Kanero" in message.embeds[0].title):
+                    "Поддержка в Kanero" in message.embeds[0].title):
                     existing_message = message
                     break
             
-            results.append(f"?? ��������� ���������: {message_count}")
+            results.append(f"📊 Проверено сообщений: {message_count}")
             
-            # ������� ����������� embed
+            # Создаём обновлённый embed
             ticket_embed = discord.Embed(
-                title="?? ��������� � Kanero",
+                title="🎫 Поддержка в Kanero",
                 description=(
-                    "����� ������? ���� ������?\n\n"
-                    "����� ������ ���� � ��� ������� ��������� ����� ������ ��� ���� � ������� ���������.\n\n"
-                    "� ������� �� ����\n"
-                    "� ������� White / Premium\n"
-                    "� ������ � �����������\n\n"
-                    "**?? ������� ���������:**\n"
-                    "?? Owner � ?? Developer � ??? Moderator\n\n"
-                    "**?? ���� Discord ������ � �����������?**\n"
-                    "���� � ���� ���� **����� �����** �� �����-���� Discord ������� � ����������� (���� �������), �������� �����!\n"
-                    "���������� ������ ���� ���� � ��������� **������ ��������** � ����� ??"
+                    "Нужна помощь? Есть вопрос?\n\n"
+                    "Чтобы создать тикет с нами нажмите следующую кнопку ниже или напиши в личные сообщения.\n\n"
+                    "• Вопросы по боту\n"
+                    "• Покупка White / Premium\n"
+                    "• Помощь с настройками\n\n"
+                    "**🛡️ Команда поддержки:**\n"
+                    "👑 Owner • 🔧 Developer • 🛡️ Moderator • 🧪 Tester\n\n"
+                    "**🔗 Хочу Discord сервер с поддержкой?**\n"
+                    "Если у тебя есть **свой сервер** на каком-либо Discord сервере с поддержкой (типа краша), напиши нам!\n"
+                    "Возможность стать нашим **партнёром сервером** с ролью 🤝"
                 ),
                 color=0x0a0a0a
             )
-            ticket_embed.set_footer(text="?? Kanero  |  ���� ����� �� ������������")
+            ticket_embed.set_footer(text="☠️ Kanero  |  Твоя помощь не заставится")
             
             if existing_message:
-                # ��������� ������������ ���������
+                # Обновляем существующее сообщение
                 await existing_message.edit(embed=ticket_embed, view=TicketOpenView())
-                results.append("? ��������� ��������� � create-ticket")
+                results.append("✅ Обновлено сообщение в create-ticket")
             else:
-                # ���������� ����� ��������� ���� ������� ���
+                # Отправляем новое сообщение если старого нет
                 await ticket_ch.send(embed=ticket_embed, view=TicketOpenView())
-                results.append("? ��������� ��������� � create-ticket")
+                results.append("✅ Отправлено сообщение в create-ticket")
         except Exception as e:
-            results.append(f"? ���������� create-ticket: {str(e)}")
+            results.append(f"❌ Обновление create-ticket: {str(e)}")
     else:
-        results.append("?? ����� create-ticket �� ������")
+        results.append("⚠️ Канал create-ticket не найден")
 
-    # 8. ��������� ������� ��������� (���� ������ ���� ��� ADMIN)
+    # 8. Проверяем порядок категорий (чаты должны быть над ADMIN)
     try:
-        cat_chat = discord.utils.find(lambda c: "����" in c.name, guild.categories)
+        cat_chat = discord.utils.find(lambda c: "ЧАТЫ" in c.name, guild.categories)
         cat_admin = discord.utils.find(lambda c: "ADMIN" in c.name, guild.categories)
         
         if cat_chat and cat_admin and cat_chat.position > cat_admin.position:
-            # ���� ��������� ���� ADMIN, ����� ����������� ����
+            # Если категория чаты ADMIN, нужно переместить выше
             await cat_chat.edit(position=cat_admin.position)
-            results.append("? ���������� ��������� ���� ��� ADMIN")
+            results.append("✅ Перемещена категория ЧАТЫ над ADMIN")
     except Exception as e:
-        results.append(f"? ����������� ���������: {e}")
+        results.append(f"❌ Перемещение категорий: {e}")
 
-    # 8.5. ������ ��������� TESTS ���� � ���
-    cat_tests = discord.utils.find(lambda c: "TESTS" in c.name or "�����" in c.name or "�����" in c.name.lower(), guild.categories)
+    # 8.5. Создаём категорию TESTS если её нет
+    cat_tests = discord.utils.find(lambda c: "TESTS" in c.name or "тесты" in c.name or "тестов" in c.name.lower(), guild.categories)
     if not cat_tests:
         try:
-            role_tester = discord.utils.find(lambda r: r.name == "?? Tester", guild.roles)
+            role_tester = discord.utils.find(lambda r: r.name == "🧪 Tester", guild.roles)
             ow_tests = {guild.default_role: _ow()}
             if role_guest: ow_tests[role_guest] = _ow()
             if role_user:  ow_tests[role_user]  = _ow()
@@ -3348,20 +3377,20 @@ async def setup_update(ctx):
             if role_owner: ow_tests[role_owner] = _ow(True, True)
             if role_dev:   ow_tests[role_dev]   = _ow(True, True)
             
-            cat_tests = await guild.create_category("???? ?? TESTS ????", overwrites=ow_tests)
+            cat_tests = await guild.create_category("━━━━ 🧪 TESTS ━━━━", overwrites=ow_tests)
             
-            # ������ ������ � TESTS
-            await guild.create_text_channel("???bug-reports", category=cat_tests, overwrites=ow_tests, topic="������ �� ������� � ����� � ����� Tester")
-            await guild.create_text_channel("???testing", category=cat_tests, overwrites=ow_tests, topic="������������ ����� ������� � ���������� � ����������")
-            await guild.create_text_channel("??test-results", category=cat_tests, overwrites=ow_tests, topic="���������� ������������ � ������ �����������")
+            # Создаём каналы в TESTS
+            await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=ow_tests, topic="Отчёты об ошибках и багах с ролью Tester")
+            await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites=ow_tests, topic="Тестирование новых функций и обсуждение с тестерами")
+            await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=ow_tests, topic="Результаты тестирования и отчёты тестировщиков")
             
-            results.append("? ������� ��������� ?? TESTS � ��������")
+            results.append("✅ Создана категория 🧪 TESTS с каналами")
         except Exception as e:
-            results.append(f"? ��������� TESTS: {e}")
+            results.append(f"❌ Категория TESTS: {e}")
     else:
-        # ��������� ������� ������� � TESTS
+        # Проверяем наличие каналов в TESTS
         existing_tests = [ch.name.lower() for ch in cat_tests.channels]
-        role_tester = discord.utils.find(lambda r: r.name == "?? Tester", guild.roles)
+        role_tester = discord.utils.find(lambda r: r.name == "🧪 Tester", guild.roles)
         ow_tests = {guild.default_role: _ow()}
         if role_guest: ow_tests[role_guest] = _ow()
         if role_user:  ow_tests[role_user]  = _ow()
@@ -3373,41 +3402,41 @@ async def setup_update(ctx):
         
         if not any("bug" in n for n in existing_tests):
             try:
-                await guild.create_text_channel("???bug-reports", category=cat_tests, overwrites=ow_tests, topic="������ �� ������� � ����� � ����� Tester")
-                results.append("? ������ ???bug-reports")
+                await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=ow_tests, topic="Отчёты об ошибках и багах с ролью Tester")
+                results.append("✅ Создан 🐛・bug-reports")
             except Exception as e:
-                results.append(f"? ???bug-reports: {e}")
+                results.append(f"❌ 🐛・bug-reports: {e}")
         if not any("testing" in n for n in existing_tests):
             try:
-                await guild.create_text_channel("???testing", category=cat_tests, overwrites=ow_tests, topic="������������ ����� ������� � ���������� � ����������")
-                results.append("? ������ ???testing")
+                await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites=ow_tests, topic="Тестирование новых функций и обсуждение с тестерами")
+                results.append("✅ Создан 🧪・testing")
             except Exception as e:
-                results.append(f"? ???testing: {e}")
-        if not any("test-results" in n or "���������" in n for n in existing_tests):
+                results.append(f"❌ 🧪・testing: {e}")
+        if not any("test-results" in n or "результат" in n for n in existing_tests):
             try:
-                await guild.create_text_channel("??test-results", category=cat_tests, overwrites=ow_tests, topic="���������� ������������ � ������ �����������")
-                results.append("? ������ ??test-results")
+                await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=ow_tests, topic="Результаты тестирования и отчёты тестировщиков")
+                results.append("✅ Создан ✅・test-results")
             except Exception as e:
-                results.append(f"? ??test-results: {e}")
+                results.append(f"❌ ✅・test-results: {e}")
 
-    # 9. ��������� ������� �����
+    # 9. Проверяем порядок ролей
     try:
         bot_top = ctx.guild.me.top_role.position
         if bot_top < 10:
-            results.append(f"?? ���� ���� ������� ����� (������� {bot_top}) � ������� ���� **?? Kanero** ������� ���� ����, ����� ������� `!setup_update`")
+            results.append(f"⚠️ Роль бота слишком низко (позиция {bot_top}) — подними роль **🤖 Kanero** выше всех ролей, затем запусти `!setup_update`")
         else:
             order = [
-                ("?? Kanero",     bot_top - 1),
-                ("?? Developer",  bot_top - 2),
-                ("?? Owner",      bot_top - 3),
-                ("?? Tester",     bot_top - 4),
-                ("??? Moderator",  bot_top - 5),
-                ("?? Friend",     bot_top - 6),
-                ("?? Premium",    bot_top - 7),
-                ("? White",      bot_top - 8),
-                ("?? Media",      bot_top - 9),
-                ("?? User",       bot_top - 10),
-                ("?? Guest",      1),
+                ("🤖 Kanero",     bot_top - 1),
+                ("🔧 Developer",  bot_top - 2),
+                ("👑 Owner",      bot_top - 3),
+                ("🧪 Tester",     bot_top - 4),
+                ("🛡️ Moderator",  bot_top - 5),
+                ("🤝 Friend",     bot_top - 6),
+                ("💎 Premium",    bot_top - 7),
+                ("✅ White",      bot_top - 8),
+                ("🎬 Media",      bot_top - 9),
+                ("👥 User",       bot_top - 10),
+                ("👤 Guest",      1),
             ]
             for rname, pos in order:
                 r = discord.utils.find(lambda x, n=rname: x.name == n, guild.roles)
@@ -3416,52 +3445,52 @@ async def setup_update(ctx):
                         await r.edit(position=max(1, pos))
                     except Exception:
                         pass
-            results.append("? ������� ����� ���������")
+            results.append("✅ Порядок ролей обновлён")
     except Exception as e:
-        results.append(f"? ������� �����: {e}")
+        results.append(f"❌ Порядок ролей: {e}")
 
     embed = discord.Embed(
-        title="?? ������ �������",
+        title="✅ Сервер обновлён",
         description="\n".join(results),
         color=0x0a0a0a
     )
-    embed.set_footer(text="?? Kanero  |  ������ �� ���������  |  !setup � ������ �����������")
+    embed.set_footer(text="☠️ Kanero  |  Сервер не перезагружен  |  !setup — полная перезагрузка")
     await msg.edit(content=None, embed=embed)
 
-    # -- ��������� ������ � ������ ���� --
+    # -- Обновляем ссылку в спаме бота --
     invite = "https://discord.gg/nNTB37QNCG"
     import re as _re
     old_text = config.SPAM_TEXT
-    # �������� ����� discord.gg/... ������ �� ����������
+    # Заменяем старую discord.gg/... ссылку на актуальную
     new_text = _re.sub(r'https://discord\.gg/\S+', invite, old_text)
     if new_text != old_text:
         config.SPAM_TEXT = new_text
         save_spam_text()
-        results.append("? ������ � ������ ���� ���������")
+        results.append("✅ Ссылка в спаме бота обновлена")
 
-    # -- ������ � ������� � sell --
+    # -- Новости и продажа в sell --
     await _post_news_and_sell(guild)
 
 
 @bot.command(name="autorole")
 @wl_check()
 async def autorole_cmd(ctx):
-    """���������� ������ ����-���� ��� ����� �� ������."""
+    """Показывает текущую авто-роль для входа на сервер."""
     guild = ctx.guild
-    guest_role = discord.utils.find(lambda r: r.name == "?? Guest", guild.roles)
+    guest_role = discord.utils.find(lambda r: r.name == "👤 Guest", guild.roles)
 
     lines = []
     if guest_role:
-        lines.append(f"? ����-���� �������: {guest_role.mention} (`{guest_role.id}`)")
+        lines.append(f"✅ Авто-роль включена: {guest_role.mention} (`{guest_role.id}`)")
     else:
-        lines.append("? ���� **?? Guest** �� ������� � ������� `!setup` ��� ������ ���� �������")
+        lines.append("❌ Роль **👤 Guest** не найдена — запусти `!setup` или создай роль вручную")
 
     embed = discord.Embed(
-        title="?? ������ ����-����",
+        title="🎭 Статус авто-роли",
         description="\n".join(lines),
         color=0x0a0a0a
     )
-    embed.set_footer(text="���� ������� ������������� ��� ����� �� ������")
+    embed.set_footer(text="Роль выдаётся автоматически при входе на сервер")
     await ctx.send(embed=embed)
 
 
