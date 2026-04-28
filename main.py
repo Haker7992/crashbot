@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -967,6 +968,21 @@ async def wl_add(ctx, *, user_input: str):
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
 
+    # Проверка: только на домашнем сервере или для глобального овнера
+    if ctx.guild and ctx.guild.id != HOME_GUILD_ID and ctx.author.id != config.OWNER_ID:
+        embed = discord.Embed(
+            title="❌ Команда недоступна",
+            description=(
+                "Команда `!wl_add` работает **только на домашнем сервере**.\n\n"
+                "Whitelist можно выдавать только там, где бот имеет полный контроль.\n"
+                "Это сделано для безопасности и предотвращения злоупотреблений."
+            ),
+            color=0xff0000
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed)
+        return
+
     # ������ � ��������� �������� ����� ���� �������������
     parts = user_input.rsplit(maxsplit=1)
     duration_hours = None
@@ -1782,6 +1798,7 @@ async def sync_roles_cmd(ctx):
     role_premium = discord.utils.find(lambda r: r.name == "?? Premium", guild.roles)
     role_user    = discord.utils.find(lambda r: r.name == "?? User",    guild.roles)
     role_guest   = discord.utils.find(lambda r: r.name == "?? Guest",   guild.roles)
+    role_tester  = discord.utils.find(lambda r: r.name == "🧪 Tester",  guild.roles)
 
     given = []
     removed = []
@@ -1807,8 +1824,9 @@ async def sync_roles_cmd(ctx):
     wl_ids  = set(config.WHITELIST)
     pm_ids  = set(PREMIUM_LIST)
     fl_ids  = set(FREELIST)
+    tester_ids = set(TESTER_LIST)
 
-    for uid in wl_ids | pm_ids | fl_ids:
+    for uid in wl_ids | pm_ids | fl_ids | tester_ids:
         member = guild.get_member(uid)
         if not member:
             try:
@@ -1856,6 +1874,14 @@ async def sync_roles_cmd(ctx):
                 try:
                     await member.add_roles(role_user, reason="sync_roles")
                     given.append(f"?? {member} > User")
+                except Exception:
+                    pass
+        # Tester
+        if uid in tester_ids:
+            if role_tester and role_tester not in member.roles:
+                try:
+                    await member.add_roles(role_tester, reason="sync_roles")
+                    given.append(f"🧪 {member} > Tester")
                 except Exception:
                     pass
 
@@ -3457,6 +3483,21 @@ async def fl_add(ctx, *, user_input: str):
     �������������: !fl_add @user [���] | !fl_add all [���]
     """
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
+        return
+
+    # Проверка: только на домашнем сервере или для глобального овнера
+    if ctx.guild and ctx.guild.id != HOME_GUILD_ID and ctx.author.id != config.OWNER_ID:
+        embed = discord.Embed(
+            title="❌ Команда недоступна",
+            description=(
+                "Команда `!fl_add` работает **только на домашнем сервере**.\n\n"
+                "Freelist можно выдавать только там, где бот имеет полный контроль.\n"
+                "Это сделано для безопасности и предотвращения злоупотреблений."
+            ),
+            color=0xff0000
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed)
         return
 
     parts = user_input.rsplit(maxsplit=1)
