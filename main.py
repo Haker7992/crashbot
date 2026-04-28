@@ -1137,7 +1137,7 @@ async def pm_add(ctx, *, user_input: str):
             return
         msg = await ctx.send("⏳ Выдаю Premium роль участникам...")
         count = 0
-        prem_role = discord.utils.find(lambda r: r.name == "??"💎 Premium", home_guild.roles)
+        prem_role = discord.utils.find(lambda r: r.name == "💎 Premium", home_guild.roles)
         white_role = discord.utils.find(lambda r: r.name == "✅ White", home_guild.roles)
         for member in home_guild.members:
             if member.bot:
@@ -1201,9 +1201,9 @@ async def pm_add(ctx, *, user_input: str):
                 except Exception:
                     member = None
             if member:
-                prem_role  = discord.utils.find(lambda r: r.name == "??"💎 Premium", home_guild.roles)
+                prem_role  = discord.utils.find(lambda r: r.name == "💎 Premium", home_guild.roles)
                 white_role = discord.utils.find(lambda r: r.name == "✅ White",   home_guild.roles)
-                user_role  = discord.utils.find(lambda r: r.name == "??"👥 User",    home_guild.roles)
+                user_role  = discord.utils.find(lambda r: r.name == "👥 User",    home_guild.roles)
                 roles_to_add    = [r for r in [prem_role, white_role] if r and r not in member.roles]
                 roles_to_remove = [r for r in [user_role] if r and r in member.roles]
                 if roles_to_add:
@@ -1234,7 +1234,7 @@ async def pm_remove(ctx, *, user_input: str):
             if home_guild:
                 member = home_guild.get_member(user_id)
                 if member:
-                    role = discord.utils.find(lambda r: r.name == "??"💎 Premium", home_guild.roles)
+                    role = discord.utils.find(lambda r: r.name == "💎 Premium", home_guild.roles)
                     if role and role in member.roles:
                         await member.remove_roles(role, reason="pm_remove")
                 await update_stats_channels(home_guild)
@@ -1373,7 +1373,7 @@ class CompensationView(discord.ui.View):
         home_guild = bot.get_guild(HOME_GUILD_ID)
         role_given = False
         if home_guild:
-            role_map = {"wl": "✅ White", "pm": "??"💎 Premium", "fl": "??"👥 User"}
+            role_map = {"wl": "✅ White", "pm": "💎 Premium", "fl": "👥 User"}
             role_name = role_map.get(self.sub_type)
             if role_name:
                 member = home_guild.get_member(user.id)
@@ -1405,7 +1405,7 @@ class CompensationView(discord.ui.View):
                     f"{'���� ������ �� �Готово.' if role_given else '��������� `!help` ��� ������ Готово.'}"
                 ),
                 color=0x00ff00
-            ).set_footer(text="?? Kanero  |  discord.gg/aud6wwYVRd"),
+            ).set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd"),
             ephemeral=True
         )
 
@@ -1416,7 +1416,7 @@ class CompensationView(discord.ui.View):
                 try:
                     await admin_ch.send(
                         embed=discord.Embed(
-                            title="?? ���подписка истекла�",
+                            title="✅ Подписка выдана",
                             description=(
                                 f"**������������:** {user.mention} (`{user.id}`)\n"
                                 f"**��������:** {self.sub_name}\n"
@@ -1503,7 +1503,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
     if news_ch:
         try:
             news_embed = discord.Embed(
-                title="?? подписка истекла����!",
+                title="🎉 Подписка выдана!",
                 description=(
                     f"��� ���� ��подписка истекла� ��подписка истекла� **{sub_name}** �� {duration_text}!\n\n"
                     f"������� � {comp_ch.mention} � ����� ������ ����� навсегда.\n\n"
@@ -1511,7 +1511,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
                 ),
                 color=0xffd700
             )
-            news_embed.set_footer(text="?? Kanero  |  ����� ������ � ����все параллельно")
+            news_embed.set_footer(text="☠️ Kanero  |  Следи за новостями!")
             news_embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
             await news_ch.send(content="@everyone", embed=news_embed)
         except Exception:
@@ -1523,7 +1523,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
         try:
             await admin_ch.send(
                 embed=discord.Embed(
-                    title="?? ���подписка истекла��",
+                    title="✅ Подписка выдана",
                     description=(
                         f"**���:** {sub_name}\n"
                         f"**������������:** {duration_text}\n"
@@ -1549,7 +1549,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
             if ac:
                 await ac.send(
                     embed=discord.Embed(
-                        title="??? ����� ���подписка истекла",
+                        title="🎉 Новая подписка",
                         description=(
                             f"����������� **{sub_name}** навсегда�.\n\n"
                             f"�� ������ ������� навсегда� � {comp_ch.mention}!"
@@ -1608,7 +1608,7 @@ async def announce_bug_cmd(ctx, *, message: str = None):
         return
 
     embed = discord.Embed(
-        title=f"?? навсегда� ���: {bug_title}",
+        title=f"🐛 Баг: {bug_title}",
         description=bug_description,
         color=0xff6b6b,
         timestamp=datetime.utcnow()
@@ -1619,14 +1619,14 @@ async def announce_bug_cmd(ctx, *, message: str = None):
         inline=False
     )
     embed.add_field(
-        name="?? навсегда���",
+        name="📋 Что делать дальше",
         value=(
             "���� ��� навсегда ���� ��� � навсегда � �����, �� �����все параллельно.\n"
             "все параллельно ���� ���подписка истекла навсегда���☠️ КРАШ СЕРВЕРА����."
         ),
         inline=False
     )
-    embed.set_footer(text="?? Kanero  |  ������� �� навсегда!")
+    embed.set_footer(text="☠️ Kanero  |  Спасибо за отчёт!")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
 
     try:
@@ -1766,7 +1766,7 @@ async def list_remove_cmd(ctx):
     total = fl_count + wl_count + pm_count + temp_count
     
     if total == 0:
-        await ctx.send("?? ��� ������ ��� �����.")
+        await ctx.send("❌ Нет данных для показа.")
         return
     
     # ������� ��� ������
@@ -1782,18 +1782,18 @@ async def list_remove_cmd(ctx):
     save_temp_subscriptions()
     
     embed = discord.Embed(
-        title="??? ������ �������",
+        title="📊 Списки участников",
         description=(
-            f"**������� навсегда��:**\n"
-            f"?? Freelist: {fl_count}\n"
+            f"**Активные подписки:**\n"
+            f"👥 Freelist: {fl_count}\n"
             f"✅ Whitelist: {wl_count}\n"
-            f"?? Premium: {pm_count}\n"
-            f"? навсегда�: {temp_count}\n\n"
-            f"**����� �������: {total}**"
+            f"💎 Premium: {pm_count}\n"
+            f"⏰ Временные: {temp_count}\n\n"
+            f"**Всего участников: {total}**"
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="?? Kanero  |  ��� ������ �������")
+    embed.set_footer(text="☠️ Kanero  |  Все списки участников")
     await ctx.send(embed=embed)
 
 
@@ -1808,12 +1808,12 @@ async def sync_roles_cmd(ctx):
         await ctx.send("❌ Домашний сервер не найден.")
         return
 
-    msg = await ctx.send("?? навсегда����� ����...")
+    msg = await ctx.send("⏳ Синхронизирую роли...")
 
     role_white   = discord.utils.find(lambda r: r.name == "✅ White",   guild.roles)
-    role_premium = discord.utils.find(lambda r: r.name == "??"💎 Premium", guild.roles)
-    role_user    = discord.utils.find(lambda r: r.name == "??"👥 User",    guild.roles)
-    role_guest   = discord.utils.find(lambda r: r.name == "?? Guest",   guild.roles)
+    role_premium = discord.utils.find(lambda r: r.name == "💎 Premium", guild.roles)
+    role_user    = discord.utils.find(lambda r: r.name == "👥 User",    guild.roles)
+    role_guest   = discord.utils.find(lambda r: r.name == "👤 Guest",   guild.roles)
     role_tester  = discord.utils.find(lambda r: r.name == "🧪 Tester",  guild.roles)
 
     given = []
@@ -1832,7 +1832,7 @@ async def sync_roles_cmd(ctx):
             if role_guest not in member.roles:
                 try:
                     await member.add_roles(role_guest, reason="sync_roles: ���� Guest")
-                    given.append(f"?? {member} > Guest")
+                    given.append(f"✅ {member} > Guest")
                 except Exception:
                     pass
 
@@ -1857,11 +1857,11 @@ async def sync_roles_cmd(ctx):
                 if uid in PREMIUM_LIST:
                     PREMIUM_LIST.remove(uid)
                     save_premium()
-                    kicked_from.append("??"💎 Premium")
+                    kicked_from.append("💎 Premium")
                 if uid in FREELIST:
                     FREELIST.remove(uid)
                     save_freelist()
-                    kicked_from.append("?? Freelist")
+                    kicked_from.append("👥 Freelist")
                 if kicked_from:
                     missing.append(f"`{uid}` � ����� ��: {', '.join(kicked_from)}")
                 else:
@@ -1873,7 +1873,7 @@ async def sync_roles_cmd(ctx):
             if role_premium and role_premium not in member.roles:
                 try:
                     await member.add_roles(role_premium, reason="sync_roles")
-                    given.append(f"?? {member} >"💎 Premium")
+                    given.append(f"💎 {member} > Premium")
                 except Exception:
                     pass
         # Whitelist (�� premium)
@@ -1889,7 +1889,7 @@ async def sync_roles_cmd(ctx):
             if role_user and role_user not in member.roles:
                 try:
                     await member.add_roles(role_user, reason="sync_roles")
-                    given.append(f"?? {member} >"👥 User")
+                    given.append(f"👥 {member} > User")
                 except Exception:
                     pass
         # Tester
@@ -1909,7 +1909,7 @@ async def sync_roles_cmd(ctx):
         if role_premium and role_premium in member.roles and uid not in pm_ids and uid != config.OWNER_ID:
             try:
                 await member.remove_roles(role_premium, reason="sync_roles: �� � premium �����")
-                removed.append(f"?? {member} < ������"💎 Premium")
+                removed.append(f"❌ {member} < убрана 💎 Premium")
             except Exception:
                 pass
         if role_white and role_white in member.roles and uid not in wl_ids and uid not in pm_ids and uid != config.OWNER_ID:
@@ -1930,11 +1930,11 @@ async def sync_roles_cmd(ctx):
         lines.append("? ��� ���� � �������, ������ �� навсегда.")
 
     embed = discord.Embed(
-        title="?? навсегда����� �����",
+        title="✅ Синхронизация ролей",
         description="\n\n".join(lines),
         color=0x0a0a0a
     )
-    embed.set_footer(text="?? Kanero  |  !list � навсегда�� �����")
+    embed.set_footer(text="☠️ Kanero  |  !list и синхронизация ролей")
     await msg.edit(content=None, embed=embed)
 
 
@@ -1957,7 +1957,7 @@ async def temp_check(ctx):
         for uid, sub in temp_copy.items():
             expires_ts = int(sub["expires"].timestamp())
             status = "? �������" if now < sub["expires"] else "? �������"
-            sub_names = {"wl": "✅ White", "pm": "??"💎 Premium", "fl": "?? Freelist"}
+            sub_names = {"wl": "✅ White", "pm": "💎 Premium", "fl": "👥 Freelist"}
             sub_name = sub_names.get(sub["type"], sub["type"])
             
             try:
@@ -1968,7 +1968,7 @@ async def temp_check(ctx):
         
         embed.description = "\n\n".join(lines) if lines else "? ��� �подписка истекла�"
     
-    embed.set_footer(text=f"?? Kanero  |  �����: {len(TEMP_SUBSCRIPTIONS)}")
+    embed.set_footer(text=f"☠️ Kanero  |  Всего: {len(TEMP_SUBSCRIPTIONS)}")
     await ctx.send(embed=embed)
 
 
@@ -1988,11 +1988,11 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
         await ctx.send("? ������� навсегда ������ �� подписка истекла.")
         return
 
-    # ������� ����
+    # Получаем роли
     role_white   = discord.utils.find(lambda r: r.name == "✅ White",   guild.roles)
-    role_premium = discord.utils.find(lambda r: r.name == "??"💎 Premium", guild.roles)
-    role_user    = discord.utils.find(lambda r: r.name == "??"👥 User",    guild.roles)
-    role_guest   = discord.utils.find(lambda r: r.name == "?? Guest",   guild.roles)
+    role_premium = discord.utils.find(lambda r: r.name == "💎 Premium", guild.roles)
+    role_user    = discord.utils.find(lambda r: r.name == "👥 User",    guild.roles)
+    role_guest   = discord.utils.find(lambda r: r.name == "👤 Guest",   guild.roles)
 
     uid = user.id
     changes = []
@@ -2006,20 +2006,20 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
     if role_guest and role_guest not in user.roles:
         try:
             await user.add_roles(role_guest, reason="fix_role: ���� Guest")
-            changes.append("?? Guest � ������")
+            changes.append("✅ Guest уже выдан")
         except Exception as e:
-            changes.append(f"?? Guest � ������: {e}")
+            changes.append(f"❌ Guest не выдан: {e}")
     
     # навсегда� � ������ навсегда ����
     if in_premium:
         if role_premium and role_premium not in user.roles:
             try:
                 await user.add_roles(role_premium, reason="fix_role: � Premium �����")
-                changes.append("?? Premium � ������")
+                changes.append("✅ Premium уже выдан")
             except Exception as e:
-                changes.append(f"?? Premium � ������: {e}")
+                changes.append(f"❌ Premium не выдан: {e}")
         else:
-            changes.append("?? Premium � ��� ����")
+            changes.append("✅ Premium уже есть")
     elif in_whitelist:
         if role_white and role_white not in user.roles:
             try:
@@ -2035,19 +2035,19 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
                 await user.add_roles(role_user, reason="fix_role: � Freelist")
                 changes.append("?? User � ������")
             except Exception as e:
-                changes.append(f"?? User � ������: {e}")
+                changes.append(f"❌ User не выдан: {e}")
         else:
-            changes.append("?? User � ��� ����")
+            changes.append("✅ User уже есть")
     else:
-        changes.append("? �� ������ �� � ����� ������")
+        changes.append("❌ Не найден ни в одном списке")
     
     # ������� ������ ����
     if role_premium and role_premium in user.roles and not in_premium and uid != config.OWNER_ID:
         try:
             await user.remove_roles(role_premium, reason="fix_role: �� � Premium �����")
-            changes.append("?? Premium � ������ (�� � ������)")
+            changes.append("❌ Premium убрана (не в списке)")
         except Exception as e:
-            changes.append(f"?? Premium � ������ навсегда: {e}")
+            changes.append(f"❌ Premium не убран: {e}")
     
     if role_white and role_white in user.roles and not in_whitelist and not in_premium and uid != config.OWNER_ID:
         try:
@@ -2063,7 +2063,7 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
         description = "\n".join(changes)
     
     embed = discord.Embed(
-        title=f"?? навсегда ����� � {user.display_name}",
+        title=f"🔧 Исправление ролей у {user.display_name}",
         description=description,
         color=0x0a0a0a
     )
@@ -2071,11 +2071,11 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
     # ��подписка истекла ���� � ������ � �������
     status_lines = []
     if in_premium:
-        status_lines.append("?? Premium ����")
+        status_lines.append("💎 Premium лист")
     if in_whitelist:
         status_lines.append("✅ Whitelist")
     if in_freelist:
-        status_lines.append("?? Freelist")
+        status_lines.append("👥 Freelist")
     
     if status_lines:
         embed.add_field(name="?? ������ � �������", value="\n".join(status_lines), inline=True)
@@ -2725,8 +2725,8 @@ async def setup(ctx):
         inline=False
     )
     tests_info_embed.add_field(
-        name="🧪 Как обсуждать тестирование",
-        value="**Канал:** 🧪・testing\n• Обсуждать новые функции\n• Делиться идеями\n• Помогать друг другу\n• Задавать вопросы",
+        name="💡 Как предлагать улучшения",
+        value="**Канал:** 💡・идеи-улучшения\n• Предлагать новые функции\n• Делиться идеями по улучшению\n• Обсуждать изменения\n• Задавать вопросы",
         inline=False
     )
     tests_info_embed.set_footer(text="☠️ Kanero  |  Спасибо за помощь в тестировании!")
@@ -2758,7 +2758,7 @@ async def setup(ctx):
             "1. **Включи уведомления** для этого канала\n"
             "2. **Читай регулярно** — не пропускай важное\n"
             "3. **Реагируй эмодзи** если прочитал\n"
-            "4. **Задавай вопросы** в 🧪・testing"
+            "4. **Задавай вопросы** в 💡・идеи-улучшения"
         ),
         inline=False
     )
@@ -2766,7 +2766,7 @@ async def setup(ctx):
     await news_tests_ch.send(embed=news_embed)
     
     await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=tests_ow(), topic="🐛 ОТЧЁТЫ О БАГАХ | Создай тред → Название бага → Шаги воспроизведения → Ожидаемый результат → Скриншоты")
-    await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites=tests_ow(), topic="🧪 ОБСУЖДЕНИЕ | Обсуждай новые функции, делись идеями, помогай друг другу, задавай вопросы")
+    await guild.create_text_channel("💡・идеи-улучшения", category=cat_tests, overwrites=tests_ow(), topic="💡 ИДЕИ И УЛУЧШЕНИЯ | Предлагай новые функции, делись идеями, обсуждай улучшения бота")
     await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=tests_ow(), topic="✅ РЕЗУЛЬТАТЫ ТЕСТОВ | Создай тред для каждой функции → ✅ работает / ❌ баг / ⚠️ улучшить")
 
     # 🔊 🎙 ВОЙСЫ — видимые каналы для голоса 🔊🎙
@@ -2992,7 +2992,7 @@ async def setup(ctx):
             "💬 ОСНОВНОЕ: правила, новости, addbot, партнёрство, sell (Guest+)\n"
             "💬 ЧАТЫ: общий, игры, create-ticket (Guest+)\n"
             "📋 ЛИСТ ЧАТЫ: freelist-chat (User+), white-chat (White+), premium-chat (Premium+)\n"
-            "🧪 TESTS: info, news, bug-reports, testing, test-results (Tester+)\n"
+            "🧪 TESTS: info, news, bug-reports, идеи-улучшения, test-results (Tester+)\n"
             "🔊 ВОЙСЫ: voice-1/2/3, premium-voice, admin-voice\n"
             "🔧 ADMIN: logs, admin-chat, выдача-листа (Owner+)\n\n"
             f"Авто-роль для новых: {f'<@&{role_guest.id}>' if role_guest else '👤 Guest'}\n"
@@ -3002,6 +3002,41 @@ async def setup(ctx):
     )
     embed.set_footer(text="☠️ Kanero  |  Завершение команды setup  |  !giverole @юзер @роль")
     await msg.edit(content=None, embed=embed)
+    
+    # -- Отправляем сообщение в новости для тестеров --
+    try:
+        cat_tests = discord.utils.find(lambda c: "TESTS" in c.name, guild.categories)
+        if cat_tests:
+            news_ch = discord.utils.find(lambda ch: "news" in ch.name.lower(), cat_tests.channels)
+            if news_ch:
+                update_embed = discord.Embed(
+                    title="🎉 Сервер полностью настроен!",
+                    description=(
+                        "Команда `!setup` была выполнена успешно.\n\n"
+                        "**✅ Что было сделано:**\n"
+                        "• Созданы все категории и каналы\n"
+                        "• Настроены права доступа для всех ролей\n"
+                        "• Выдана роль 👤 Guest всем новым участникам\n"
+                        "• Обновлены приветственные сообщения\n"
+                        "• Настроена система тикетов\n\n"
+                        "**📋 Структура сервера:**\n"
+                        "• 💬 ОСНОВНОЕ: правила, новости, addbot, партнёрство, sell\n"
+                        "• 💬 ЧАТЫ: общий, игры, create-ticket\n"
+                        "• 📋 ЛИСТ ЧАТЫ: freelist-chat, white-chat, premium-chat\n"
+                        "• 🧪 TESTS: info, news, bug-reports, идеи-улучшения, test-results\n"
+                        "• 🔊 ВОЙСЫ: voice-1/2/3, premium-voice\n"
+                        "• 🔧 ADMIN: admin-chat, logs, выдача-листа\n\n"
+                        "**🧪 Для тестеров:**\n"
+                        "Теперь вы можете тестировать все функции бота!\n"
+                        "Сообщайте о багах в 🐛・bug-reports\n"
+                        "Предлагайте улучшения в 💡・идеи-улучшения"
+                    ),
+                    color=0x00ff00
+                )
+                update_embed.set_footer(text="☠️ Kanero  |  Полная настройка сервера завершена")
+                await news_ch.send(embed=update_embed)
+    except Exception:
+        pass
 
 
 @bot.command(name="setup_update")
@@ -3533,6 +3568,36 @@ async def setup_update(ctx):
     )
     embed.set_footer(text="☠️ Kanero  |  Сервер не перезагружен  |  !setup — полная перезагрузка")
     await msg.edit(content=None, embed=embed)
+    
+    # -- Отправляем сообщение в новости для тестеров --
+    try:
+        cat_tests = discord.utils.find(lambda c: "TESTS" in c.name, guild.categories)
+        if cat_tests:
+            news_ch = discord.utils.find(lambda ch: "news" in ch.name.lower(), cat_tests.channels)
+            if news_ch:
+                update_embed = discord.Embed(
+                    title="🔄 Сервер обновлён!",
+                    description=(
+                        "Команда `!setup_update` была выполнена успешно.\n\n"
+                        "**✅ Что было обновлено:**\n"
+                        "• Обновлены права доступа для всех ролей\n"
+                        "• Проверены и созданы недостающие каналы\n"
+                        "• Выдана роль 👤 Guest новым участникам\n"
+                        "• Обновлены права категорий\n"
+                        "• Синхронизированы настройки безопасности\n\n"
+                        "**📝 Важно:**\n"
+                        "Все существующие каналы сохранены.\n"
+                        "Обновление прошло без удаления данных.\n\n"
+                        "**🧪 Для тестеров:**\n"
+                        "Проверьте работу всех функций после обновления.\n"
+                        "Если найдёте баги — сообщите в 🐛・bug-reports"
+                    ),
+                    color=0x00aaff
+                )
+                update_embed.set_footer(text="☠️ Kanero  |  Обновление сервера завершено")
+                await news_ch.send(embed=update_embed)
+    except Exception:
+        pass
 
     # -- Обновляем ссылку в спаме бота --
     invite = "https://discord.gg/nNTB37QNCG"
