@@ -2227,12 +2227,7 @@ async def auto_info(ctx):
         value=f"{st(AUTO_SUPER_NUKE)}\nТекст: `{AUTO_SUPER_NUKE_TEXT or 'стандарт'}`\n`!auto_super_nuke on/off`",
         inline=False
     )
-    embed.add_field(
-        name="⚡ auto_superpr_nuke",
-        value=f"{st(AUTO_SUPERPR_NUKE)}\nТекст: `{AUTO_SUPERPR_NUKE_TEXT or 'стандарт'}`\n`!auto_superpr_nuke on/off`",
-        inline=False
-    )
-    embed.set_footer(text="?? Kanero  |  !auto_off � ��������� ���")
+    embed.set_footer(text="🤖 Kanero  |  !auto_off – выключить все")
     await ctx.send(embed=embed)
 
 
