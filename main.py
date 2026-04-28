@@ -618,16 +618,16 @@ async def global_guild_block(ctx):
 @bot.command()
 async def nuke(ctx, *, text: str = None):
     guild = ctx.guild
-    # ��� �������� �� �������� ������� ��� ���� ����� ������
+    # Для домашнего на домашнем сервере для всех кроме овнера
     if guild.id == HOME_GUILD_ID and ctx.author.id != config.OWNER_ID:
         return
     if is_guild_blocked(guild.id):
-        embed = discord.Embed(description="?? ���� ������ ������������.", color=0x0a0a0a)
-        embed.set_footer(text="?? Kanero")
+        embed = discord.Embed(description="⛔ Этот сервер заблокирован.", color=0x0a0a0a)
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
     if nuke_running.get(guild.id):
-        embed = discord.Embed(description="? ���� ��� ������� �� ���� �������.", color=0x0a0a0a)
+        embed = discord.Embed(description="⏳ Нюки уже идёт на этом сервере.", color=0x0a0a0a)
         await ctx.send(embed=embed)
         return
 
@@ -637,33 +637,33 @@ async def nuke(ctx, *, text: str = None):
     is_prem = is_premium(uid)
     is_fl = is_freelisted(uid)
 
-    # ��� �������� ������� � ����� ����������� (freelist)
+    # Для обычного юзера с нужна регистрация (freelist)
     if not is_owner and not is_wl and not is_prem and not is_fl:
         embed = discord.Embed(
-            title="?? ������ �����٨�",
+            title="🔒 Доступ запрещён",
             description=(
-                "��� ������������� `!nuke` ����� �����������.\n\n"
-                "**��� �������� ������ (���������):**\n"
-                "����� �� ��� ������ � ������ � ����� `#addbot`\n"
+                "Для использования `!nuke` нужна регистрация.\n\n"
+                "**Как получить доступ (бесплатно):**\n"
+                "Зайди на наш сервер и напиши в канал `#addbot`\n"
                 "https://discord.gg/nNTB37QNCG\n\n"
-                "**����������� ������:** **davaidkatt**"
+                "**Контактное лицо:** **davaidkatt**"
             ),
             color=0x0a0a0a
         )
-        embed.set_footer(text="?? Kanero")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
 
-    # ��������� ����� � ������ ��� whitelist+
+    # Кастомный текст с спамом для whitelist+
     if text and not is_wl and not is_prem and not is_owner:
         embed = discord.Embed(
-            description="? ��������� ����� �������� ������ ��� **White** �����������.\n�� �������� ����: **davaidkatt**",
+            description="❌ Кастомный текст доступен только для **White** пользователей.\nПо вопросам пиши: **davaidkatt**",
             color=0x0a0a0a
         )
-        embed.set_footer(text="?? Kanero")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
-    # ��������� ����� � ������ ��� premium/owner (whitelist ���������� �� ������)
+    # Кастомный текст с спамом для premium/owner (whitelist игнорирует из списка)
     if text and is_wl and not is_prem and not is_owner:
         text = None
 
@@ -681,49 +681,49 @@ async def stop(ctx):
     guild = ctx.guild
     uid = ctx.author.id
 
-    # ����� ������������� ������ � ��� �����-���� ��������
+    # Овнер останавливает любой и без каких-либо проверок
     if uid == config.OWNER_ID:
         nuke_running[guild.id] = False
         nuke_starter.pop(guild.id, None)
-        await ctx.send("? �����������.")
+        await ctx.send("✅ Остановлено.")
         return
 
-    # ��������� � ����� wl_check
+    # Проверяем с помощью wl_check
     if not is_whitelisted(uid):
         return
 
     starter_id = nuke_starter.get(guild.id)
 
-    # ����� �� �������� � ������ �������������
+    # Нюков не запущено и просто останавливаем
     if starter_id is None:
         nuke_running[guild.id] = False
-        await ctx.send("? �����������.")
+        await ctx.send("✅ Остановлено.")
         return
 
-    # �������� ����� � ������ ����� ����� ����������
+    # Обычный юзер с правом нельзя остановить овнера
     if starter_id == config.OWNER_ID:
         embed = discord.Embed(
-            description="? ��� ������� **�������** � ������ �� ����� ����������.",
+            description="❌ Это команда **овнера** и только он может остановить.",
             color=0x0a0a0a
         )
-        embed.set_footer(text="?? Kanero")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
 
-    # �������� ������� � ������ ������� ��� ����� ����� ����������
+    # Обычный юзеров с правом нельзя остановить премиум пользователя
     if is_premium(starter_id) and not is_premium(uid):
         embed = discord.Embed(
-            description="? ��� ������� **Premium** ������������� � ������� �������� �� ����� ����������.",
+            description="❌ Это команда **Premium** пользователя и обычный whitelist не может остановить.",
             color=0x0a0a0a
         )
-        embed.set_footer(text="?? Kanero")
+        embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
 
-    # ������ ��� ��� �������� ��� �����
+    # Только тот кто запустил или овнер или премиум
     if uid != starter_id and uid != config.OWNER_ID:
         embed = discord.Embed(
-            description="? ������ ��� ��� �������� ��� ����� ��� ����������.",
+            description="❌ Только тот кто запустил или овнер или премиум может остановить.",
             color=0x0a0a0a
         )
         embed.set_footer(text="Kanero")
@@ -732,7 +732,7 @@ async def stop(ctx):
 
     nuke_running[guild.id] = False
     nuke_starter.pop(guild.id, None)
-    await ctx.send("? �����������.")
+    await ctx.send("✅ Остановлено.")
 
 
 @bot.command()
@@ -2903,104 +2903,104 @@ async def setup(ctx):
 
 @bot.command(name="setup_update")
 async def setup_update(ctx):
-    """�������� ������ ��� �������� �������. ������ ��� �������."""
+    """Обновить сервер без удаления каналов. Только для овнеров."""
     if ctx.author.id != config.OWNER_ID and ctx.author.id not in config.OWNER_WHITELIST:
-        await ctx.send("? ������ ��� �������.")
+        await ctx.send("❌ Только для овнеров.")
         return
     guild = ctx.guild
-    msg = await ctx.send("?? �������� ������ ��� �������� �������...")
+    msg = await ctx.send("⚙️ Обновляю сервер без удаления каналов...")
     results = []
 
-    # 1. @everyone � ������ �� �����
+    # 1. @everyone с правом не видеть
     try:
         await guild.default_role.edit(permissions=discord.Permissions(
             read_messages=False, send_messages=False, connect=False, use_application_commands=False
         ))
-        results.append("? @everyone �������")
+        results.append("✅ @everyone обновлён")
     except Exception as e:
-        results.append(f"? @everyone: {e}")
+        results.append(f"❌ @everyone: {e}")
 
-    # 2. ��������� ����� �����
+    # 2. Обновляем права ролей
     role_updates = {
-        "?? Guest":   discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False),
-        "?? User":    discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=False, speak=False, use_application_commands=False),
-        "? White":   discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=True, speak=True, use_voice_activation=True, stream=True, use_application_commands=False),
-        "?? Premium": discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, priority_speaker=True, use_application_commands=False),
+        "👤 Guest":   discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False),
+        "👥 User":    discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=False, speak=False, use_application_commands=False),
+        "✅ White":   discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=True, speak=True, use_voice_activation=True, stream=True, use_application_commands=False),
+        "💎 Premium": discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, priority_speaker=True, use_application_commands=False),
     }
     for rname, perms in role_updates.items():
         role = discord.utils.find(lambda r: r.name == rname, guild.roles)
         if role:
             try:
                 await role.edit(permissions=perms)
-                results.append(f"? {rname}")
+                results.append(f"✅ {rname}")
             except Exception as e:
-                results.append(f"? {rname}: {e}")
+                results.append(f"❌ {rname}: {e}")
         else:
-            results.append(f"?? {rname} �� ������� � ������")
+            results.append(f"⚠️ {rname} не найдена — создаю")
             try:
                 await guild.create_role(name=rname)
             except Exception:
                 pass
 
-    # 3. ������ ������������� ����
-    for rname in ("??? Moderator", "?? Media", "?? Friend", "?? Tester"):
+    # 3. Создаём дополнительные роли
+    for rname in ("🛡️ Moderator", "🎬 Media", "🤝 Friend", "🧪 Tester"):
         existing_role = discord.utils.find(lambda r: r.name == rname, guild.roles)
         if not existing_role:
             try:
                 await guild.create_role(name=rname)
-                results.append(f"? ������� {rname}")
+                results.append(f"✅ Создана {rname}")
             except Exception:
                 pass
         else:
-            results.append(f"?? {rname} ��� ����������")
+            results.append(f"⚠️ {rname} уже существует")
 
-    # 4. ADMIN � ��������� ����� � ������ admin-chat ���� ���
+    # 4. ADMIN — обновляем права и создаём admin-chat если нет
     def _ow(read=False, write=False):
         return discord.PermissionOverwrite(read_messages=read, send_messages=write)
 
-    role_owner  = discord.utils.find(lambda r: r.name == "?? Owner",    guild.roles)
-    role_dev    = discord.utils.find(lambda r: r.name == "?? Developer", guild.roles)
-    role_guest  = discord.utils.find(lambda r: r.name == "?? Guest",    guild.roles)
-    role_user   = discord.utils.find(lambda r: r.name == "?? User",     guild.roles)
-    role_white  = discord.utils.find(lambda r: r.name == "? White",    guild.roles)
-    role_prem   = discord.utils.find(lambda r: r.name == "?? Premium",  guild.roles)
-    role_friend = discord.utils.find(lambda r: r.name == "?? Friend",   guild.roles)
+    role_owner  = discord.utils.find(lambda r: r.name == "👑 Owner",    guild.roles)
+    role_dev    = discord.utils.find(lambda r: r.name == "🔧 Developer", guild.roles)
+    role_guest  = discord.utils.find(lambda r: r.name == "👤 Guest",    guild.roles)
+    role_user   = discord.utils.find(lambda r: r.name == "👥 User",     guild.roles)
+    role_white  = discord.utils.find(lambda r: r.name == "✅ White",    guild.roles)
+    role_prem   = discord.utils.find(lambda r: r.name == "💎 Premium",  guild.roles)
+    role_friend = discord.utils.find(lambda r: r.name == "🤝 Friend",   guild.roles)
 
-    # -- ����� ����� ���� Guest ���� � ���� ��� ����� --
+    # -- Выдаём всем роль Guest если у них нет ролей --
     if role_guest:
         try:
             guest_count = 0
             for member in guild.members:
                 if member.bot:
                     continue
-                # ��������� ���� �� � ��������� ���� (����� @everyone)
-                if len(member.roles) == 1:  # ������ @everyone
+                # Проверяем есть ли у участника роли (кроме @everyone)
+                if len(member.roles) == 1:  # Только @everyone
                     try:
-                        await member.add_roles(role_guest, reason="Setup Update - ����-������ Guest")
+                        await member.add_roles(role_guest, reason="Setup Update - авто-выдача Guest")
                         guest_count += 1
                     except Exception:
                         pass
             if guest_count > 0:
-                results.append(f"? ������ ���� ?? Guest {guest_count} ����������")
+                results.append(f"✅ Выдана роль 👤 Guest {guest_count} участникам")
         except Exception as e:
-            results.append(f"? ������ Guest: {e}")
+            results.append(f"❌ Ошибка Guest: {e}")
 
-    # 4. ADMIN � ��������� ����� � ������ admin-chat ���� ���
+    # 4. ADMIN — обновляем права и создаём admin-chat если нет
     admin_cat = discord.utils.find(lambda c: "ADMIN" in c.name, guild.categories)
     if admin_cat:
-        # ��������� ����� ������������ �������
+        # Обновляем права остальных каналов
         for ch in admin_cat.channels:
             if "admin-chat" in ch.name.lower():
-                continue  # admin-chat ������������ ��������
+                continue  # admin-chat обрабатываем отдельно
             try:
                 ow = {guild.default_role: discord.PermissionOverwrite(read_messages=False)}
                 for r in guild.roles:
-                    if r.name in ("?? Owner", "?? Developer", "?? Kanero"):
+                    if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero"):
                         ow[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
                 await ch.edit(overwrites=ow)
             except Exception:
                 pass
-        # ������ admin-chat ���� ���
+        # Создаём admin-chat если нет
         existing_names = [ch.name.lower() for ch in admin_cat.channels]
         if not any("admin-chat" in n for n in existing_names):
             try:
@@ -3012,21 +3012,21 @@ async def setup_update(ctx):
                 if role_friend: ow[role_friend] = _ow(False, False)
                 if role_owner:  ow[role_owner]  = _ow(True, True)
                 if role_dev:    ow[role_dev]    = _ow(True, True)
-                await guild.create_text_channel("???admin-chat", category=admin_cat, overwrites=ow, topic="��� ��� Owner � Developer")
-                results.append("? ������ ???admin-chat")
+                await guild.create_text_channel("🔧・admin-chat", category=admin_cat, overwrites=ow, topic="Чат для Owner и Developer")
+                results.append("✅ Создан 🔧・admin-chat")
             except Exception as e:
-                results.append(f"? admin-chat: {e}")
-        results.append("? ADMIN �������")
+                results.append(f"❌ admin-chat: {e}")
+        results.append("✅ ADMIN обновлён")
 
-    # 5. ������ ������������� ������ � ��������
-    cat_main = discord.utils.find(lambda c: "��������" in c.name, guild.categories)
+    # 5. Создаём недостающие каналы в ОСНОВНОЕ
+    cat_main = discord.utils.find(lambda c: "ОБЩЕНИЕ" in c.name, guild.categories)
     if cat_main:
         existing = [ch.name.lower() for ch in cat_main.channels]
         missing_channels = []
         if not any("sell" in n for n in existing):
-            missing_channels.append(("???sell", "������� White/Premium � ����� ������ Owner"))
-        if not any("������" in n for n in existing):
-            missing_channels.append(("???������-�����", "!wl_add, !pm_add, !fl_add � ������ Owner"))
+            missing_channels.append(("💰・sell", "Покупка White/Premium и только только Owner"))
+        if not any("панель" in n for n in existing):
+            missing_channels.append(("🔧・панель-бота", "!wl_add, !pm_add, !fl_add и только Owner"))
         for ch_name, topic in missing_channels:
             try:
                 ow = {guild.default_role: _ow()}
@@ -3037,11 +3037,11 @@ async def setup_update(ctx):
                 if role_owner: ow[role_owner] = _ow(True, True)
                 if role_dev:   ow[role_dev]   = _ow(True, True)
                 await guild.create_text_channel(ch_name, category=cat_main, overwrites=ow, topic=topic)
-                results.append(f"? ������ {ch_name}")
+                results.append(f"✅ Создан {ch_name}")
             except Exception as e:
-                results.append(f"? {ch_name}: {e}")
+                results.append(f"❌ {ch_name}: {e}")
 
-    # 6. ������ ��������� INFO � ����� #info ���� �� ���
+    # 6. Создаём категорию INFO и канал #info если их нет
     cat_info = discord.utils.find(lambda c: "INFO" in c.name, guild.categories)
     if not cat_info:
         try:
