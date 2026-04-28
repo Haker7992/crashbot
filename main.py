@@ -4568,7 +4568,6 @@ async def changelogall(ctx):
 
 
 @bot.command(name="help")
-@bot.command(name="help")
 async def help_cmd(ctx):
     uid = ctx.author.id
     is_owner = (uid == config.OWNER_ID)
