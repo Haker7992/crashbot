@@ -1881,7 +1881,7 @@ async def sync_roles_cmd(ctx):
             if role_white and role_white not in member.roles:
                 try:
                     await member.add_roles(role_white, reason="sync_roles")
-                    given.append(f"? {member} >"✅ White")
+                    given.append(f"✅ {member} > White")
                 except Exception:
                     pass
         # Freelist
