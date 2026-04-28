@@ -2865,12 +2865,15 @@ async def setup_update(ctx):
 
     # 3. Создаём отсутствующие роли
     for rname in ("🛡️ Moderator", "🎬 Media", "🤝 Friend", "🧪 Tester"):
-        if not discord.utils.find(lambda r: r.name == rname, guild.roles):
+        existing_role = discord.utils.find(lambda r: r.name == rname, guild.roles)
+        if not existing_role:
             try:
                 await guild.create_role(name=rname)
                 results.append(f"✅ Создана {rname}")
             except Exception:
                 pass
+        else:
+            results.append(f"⚠️ {rname} уже существует")
 
     # 4. ADMIN — обновляем права и создаём admin-chat если нет
     def _ow(read=False, write=False):
@@ -3225,7 +3228,7 @@ async def setup_update(ctx):
         results.append(f"❌ Перемещение категорий: {e}")
 
     # 8.5. Создаём категорию TESTS если её нет
-    cat_tests = discord.utils.find(lambda c: "TESTS" in c.name, guild.categories)
+    cat_tests = discord.utils.find(lambda c: "TESTS" in c.name or "ТЕСТЫ" in c.name or "тесты" in c.name.lower(), guild.categories)
     if not cat_tests:
         try:
             role_tester = discord.utils.find(lambda r: r.name == "🧪 Tester", guild.roles)
@@ -3265,20 +3268,20 @@ async def setup_update(ctx):
             try:
                 await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=ow_tests, topic="Отчёты об ошибках и багах — пишут Tester")
                 results.append("✅ Создан 🐛・bug-reports")
-            except Exception:
-                pass
+            except Exception as e:
+                results.append(f"❌ 🐛・bug-reports: {e}")
         if not any("testing" in n for n in existing_tests):
             try:
                 await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites=ow_tests, topic="Тестирование новых функций — обсуждение и результаты")
                 results.append("✅ Создан 🧪・testing")
-            except Exception:
-                pass
-        if not any("test-results" in n for n in existing_tests):
+            except Exception as e:
+                results.append(f"❌ 🧪・testing: {e}")
+        if not any("test-results" in n or "результат" in n for n in existing_tests):
             try:
                 await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=ow_tests, topic="Результаты тестирования и статус исправлений")
                 results.append("✅ Создан ✅・test-results")
-            except Exception:
-                pass
+            except Exception as e:
+                results.append(f"❌ ✅・test-results: {e}")
 
     # 9. Обновляем позиции ролей
     try:
