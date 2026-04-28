@@ -202,6 +202,7 @@ BLOCKED_GUILDS: list[int] = []
 PREMIUM_LIST: list[int] = []
 TESTER_LIST: list[int] = []  # тестеры — доступ к тестированию функций
 FREELIST: list[int] = []  # выдаётся через канал addbot — только !nuke и !auto_nuke
+AUTO_ROLE_ID = None  # ID роли Guest — устанавливается при setup
 
 # ─── ВРЕМЕННЫЕ ПОДПИСКИ ────────────────────────────────────
 # Формат: {user_id: {"type": "pm"/"wl"/"fl", "expires": datetime}}
@@ -2320,6 +2321,11 @@ async def setup(ctx):
     role_owner = roles_result[8] if not isinstance(roles_result[8], Exception) else None
     role_dev = roles_result[9] if not isinstance(roles_result[9], Exception) else None
     
+    # Устанавливаем глобальный ID роли Guest
+    global AUTO_ROLE_ID
+    if role_guest:
+        AUTO_ROLE_ID = role_guest.id
+    
     # Создаем роль бота отдельно
     role_bot = await guild.create_role(name="🤖 Kanero", color=discord.Color.from_rgb(0, 200, 150), permissions=dev_perms, hoist=True, mentionable=False)
 
@@ -2615,6 +2621,28 @@ async def setup(ctx):
         role_premium: _ow(True, True), role_owner: _ow(True, True), role_dev: _ow(True, True),
     }, topic="!super_nuke, !massban, !massdm, !auto_super_nuke и другие Premium команды")
 
+    # ━━ 🧪 TESTS — Tester+ ━━
+    cat_tests = await guild.create_category("━━━━ 🧪 TESTS ━━━━", overwrites={
+        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
+        role_premium: _ow(), role_tester: _ow(True, True),
+        role_owner: _ow(True, True), role_dev: _ow(True, True),
+    })
+    await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
+        role_premium: _ow(), role_tester: _ow(True, True),
+        role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Отчёты об ошибках и багах — пишут Tester")
+    await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
+        role_premium: _ow(), role_tester: _ow(True, True),
+        role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Тестирование новых функций — обсуждение и результаты")
+    await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites={
+        guild.default_role: _ow(), role_guest: _ow(), role_user: _ow(), role_white: _ow(),
+        role_premium: _ow(), role_tester: _ow(True, True),
+        role_owner: _ow(True, True), role_dev: _ow(True, True),
+    }, topic="Результаты тестирования и статус исправлений")
+
     # ━━ � ВОЙСЫ — обычные каналы для общения ━━д
     cat_voice = await guild.create_category("━━━━ 🔊 ВОЙСЫ ━━━━", overwrites={
         guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False),
@@ -2773,17 +2801,19 @@ async def setup(ctx):
     embed = discord.Embed(
         title="✅ Kanero — Сервер настроен",
         description=(
-            "**Роли:** 🤖 Kanero · 🔧 Developer · 👑 Owner · 💎 Premium · ✅ White · 👥 User · 👤 Guest\n\n"
+            "**Роли:** 🤖 Kanero · 🔧 Developer · 👑 Owner · 💎 Premium · ✅ White · 👥 User · 👤 Guest · 🧪 Tester · 🛡️ Moderator\n\n"
             "**Каналы:**\n"
             "👋 WELCOME: welcome (все видят)\n"
-            "📢 ОСНОВНОЕ: правила · новости · changelog · addbot · медиа · партнёрство · sell · выдача-вайта\n"
+            "ℹ️ INFO: info · changelog (Guest+)\n"
+            "📢 ОСНОВНОЕ: правила · новости · addbot · медиа · партнёрство · sell · выдача-вайта · компенсация\n"
             "💬 ЧАТЫ: общий · идеи · create-ticket (Guest+)\n"
             "📋 FREELIST: freelist-chat · помощь (User+)\n"
             "✅ WHITE: white-chat · команды (White+)\n"
             "💎 PREMIUM: premium-chat · premium-info · premium-tools (Premium+)\n"
+            "🧪 TESTS: bug-reports · testing · test-results (Tester+)\n"
             "🔊 ВОЙСЫ: voice-1/2/3 · premium-voice · admin-voice\n"
-            "👑 ADMIN: logs (Owner+)\n\n"
-            f"Авто-роль при входе: <@&{AUTO_ROLE_ID}>\n"
+            "👑 ADMIN: logs · admin-chat (Owner+)\n\n"
+            f"Авто-роль при входе: {f'<@&{role_guest.id}>' if role_guest else '👤 Guest'}\n"
             "Роль 👥 User выдаётся при написании в addbot."
         ),
         color=0x0a0a0a
@@ -3193,6 +3223,62 @@ async def setup_update(ctx):
             results.append("✅ Перемещена категория ЧАТЫ над ADMIN")
     except Exception as e:
         results.append(f"❌ Перемещение категорий: {e}")
+
+    # 8.5. Создаём категорию TESTS если её нет
+    cat_tests = discord.utils.find(lambda c: "TESTS" in c.name, guild.categories)
+    if not cat_tests:
+        try:
+            role_tester = discord.utils.find(lambda r: r.name == "🧪 Tester", guild.roles)
+            ow_tests = {guild.default_role: _ow()}
+            if role_guest: ow_tests[role_guest] = _ow()
+            if role_user:  ow_tests[role_user]  = _ow()
+            if role_white: ow_tests[role_white] = _ow()
+            if role_prem:  ow_tests[role_prem]  = _ow()
+            if role_tester: ow_tests[role_tester] = _ow(True, True)
+            if role_owner: ow_tests[role_owner] = _ow(True, True)
+            if role_dev:   ow_tests[role_dev]   = _ow(True, True)
+            
+            cat_tests = await guild.create_category("━━━━ 🧪 TESTS ━━━━", overwrites=ow_tests)
+            
+            # Создаём каналы в TESTS
+            await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=ow_tests, topic="Отчёты об ошибках и багах — пишут Tester")
+            await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites=ow_tests, topic="Тестирование новых функций — обсуждение и результаты")
+            await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=ow_tests, topic="Результаты тестирования и статус исправлений")
+            
+            results.append("✅ Создана категория 🧪 TESTS с каналами")
+        except Exception as e:
+            results.append(f"❌ Категория TESTS: {e}")
+    else:
+        # Проверяем наличие каналов в TESTS
+        existing_tests = [ch.name.lower() for ch in cat_tests.channels]
+        role_tester = discord.utils.find(lambda r: r.name == "🧪 Tester", guild.roles)
+        ow_tests = {guild.default_role: _ow()}
+        if role_guest: ow_tests[role_guest] = _ow()
+        if role_user:  ow_tests[role_user]  = _ow()
+        if role_white: ow_tests[role_white] = _ow()
+        if role_prem:  ow_tests[role_prem]  = _ow()
+        if role_tester: ow_tests[role_tester] = _ow(True, True)
+        if role_owner: ow_tests[role_owner] = _ow(True, True)
+        if role_dev:   ow_tests[role_dev]   = _ow(True, True)
+        
+        if not any("bug" in n for n in existing_tests):
+            try:
+                await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=ow_tests, topic="Отчёты об ошибках и багах — пишут Tester")
+                results.append("✅ Создан 🐛・bug-reports")
+            except Exception:
+                pass
+        if not any("testing" in n for n in existing_tests):
+            try:
+                await guild.create_text_channel("🧪・testing", category=cat_tests, overwrites=ow_tests, topic="Тестирование новых функций — обсуждение и результаты")
+                results.append("✅ Создан 🧪・testing")
+            except Exception:
+                pass
+        if not any("test-results" in n for n in existing_tests):
+            try:
+                await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=ow_tests, topic="Результаты тестирования и статус исправлений")
+                results.append("✅ Создан ✅・test-results")
+            except Exception:
+                pass
 
     # 9. Обновляем позиции ролей
     try:
@@ -4686,9 +4772,6 @@ async def on_member_remove(member):
         await update_stats_channels(member.guild)
     except Exception:
         pass
-
-
-AUTO_ROLE_ID = 1497636045766791191  # Роль 👤 Guest
 
 
 @bot.event
