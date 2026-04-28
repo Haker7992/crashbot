@@ -2864,7 +2864,7 @@ async def setup_update(ctx):
                 pass
 
     # 3. Создаём отсутствующие роли
-    for rname in ("🛡️ Moderator", "🎬 Media", "🤝 Friend"):
+    for rname in ("🛡️ Moderator", "🎬 Media", "🤝 Friend", "🧪 Tester"):
         if not discord.utils.find(lambda r: r.name == rname, guild.roles):
             try:
                 await guild.create_role(name=rname)
