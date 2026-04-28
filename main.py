@@ -3321,7 +3321,7 @@ async def setup_update(ctx):
                     async for message in info_ch.history(limit=50):
                         if (message.author == bot.user and message.embeds and 
                             len(message.embeds) > 0 and 
-                            "Информация оKanero in message.embeds[0].title):
+                            "Информация о Kanero" in message.embeds[0].title):
                             existing_message = message
                             break
                     
