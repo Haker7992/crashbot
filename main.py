@@ -2328,10 +2328,10 @@ async def setup(ctx):
     for ch in guild.channels:
         delete_tasks.append(ch.delete())
     
-    # Добавляем задачи удаления ролей
+    # Добавляем задачи удаления ролей (все кроме @everyone и роли бота)
     bot_role = guild.me.top_role
     for r in guild.roles:
-        if r < bot_role and not r.is_default():
+        if not r.is_default() and r != bot_role and r.id != guild.me.id:
             delete_tasks.append(r.delete())
     
     # Выполняем все удаления одновременно
@@ -2348,31 +2348,27 @@ async def setup(ctx):
     owner_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, manage_channels=True, manage_roles=True, manage_webhooks=True, kick_members=True, ban_members=True, manage_nicknames=True, view_audit_log=True, mention_everyone=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, mute_members=True, deafen_members=True, priority_speaker=True)
     dev_perms     = discord.Permissions(administrator=True)
 
-    # Создаем все роли одновременно
-    role_tasks = [
-        guild.create_role(name="👤 Guest",     color=discord.Color.from_rgb(120, 120, 120), permissions=guest_perms,   hoist=False, mentionable=False),
-        guild.create_role(name="👥 User",      color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms,    hoist=True,  mentionable=False),
-        guild.create_role(name="✅ White",     color=discord.Color.from_rgb(85, 170, 255),  permissions=white_perms,   hoist=True,  mentionable=False),
-        guild.create_role(name="💎 Premium",   color=discord.Color.from_rgb(180, 80, 255),  permissions=premium_perms, hoist=True,  mentionable=False),
-        guild.create_role(name="🧪 Tester",    color=discord.Color.from_rgb(255, 165, 0),   permissions=premium_perms, hoist=True,  mentionable=False),
-        guild.create_role(name="🛡️ Moderator", color=discord.Color.from_rgb(255, 140, 0),   permissions=premium_perms, hoist=True,  mentionable=False),
-        guild.create_role(name="👑 Owner",      color=discord.Color.from_rgb(255, 200, 0),   permissions=owner_perms,   hoist=True,  mentionable=False),
-        guild.create_role(name="🔧 Developer",  color=discord.Color.from_rgb(255, 60, 60),   permissions=dev_perms,     hoist=True,  mentionable=False)
-    ]
-    
-    roles_result = await asyncio.gather(*role_tasks, return_exceptions=True)
-    
-    # Сохраняем созданные роли из результатов
-    role_guest = roles_result[0] if not isinstance(roles_result[0], Exception) else None
-    role_user = roles_result[1] if not isinstance(roles_result[1], Exception) else None
-    role_white = roles_result[2] if not isinstance(roles_result[2], Exception) else None
-    role_premium = roles_result[3] if not isinstance(roles_result[3], Exception) else None
-    role_tester = roles_result[4] if not isinstance(roles_result[4], Exception) else None
-    role_mod = roles_result[5] if not isinstance(roles_result[5], Exception) else None
-    role_owner = roles_result[6] if not isinstance(roles_result[6], Exception) else None
-    role_dev = roles_result[7] if not isinstance(roles_result[7], Exception) else None
-    role_media = None  # Удалена
-    role_friend = None  # Удалена
+    # Создаем роли последовательно с задержками
+    role_guest = await guild.create_role(name="👤 Guest", color=discord.Color.from_rgb(120, 120, 120), permissions=guest_perms, hoist=False, mentionable=False)
+    await asyncio.sleep(0.3)
+    role_user = await guild.create_role(name="👥 User", color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms, hoist=True, mentionable=False)
+    await asyncio.sleep(0.3)
+    role_white = await guild.create_role(name="✅ White", color=discord.Color.from_rgb(85, 170, 255), permissions=white_perms, hoist=True, mentionable=False)
+    await asyncio.sleep(0.3)
+    role_premium = await guild.create_role(name="💎 Premium", color=discord.Color.from_rgb(180, 80, 255), permissions=premium_perms, hoist=True, mentionable=False)
+    await asyncio.sleep(0.3)
+    role_tester = await guild.create_role(name="🧪 Tester", color=discord.Color.from_rgb(255, 165, 0), permissions=premium_perms, hoist=True, mentionable=False)
+    await asyncio.sleep(0.3)
+    role_mod = await guild.create_role(name="🛡️ Moderator", color=discord.Color.from_rgb(255, 140, 0), permissions=premium_perms, hoist=True, mentionable=False)
+    await asyncio.sleep(0.3)
+    role_media = await guild.create_role(name="🎬 Media", color=discord.Color.from_rgb(255, 100, 200), permissions=premium_perms, hoist=True, mentionable=False)
+    await asyncio.sleep(0.3)
+    role_friend = await guild.create_role(name="🤝 Friend", color=discord.Color.from_rgb(100, 200, 255), permissions=premium_perms, hoist=True, mentionable=False)
+    await asyncio.sleep(0.3)
+    role_owner = await guild.create_role(name="👑 Owner", color=discord.Color.from_rgb(255, 200, 0), permissions=owner_perms, hoist=True, mentionable=False)
+    await asyncio.sleep(0.3)
+    role_dev = await guild.create_role(name="🔧 Developer", color=discord.Color.from_rgb(255, 60, 60), permissions=dev_perms, hoist=True, mentionable=False)
+    await asyncio.sleep(0.5)
     
     # Устанавливаем глобальный ID роли Guest
     global AUTO_ROLE_ID
@@ -4202,10 +4198,10 @@ async def rolesdelete(ctx):
     )
     deleted = sum(1 for r in results if not isinstance(r, Exception))
     embed = discord.Embed(
-        description=f"??? ������� �����: **{deleted}**",
+        description=f"✅ Удалено ролей: **{deleted}**",
         color=0x0a0a0a
     )
-    embed.set_footer(text="🤖 Kanero")
+    embed.set_footer(text="☠️ Kanero")
     await ctx.send(embed=embed)
 
 
