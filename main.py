@@ -200,6 +200,7 @@ def load_spam_text():
 
 BLOCKED_GUILDS: list[int] = []
 PREMIUM_LIST: list[int] = []
+TESTER_LIST: list[int] = []  # тестеры — доступ к тестированию функций
 FREELIST: list[int] = []  # выдаётся через канал addbot — только !nuke и !auto_nuke
 
 # ─── ВРЕМЕННЫЕ ПОДПИСКИ ────────────────────────────────────
@@ -258,6 +259,15 @@ def is_freelisted(user_id):
         return True
     # Whitelist и Premium тоже включают freelist
     return user_id in FREELIST or user_id in config.WHITELIST or user_id in PREMIUM_LIST or user_id == config.OWNER_ID
+
+
+def is_tester(user_id):
+    """Проверяет является ли пользователь тестером."""
+    return user_id in TESTER_LIST or user_id == config.OWNER_ID
+
+
+def save_tester_list():
+    asyncio.create_task(db_set("data", "tester_list", TESTER_LIST))
 
 
 def save_blocked_guilds():
@@ -2288,6 +2298,7 @@ async def setup(ctx):
         guild.create_role(name="👥 User",      color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms,    hoist=True,  mentionable=False),
         guild.create_role(name="✅ White",     color=discord.Color.from_rgb(85, 170, 255),  permissions=white_perms,   hoist=True,  mentionable=False),
         guild.create_role(name="💎 Premium",   color=discord.Color.from_rgb(180, 80, 255),  permissions=premium_perms, hoist=True,  mentionable=False),
+        guild.create_role(name="🧪 Tester",    color=discord.Color.from_rgb(255, 165, 0),   permissions=premium_perms, hoist=True,  mentionable=False),
         guild.create_role(name="🛡️ Moderator", color=discord.Color.from_rgb(255, 140, 0),   permissions=premium_perms, hoist=True,  mentionable=False),
         guild.create_role(name="🎬 Media",      color=discord.Color.from_rgb(255, 105, 180), permissions=premium_perms, hoist=True,  mentionable=False),
         guild.create_role(name="🤝 Friend",     color=discord.Color.from_rgb(50, 205, 50),   permissions=premium_perms, hoist=True,  mentionable=False),
@@ -2302,37 +2313,39 @@ async def setup(ctx):
     role_user = roles_result[1] if not isinstance(roles_result[1], Exception) else None
     role_white = roles_result[2] if not isinstance(roles_result[2], Exception) else None
     role_premium = roles_result[3] if not isinstance(roles_result[3], Exception) else None
-    role_mod = roles_result[4] if not isinstance(roles_result[4], Exception) else None
-    role_media = roles_result[5] if not isinstance(roles_result[5], Exception) else None
-    role_friend = roles_result[6] if not isinstance(roles_result[6], Exception) else None
-    role_owner = roles_result[7] if not isinstance(roles_result[7], Exception) else None
-    role_dev = roles_result[8] if not isinstance(roles_result[8], Exception) else None
-    role_premium = await guild.create_role(name="💎 Premium",   color=discord.Color.from_rgb(180, 80, 255),  permissions=premium_perms, hoist=True,  mentionable=False)
-    role_owner   = await guild.create_role(name="👑 Owner",      color=discord.Color.from_rgb(255, 200, 0),   permissions=owner_perms,   hoist=True,  mentionable=False)
-    role_dev     = await guild.create_role(name="🔧 Developer",  color=discord.Color.from_rgb(255, 60, 60),   permissions=dev_perms,     hoist=True,  mentionable=False)
-    role_bot     = await guild.create_role(name="🤖 Kanero",     color=discord.Color.from_rgb(0, 200, 150),   permissions=dev_perms,     hoist=True,  mentionable=False)
-    role_media   = await guild.create_role(name="🎬 Media",      color=discord.Color.from_rgb(255, 140, 0),   hoist=True, mentionable=False)
-    role_mod     = await guild.create_role(name="🛡️ Moderator",  color=discord.Color.from_rgb(100, 180, 100), hoist=True,  mentionable=False)
-    role_friend    = await guild.create_role(name="🤝 Friend",        color=discord.Color.from_rgb(30, 144, 255),  hoist=True,  mentionable=False)
+    role_tester = roles_result[4] if not isinstance(roles_result[4], Exception) else None
+    role_mod = roles_result[5] if not isinstance(roles_result[5], Exception) else None
+    role_media = roles_result[6] if not isinstance(roles_result[6], Exception) else None
+    role_friend = roles_result[7] if not isinstance(roles_result[7], Exception) else None
+    role_owner = roles_result[8] if not isinstance(roles_result[8], Exception) else None
+    role_dev = roles_result[9] if not isinstance(roles_result[9], Exception) else None
+    
+    # Создаем роль бота отдельно
+    role_bot = await guild.create_role(name="🤖 Kanero", color=discord.Color.from_rgb(0, 200, 150), permissions=dev_perms, hoist=True, mentionable=False)
 
     try:
         await guild.me.add_roles(role_bot)
     except Exception:
         pass
 
-    # Порядок: Kanero > Developer > Owner > Premium > White > User > Guest
+    # ПАРАЛЛЕЛЬНОЕ позиционирование ролей - Developer выше Owner
     try:
         bot_top = guild.me.top_role.position
-        await role_bot.edit(position=max(1, bot_top - 1))
-        await role_dev.edit(position=max(1, bot_top - 2))
-        await role_owner.edit(position=max(1, bot_top - 3))
-        await role_media.edit(position=max(1, bot_top - 4))
-        await role_mod.edit(position=max(1, bot_top - 5))
-        await role_friend.edit(position=max(1, bot_top - 6))
-        await role_premium.edit(position=max(1, bot_top - 7))
-        await role_white.edit(position=max(1, bot_top - 8))
-        await role_user.edit(position=max(1, bot_top - 9))
-        await role_guest.edit(position=1)
+        position_tasks = []
+        if role_bot: position_tasks.append(role_bot.edit(position=max(1, bot_top - 1)))
+        if role_dev: position_tasks.append(role_dev.edit(position=max(1, bot_top - 2)))
+        if role_owner: position_tasks.append(role_owner.edit(position=max(1, bot_top - 3)))
+        if role_media: position_tasks.append(role_media.edit(position=max(1, bot_top - 4)))
+        if role_mod: position_tasks.append(role_mod.edit(position=max(1, bot_top - 5)))
+        if role_friend: position_tasks.append(role_friend.edit(position=max(1, bot_top - 6)))
+        if role_tester: position_tasks.append(role_tester.edit(position=max(1, bot_top - 7)))
+        if role_premium: position_tasks.append(role_premium.edit(position=max(1, bot_top - 8)))
+        if role_white: position_tasks.append(role_white.edit(position=max(1, bot_top - 9)))
+        if role_user: position_tasks.append(role_user.edit(position=max(1, bot_top - 10)))
+        if role_guest: position_tasks.append(role_guest.edit(position=1))
+        
+        if position_tasks:
+            await asyncio.gather(*position_tasks, return_exceptions=True)
     except Exception:
         pass
 
@@ -2738,7 +2751,7 @@ async def setup(ctx):
             "• Покупка White / Premium\n"
             "• Жалобы и предложения\n\n"
             "**👥 Команда поддержки:**\n"
-            "👑 Owner • 🔧 Developer • 🛡️ Moderator\n\n"
+            "👑 Owner • 🔧 Developer • 🛡️ Moderator • 🧪 Tester\n\n"
             "**💡 Есть Discord сервер с участниками?**\n"
             "Если у тебя есть **админ права** на каком-либо Discord сервере с участниками (хоть сколько), создавай тикет!\n"
             "Добавляешь нашего бота туда — получаешь **лучшую подписку** в обмен 🎁"
@@ -3450,6 +3463,110 @@ async def fl_clear(ctx):
     await ctx.send(embed=embed)
 
 
+# ─── TESTER MANAGEMENT ─────────────────────────────────────
+
+@bot.command(name="tester_add")
+async def tester_add(ctx, *, user_input: str):
+    """Добавить тестера. Только для овнера.
+    Использование: !tester_add @user | !tester_add user_id
+    """
+    if ctx.author.id != config.OWNER_ID:
+        return
+
+    user = await resolve_user(ctx, user_input)
+    if not user:
+        await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
+        return
+    
+    user_id = user.id
+    if user_id in TESTER_LIST:
+        await ctx.send(f"⚠️ **{user}** уже в списке тестеров.")
+        return
+    
+    TESTER_LIST.append(user_id)
+    save_tester_list()
+    
+    # Выдаём роль на домашнем сервере
+    try:
+        home_guild = bot.get_guild(HOME_GUILD_ID)
+        if home_guild:
+            member = home_guild.get_member(user_id)
+            if not member:
+                try:
+                    member = await home_guild.fetch_member(user_id)
+                except Exception:
+                    member = None
+            if member:
+                tester_role = discord.utils.find(lambda r: r.name == "🧪 Tester", home_guild.roles)
+                if tester_role and tester_role not in member.roles:
+                    await member.add_roles(tester_role, reason="tester_add")
+    except Exception:
+        pass
+    
+    await ctx.send(f"✅ **{user}** (`{user_id}`) добавлен в тестеры.")
+
+
+@bot.command(name="tester_remove")
+async def tester_remove(ctx, *, user_input: str):
+    """Убрать тестера. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+
+    user = await resolve_user(ctx, user_input)
+    if not user:
+        await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
+        return
+    
+    user_id = user.id
+    if user_id not in TESTER_LIST:
+        await ctx.send(f"⚠️ **{user}** не в списке тестеров.")
+        return
+    
+    TESTER_LIST.remove(user_id)
+    save_tester_list()
+    
+    # Убираем роль на домашнем сервере
+    try:
+        home_guild = bot.get_guild(HOME_GUILD_ID)
+        if home_guild:
+            member = home_guild.get_member(user_id)
+            if member:
+                tester_role = discord.utils.find(lambda r: r.name == "🧪 Tester", home_guild.roles)
+                if tester_role and tester_role in member.roles:
+                    await member.remove_roles(tester_role, reason="tester_remove")
+    except Exception:
+        pass
+    
+    await ctx.send(f"✅ **{user}** убран из тестеров.")
+
+
+@bot.command(name="tester_list")
+async def tester_list(ctx):
+    """Показать список тестеров. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID:
+        return
+    
+    if not TESTER_LIST:
+        await ctx.send("📋 Список тестеров пуст.")
+        return
+    
+    lines = []
+    for uid in TESTER_LIST:
+        try:
+            user = await bot.fetch_user(uid)
+            lines.append(f"`{uid}` — **{user}**")
+        except Exception:
+            lines.append(f"`{uid}` — *не найден*")
+    
+    embed = discord.Embed(
+        title=f"🧪 Тестеры ({len(TESTER_LIST)})",
+        description="\n".join(lines),
+        color=0x0a0a0a
+    )
+    embed.set_footer(text="☠️ Kanero  |  !tester_add/@user · !tester_remove/@user")
+    await ctx.send(embed=embed)
+
+
 # ─── КОМПЕНСАЦИЯ (ВРЕМЕННЫЕ ПОДПИСКИ) ──────────────────────
 
 # ─── TICKET SYSTEM ─────────────────────────────────────────
@@ -3506,7 +3623,7 @@ class TicketOpenView(discord.ui.View):
             }
             # Добавляем права для ролей поддержки
             for r in guild.roles:
-                if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero", "🛡️ Moderator"):
+                if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero", "🛡️ Moderator", "🧪 Tester"):
                     cat_overwrites[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
             
             category = await guild.create_category(TICKET_CATEGORY_NAME, overwrites=cat_overwrites)
@@ -3517,7 +3634,7 @@ class TicketOpenView(discord.ui.View):
             guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True),
         }
         for r in guild.roles:
-            if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero", "🛡️ Moderator"):
+            if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero", "🛡️ Moderator", "🧪 Tester"):
                 overwrites[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
         ticket_ch = await guild.create_text_channel(
@@ -3556,7 +3673,7 @@ async def ticket_setup(ctx):
             "• Покупка White / Premium\n"
             "• Жалобы и предложения\n\n"
             "**👥 Команда поддержки:**\n"
-            "👑 Owner • 🔧 Developer • 🛡️ Moderator"
+            "👑 Owner • 🔧 Developer • 🛡️ Moderator • 🧪 Tester"
         ),
         color=0x0a0a0a
     )
@@ -5579,6 +5696,11 @@ async def on_ready():
     fl = await db_get("data", "freelist")
     if fl is not None:
         FREELIST = fl
+    
+    # Загрузка списка тестеров
+    tl = await db_get("data", "tester_list")
+    if tl is not None:
+        TESTER_LIST = tl
     
     # Загрузка временных подписок
     await load_temp_subscriptions()
