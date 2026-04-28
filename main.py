@@ -4547,6 +4547,16 @@ async def help_cmd(ctx):
         inline=False
     )
 
+    embed.add_field(
+        name="🧪 TESTER",
+        value=(
+            "Специальный доступ для тестирования новых функций\n"
+            "Права Premium + доступ к категории TESTS\n"
+            "Каналы: 🐛・bug-reports · 🧪・testing · ✅・test-results"
+        ),
+        inline=False
+    )
+
     if is_owner:
         embed.add_field(
             name="👑 OWNER",
@@ -4557,8 +4567,9 @@ async def help_cmd(ctx):
                 "`!auto_info` — статус всех авто нюков\n"
                 "`!wl_add/remove/list` · `!pm_add/remove/list`\n"
                 "`!fl_add/remove/list/clear` — freelist\n"
+                "`!tester_add/remove/list` — управление тестерами\n"
                 "`!on_add/remove/list` — owner nuke list\n"
-                "`!compensate <тип> <время>` — объявить компенсацию с кнопкой\n"
+                "`!компенсация <тип> <время>` — объявить компенсацию с кнопкой\n"
                 "`!announce_bug \"Название\" Описание` — объявить о баге\n"
                 "`!list` · `!list_clear` · `!sync_roles` — синхронизация ролей\n"
                 "`!autorole` — статус авто-роли\n"
@@ -4574,13 +4585,14 @@ async def help_cmd(ctx):
         name="💬 Купить подписку",
         value=(
             "**White / Premium:**\n"
-            "🛒・sell — https://discord.com/channels/1497100825628115108/1497101001088045076\n"
-            "🎫・выдача-вайта — https://discord.com/channels/1497100825628115108/1497101001088045077\n\n"
+            "Перейди в каналы на нашем сервере:\n"
+            "🛒・sell — продажа подписок\n"
+            "🎫・выдача-вайта — логи выдачи\n\n"
             "**Наш сервер:** https://discord.gg/aud6wwYVRd"
         ),
         inline=False
     )
-    embed.set_footer(text="☠️ Kanero  |  !changelogall — вся история  |  v2.3")
+    embed.set_footer(text="☠️ Kanero  |  !changelogall — вся история  |  v2.5")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
