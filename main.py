@@ -122,7 +122,7 @@ async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
                 embed.add_field(name="🏠 Сервер", value=f"{guild.name} (`{guild.id}`)", inline=True)
                 embed.add_field(name="🕐 Время", value=entry["time"], inline=True)
                 if invite_url:
-                    embed.add_field(name="🔗 Инвайт", value=invite_url, inline=False)
+                    embed.add_field(name="🔗 Инвайт", value=f"[Присоединиться]({invite_url})", inline=False)
                 embed.set_footer(text="☠️ Kanero  |  !nukelogs — история крашей")
                 await logs_ch.send(embed=embed)
     except Exception:
@@ -2798,6 +2798,8 @@ async def setup(ctx):
         if role_user:   ow[role_user]   = discord.PermissionOverwrite(connect=False, view_channel=False)
         if role_white:  ow[role_white]  = discord.PermissionOverwrite(connect=False, view_channel=False)
         if role_premium:ow[role_premium]= discord.PermissionOverwrite(connect=False, view_channel=False)
+        if role_tester: ow[role_tester] = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
+        if role_mod:    ow[role_mod]    = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
         if role_owner:  ow[role_owner]  = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
         if role_dev:    ow[role_dev]    = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
         return ow
@@ -2806,11 +2808,9 @@ async def setup(ctx):
     for i in range(1, 4):
         await guild.create_voice_channel(f"🔊 voice-{i}", category=cat_voice, user_limit=10)
     await guild.create_voice_channel("💎 premium-voice", category=cat_voice, user_limit=20, overwrites=voice_premium_ow())
-    await guild.create_voice_channel("👑 admin-voice", category=cat_voice, overwrites=voice_admin_ow())
 
     # 🔧 ━━ ADMIN — только Owner+ 🔧
     cat_admin = await guild.create_category("━━━━ 🔧 ADMIN ━━━━", overwrites=admin_ow())
-    logs_ch = await guild.create_text_channel("📊・logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков с !nukelogs")
     
     def admin_chat_ow():
         ow = {guild.default_role: _ow()}
@@ -2819,12 +2819,17 @@ async def setup(ctx):
         if role_white:  ow[role_white]  = _ow()
         if role_premium:ow[role_premium]= _ow()
         if role_friend: ow[role_friend] = _ow()
+        if role_tester: ow[role_tester] = _ow(True, True)  # Тестеры могут читать и писать
+        if role_mod:    ow[role_mod]    = _ow(True, True)  # Модераторы могут читать и писать
         if role_owner:  ow[role_owner]  = _ow(True, True)
         if role_dev:    ow[role_dev]    = _ow(True, True)
         return ow
     
-    await guild.create_text_channel("🔧・admin-chat", category=cat_admin, overwrites=admin_chat_ow(), topic="Чат для Owner и Developer")
+    # Порядок: admin-chat → logs → выдача-листа
+    await guild.create_text_channel("🔧・admin-chat", category=cat_admin, overwrites=admin_chat_ow(), topic="Чат для Owner, Developer, Moderator и Tester")
+    await guild.create_text_channel("📊・logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков с !nukelogs и ссылками на серверы")
     await guild.create_text_channel("📝・выдача-листа", category=cat_admin, overwrites=admin_ow(), topic="Логи выдачи подписок и компенсаций")
+    await guild.create_voice_channel("👑 admin-voice", category=cat_admin, overwrites=voice_admin_ow())
 
     # -- 5. Правила и инфо --
 
