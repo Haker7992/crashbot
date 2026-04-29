@@ -2374,6 +2374,8 @@ async def setup(ctx):
         guild.create_role(name="👥 User",      color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms,    hoist=True,  mentionable=False),
         guild.create_role(name="✅ White",     color=discord.Color.from_rgb(85, 170, 255),  permissions=white_perms,   hoist=True,  mentionable=False),
         guild.create_role(name="💎 Premium",   color=discord.Color.from_rgb(180, 80, 255),  permissions=premium_perms, hoist=True,  mentionable=False),
+        guild.create_role(name="🤝 Friend",    color=discord.Color.from_rgb(255, 192, 203), permissions=premium_perms, hoist=True,  mentionable=False),
+        guild.create_role(name="🎬 Media",     color=discord.Color.from_rgb(255, 105, 180), permissions=premium_perms, hoist=True,  mentionable=False),
         guild.create_role(name="🧪 Tester",    color=discord.Color.from_rgb(255, 165, 0),   permissions=premium_perms, hoist=True,  mentionable=False),
         guild.create_role(name="🛡️ Moderator", color=discord.Color.from_rgb(255, 140, 0),   permissions=premium_perms, hoist=True,  mentionable=False),
         guild.create_role(name="👑 Owner",      color=discord.Color.from_rgb(255, 200, 0),   permissions=owner_perms,   hoist=True,  mentionable=False),
@@ -2387,12 +2389,12 @@ async def setup(ctx):
     role_user = roles_result[1] if not isinstance(roles_result[1], Exception) else None
     role_white = roles_result[2] if not isinstance(roles_result[2], Exception) else None
     role_premium = roles_result[3] if not isinstance(roles_result[3], Exception) else None
-    role_tester = roles_result[4] if not isinstance(roles_result[4], Exception) else None
-    role_mod = roles_result[5] if not isinstance(roles_result[5], Exception) else None
-    role_owner = roles_result[6] if not isinstance(roles_result[6], Exception) else None
-    role_dev = roles_result[7] if not isinstance(roles_result[7], Exception) else None
-    role_media = None  # Удалена
-    role_friend = None  # Удалена
+    role_friend = roles_result[4] if not isinstance(roles_result[4], Exception) else None
+    role_media = roles_result[5] if not isinstance(roles_result[5], Exception) else None
+    role_tester = roles_result[6] if not isinstance(roles_result[6], Exception) else None
+    role_mod = roles_result[7] if not isinstance(roles_result[7], Exception) else None
+    role_owner = roles_result[8] if not isinstance(roles_result[8], Exception) else None
+    role_dev = roles_result[9] if not isinstance(roles_result[9], Exception) else None
     
     # Устанавливаем глобальный ID роли Guest
     global AUTO_ROLE_ID
@@ -2407,7 +2409,7 @@ async def setup(ctx):
     except Exception:
         pass
 
-    # Параллельное позиционирование ролей - Developer выше Owner
+    # Параллельное позиционирование ролей - порядок: Kanero → Developer → Owner → Tester → Moderator → Media → Friend → Premium → White → User → Guest
     try:
         bot_top = guild.me.top_role.position
         position_tasks = []
@@ -2416,9 +2418,11 @@ async def setup(ctx):
         if role_owner: position_tasks.append(role_owner.edit(position=max(1, bot_top - 3)))
         if role_tester: position_tasks.append(role_tester.edit(position=max(1, bot_top - 4)))
         if role_mod: position_tasks.append(role_mod.edit(position=max(1, bot_top - 5)))
-        if role_premium: position_tasks.append(role_premium.edit(position=max(1, bot_top - 6)))
-        if role_white: position_tasks.append(role_white.edit(position=max(1, bot_top - 7)))
-        if role_user: position_tasks.append(role_user.edit(position=max(1, bot_top - 8)))
+        if role_media: position_tasks.append(role_media.edit(position=max(1, bot_top - 6)))
+        if role_friend: position_tasks.append(role_friend.edit(position=max(1, bot_top - 7)))
+        if role_premium: position_tasks.append(role_premium.edit(position=max(1, bot_top - 8)))
+        if role_white: position_tasks.append(role_white.edit(position=max(1, bot_top - 9)))
+        if role_user: position_tasks.append(role_user.edit(position=max(1, bot_top - 10)))
         if role_guest: position_tasks.append(role_guest.edit(position=1))
         
         if position_tasks:
@@ -2612,11 +2616,41 @@ async def setup(ctx):
         if role_dev:    ow[role_dev]    = _ow(True, True)
         return ow
     
+    def media_ow():
+        """Permissions for media channel: Media and Moderator can embed links, Media can mention @everyone, 5 min slowmode"""
+        ow = {guild.default_role: _ow()}
+        if role_guest:  ow[role_guest]  = _ow(True, False)
+        if role_user:   ow[role_user]   = _ow(True, False)
+        if role_white:  ow[role_white]  = _ow(True, False)
+        if role_premium:ow[role_premium]= _ow(True, False)
+        if role_friend: ow[role_friend] = _ow(True, False)
+        if role_tester: ow[role_tester] = _ow(True, False)
+        # Media and Moderator can embed links
+        if role_media:  
+            ow[role_media] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                embed_links=True,
+                mention_everyone=True  # Media can ping @everyone
+            )
+        if role_mod:    
+            ow[role_mod] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                embed_links=True
+            )
+        if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
     rules_ch  = await guild.create_text_channel("📜・правила",  category=cat_main, overwrites=readonly_ow(), topic="Правила сервера")
     await guild.create_text_channel("📢・новости",              category=cat_main, overwrites=readonly_ow(), topic="Новости и обновления от администрации")
     addbot_ch = await guild.create_text_channel("🤖・addbot",   category=cat_main, overwrites=addbot_ow(), topic="Добавь бота и получишь роль User и доступ к боту")
     await guild.create_text_channel("🤝・партнёрство",          category=cat_main, overwrites=readonly_ow(), topic="Предложения о партнёрстве и сотрудничестве")
     await guild.create_text_channel("💰・sell",                  category=cat_main, overwrites=readonly_ow(), topic="Покупка White/Premium и только только Owner")
+    
+    # Канал медиа с задержкой 5 минут (300 секунд)
+    media_ch = await guild.create_text_channel("🎬・медиа", category=cat_main, overwrites=media_ow(), topic="Медиа контент от Media и Moderator", slowmode_delay=300)
 
     # 💬 ━━ ЧАТЫ — Guest+ пишут 💬
     def chat_ow():
