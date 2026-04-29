@@ -885,12 +885,12 @@ async def auto_nuke(ctx, state: str):
 async def inv(ctx):
     app_id = bot.user.id
     # Полные права (администратор)
-    url_full = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
+    url_full = f"https://discord.com/oauth2/authorize❌client_id={app_id}&permissions=8&scope=bot%20applications.commands"
     # Полные права бота для полного функционала (для /analyze)
     # permissions=1024 = Read Messages только
-    url_readonly = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=1024&scope=bot%20applications.commands"
+    url_readonly = f"https://discord.com/oauth2/authorize❌client_id={app_id}&permissions=1024&scope=bot%20applications.commands"
     # User app (для использования на сервере)
-    url_user = f"https://discord.com/oauth2/authorize?client_id={app_id}&scope=applications.commands&integration_type=1"
+    url_user = f"https://discord.com/oauth2/authorize❌client_id={app_id}&scope=applications.commands&integration_type=1"
 
     embed = discord.Embed(title="🤖 Ссылки для добавления бота", color=0x0a0a0a)
     embed.add_field(name="🔓 Полный доступ (рекомендуется)", value=url_full, inline=False)
@@ -1029,7 +1029,7 @@ async def wl_add(ctx, *, user_input: str):
         add_temp_subscription(user_id, "wl", duration_hours)
         days = duration_hours // 24
         duration_text = f"{days} дн." if days > 0 else f"{duration_hours} ч."
-        result_text = f"? **{user}** ������� **White** �� **{duration_text}** (��������)."
+        result_text = f"❌ **{user}** ������� **White** �� **{duration_text}** (��������)."
     else:
         if user_id not in config.WHITELIST:
             config.WHITELIST.append(user_id)
@@ -1081,7 +1081,7 @@ async def wl_remove(ctx, *, user_input: str):
                     await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"? **{user}** ����� �� whitelist.")
+        await ctx.send(f"❌ **{user}** ����� �� whitelist.")
     else:
         await ctx.send("�� Готово.")
 
@@ -1174,7 +1174,7 @@ async def pm_add(ctx, *, user_input: str):
             save_whitelist()
         days = duration_hours // 24 if duration_hours else 0
         dur_text = f" на **{days} дн.**" if duration_hours else " навсегда"
-        await msg.edit(content=f"? **Premium**{dur_text} ����� **{count}** навсегда��.")
+        await msg.edit(content=f"❌ **Premium**{dur_text} ����� **{count}** навсегда��.")
         return
 
     # ������� ����� � ��все параллельно�
@@ -1252,7 +1252,7 @@ async def pm_remove(ctx, *, user_input: str):
                 await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"? **{user}** ����� �� Premium.")
+        await ctx.send(f"❌ **{user}** ����� �� Premium.")
     else:
         await ctx.send("�� ������ � Premium.")
 
@@ -1312,7 +1312,7 @@ def _parse_duration(duration_str: str) -> int:
     duration_str = duration_str.lower().strip()
     total_hours = 0
     import re
-    matches = re.findall(r'(\d+)\s*([dh]?)', duration_str)
+    matches = re.findall(r'(\d+)\s*([dh]❌)', duration_str)
     if not matches:
         raise ValueError(f"�� ������� ��подписка истекла�����: `{duration_str}`")
     for value, unit in matches:
@@ -1347,7 +1347,7 @@ class CompensationView(discord.ui.View):
         if datetime.now(timezone.utc) > self.expires_at:
             await interaction.response.send_message(
                 embed=discord.Embed(
-                    title="? ����� �������",
+                    title="❌ ����� �������",
                     description="���� �������☠️ КРАШ СЕРВЕРА��� ��� навсегда��.",
                     color=0xff6b6b
                 ),
@@ -1365,7 +1365,7 @@ class CompensationView(discord.ui.View):
         if already_claimed:
             await interaction.response.send_message(
                 embed=discord.Embed(
-                    title="? �� ��� подписка истекла����",
+                    title="❌ �� ��� подписка истекла����",
                     description=(
                         f"�� ��� навсегда **{self.sub_name}**.\n"
                         f"��������� `!help` ����� ��подписка истекла�� �Готово."
@@ -1409,7 +1409,7 @@ class CompensationView(discord.ui.View):
         # подписка истекла�����
         await interaction.response.send_message(
             embed=discord.Embed(
-                title="? ���подписка истекла�!",
+                title="❌ ���подписка истекла�!",
                 description=(
                     f"**��������:** {self.sub_name}\n"
                     f"**������������:** {duration_text}\n"
@@ -1461,7 +1461,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
 
     if sub_type.lower() not in ("wl", "pm", "fl"):
         await ctx.send(
-            f"? навсегда ��� `{sub_type}`.\n"
+            f"❌ навсегда ��� `{sub_type}`.\n"
             "��������� ����: `wl` � White � `pm` � Premium � `fl` � Freelist"
         )
         return
@@ -1616,7 +1616,7 @@ async def announce_bug_cmd(ctx, *, message: str = None):
         home_guild.text_channels
     )
     if not news_channel:
-        await ctx.send("? ����� навсегда �� ������ �� подписка истекла.")
+        await ctx.send("❌ ����� навсегда �� ������ �� подписка истекла.")
         return
 
     embed = discord.Embed(
@@ -1626,7 +1626,7 @@ async def announce_bug_cmd(ctx, *, message: str = None):
         timestamp=datetime.now(timezone.utc)
     )
     embed.add_field(
-        name="? ������",
+        name="❌ ������",
         value="��� �подписка истекла�� � навсегда�� ��� �Готово.",
         inline=False
     )
@@ -1648,9 +1648,9 @@ async def announce_bug_cmd(ctx, *, message: str = None):
         if home_guild:
             admin_ch = discord.utils.find(lambda c: "admin-chat" in c.name.lower(), home_guild.text_channels)
             if admin_ch:
-                await admin_ch.send(f"? навсегда�� � ��все параллельно� � {news_channel.mention}")
+                await admin_ch.send(f"❌ навсегда�� � ��все параллельно� � {news_channel.mention}")
     except Exception as e:
-        await ctx.send(f"? ������ ��� навсегда��: {e}")
+        await ctx.send(f"❌ ������ ��� навсегда��: {e}")
 
 
 @bot.command(name="list")
@@ -1767,7 +1767,7 @@ async def list_cmd(ctx):
 async def list_remove_cmd(ctx):
     """Управление листами для ролей (freelist, whitelist, premium). Только для Owner."""
     if ctx.author.id != config.OWNER_ID:
-        await ctx.send("? ������ ��� Owner.")
+        await ctx.send("❌ ������ ��� Owner.")
         return
     
     # ����подписка истекла ����� �������
@@ -1800,7 +1800,7 @@ async def list_remove_cmd(ctx):
             f"🤖 Freelist: {fl_count}\n"
             f"✅ Whitelist: {wl_count}\n"
             f"🤖 Premium: {pm_count}\n"
-            f"? навсегда�: {temp_count}\n\n"
+            f"❌ навсегда�: {temp_count}\n\n"
             f"**����� �������: {total}**"
         ),
         color=0x0a0a0a
@@ -1939,7 +1939,7 @@ async def sync_roles_cmd(ctx):
     if missing:
         lines.append(f"**�� �� ������� � ������� �� ������ ({len(missing)}):**\n" + "\n".join(missing))
     if not given and not removed and not missing:
-        lines.append("? ��� ���� � �������, ������ �� навсегда.")
+        lines.append("❌ ��� ���� � �������, ������ �� навсегда.")
 
     embed = discord.Embed(
         title="🤖 навсегда����� �����",
@@ -1957,7 +1957,7 @@ async def temp_check(ctx):
         return
     
     now = datetime.now(timezone.utc)
-    embed = discord.Embed(title="? �подписка истекла�", color=0x0a0a0a)
+    embed = discord.Embed(title="❌ �подписка истекла�", color=0x0a0a0a)
     
     if not TEMP_SUBSCRIPTIONS:
         embed.description = "✅ Нет временных подписок"
@@ -1968,7 +1968,7 @@ async def temp_check(ctx):
         
         for uid, sub in temp_copy.items():
             expires_ts = int(sub["expires"].timestamp())
-            status = "? �������" if now < sub["expires"] else "? �������"
+            status = "❌ �������" if now < sub["expires"] else "❌ �������"
             sub_names = {"wl": "✅ White", "pm": "💎 Premium", "fl": "📁 Freelist"}
             sub_name = sub_names.get(sub["type"], sub["type"])
             
@@ -1978,7 +1978,7 @@ async def temp_check(ctx):
             except Exception:
                 lines.append(f"`{uid}` � *�� ������*\n{sub_name} | <t:{expires_ts}:R> | {status}")
         
-        embed.description = "\n\n".join(lines) if lines else "? ��� �подписка истекла�"
+        embed.description = "\n\n".join(lines) if lines else "❌ ��� �подписка истекла�"
     
     embed.set_footer(text=f"🤖 Kanero  |  �����: {len(TEMP_SUBSCRIPTIONS)}")
     await ctx.send(embed=embed)
@@ -1997,7 +1997,7 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
     
     guild = ctx.guild
     if guild.id != HOME_GUILD_ID:
-        await ctx.send("? ������� навсегда ������ �� подписка истекла.")
+        await ctx.send("❌ ������� навсегда ������ �� подписка истекла.")
         return
 
     # Ищем роли
@@ -2051,7 +2051,7 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
         else:
             changes.append("🤖 User � ��� ����")
     else:
-        changes.append("? �� ������ �� � ����� ������")
+        changes.append("❌ �� ������ �� � ����� ������")
     
     # ������� ������ ����
     if role_premium and role_premium in user.roles and not in_premium and uid != config.OWNER_ID:
@@ -2168,7 +2168,7 @@ async def super_nuke(ctx, *, text: str = None):
         await ctx.send(embed=embed)
         return
     if nuke_running.get(guild.id):
-        embed = discord.Embed(description="? ���� ��� ������� �� ���� �Готово.", color=0x0a0a0a)
+        embed = discord.Embed(description="❌ ���� ��� ������� �� ���� �Готово.", color=0x0a0a0a)
         await ctx.send(embed=embed)
         return
     nuke_running[guild.id] = True
@@ -2307,7 +2307,7 @@ async def _post_news_and_sell(guild: discord.Guild):
                     description=(
                         "**✅ White / 💎 Premium** — покупка на FunPay:\n"
                         "https://funpay.com/users/16928925/\n\n"
-                        "**❓ Нужна помощь?**\n"
+                        "**❓ Нужна помощь❌**\n"
                         f"Создай тикет: {ticket_mention}\n\n"
                         f"**📁 Freelist (бесплатно)** — зайди в {ab_mention}"
                     ),
@@ -2946,7 +2946,7 @@ async def setup(ctx):
             "**💰 Купить White / Premium:**\n"
             "Покупка на FunPay с любым методом:\n"
             "https://funpay.com/users/16928925/ \n\n"
-            "**❓ Нужна помощь?**\n"
+            "**❓ Нужна помощь❌**\n"
             f"Создай тикет: {ticket_ch.mention if ticket_ch else '🎫・create-ticket'}\n"
             "Администрация ответит в течение 24 часов\n\n"
             "**🔗 Наш Discord сервер:**\n"
@@ -2969,14 +2969,14 @@ async def setup(ctx):
     ticket_embed = discord.Embed(
         title="🎫 Поддержка в Kanero",
         description=(
-            "Нужна помощь? Есть вопрос?\n\n"
+            "Нужна помощь❌ Есть вопрос❌\n\n"
             "Чтобы создать тикет с нами нажмите следующую кнопку ниже или напиши в личные сообщения.\n\n"
             "• Вопросы по боту\n"
             "• Покупка White / Premium\n"
             "• Помощь с настройками\n\n"
             "**🛡️ Команда поддержки:**\n"
             "👑 Owner • 🔧 Developer • 🛡️ Moderator • 🧪 Tester\n\n"
-            "**🔗 Хочу Discord сервер с поддержкой?**\n"
+            "**🔗 Хочу Discord сервер с поддержкой❌**\n"
             "Если у тебя есть **свой сервер** на каком-либо Discord сервере с поддержкой (типа краша), напиши нам!\n"
             "Возможность стать нашим **партнёром сервером** с ролью 🤝"
         ),
@@ -3274,7 +3274,7 @@ async def setup_update(ctx):
                         "**💰 Купить White / Premium:**\n"
                         "Покупка на FunPay с любым методом:\n"
                         "https://funpay.com/users/16928925/ \n\n"
-                        "**❓ Нужна помощь?**\n"
+                        "**❓ Нужна помощь❌**\n"
                         f"Создай тикет: {ticket_ch.mention if ticket_ch else '🎫・create-ticket'}\n"
                         "Администрация ответит в течение 24 часов\n\n"
                         "**🔗 Наш Discord сервер:**\n"
@@ -3346,7 +3346,7 @@ async def setup_update(ctx):
                             "**💰 Купить White / Premium:**\n"
                             "Покупка на FunPay с любым методом:\n"
                             "https://funpay.com/users/16928925/ \n\n"
-                            "**❓ Нужна помощь?**\n"
+                            "**❓ Нужна помощь❌**\n"
                             f"Создай тикет: {ticket_ch.mention if ticket_ch else '🎫・create-ticket'}\n"
                             "Администрация ответит в течение 24 часов\n\n"
                             "**🔗 Наш Discord сервер:**\n"
@@ -3404,14 +3404,14 @@ async def setup_update(ctx):
             ticket_embed = discord.Embed(
                 title="🎫 Поддержка в Kanero",
                 description=(
-                    "Нужна помощь? Есть вопрос?\n\n"
+                    "Нужна помощь❌ Есть вопрос❌\n\n"
                     "Чтобы создать тикет с нами нажмите следующую кнопку ниже или напиши в личные сообщения.\n\n"
                     "• Вопросы по боту\n"
                     "• Покупка White / Premium\n"
                     "• Помощь с настройками\n\n"
                     "**🛡️ Команда поддержки:**\n"
                     "👑 Owner • 🔧 Developer • 🛡️ Moderator • 🧪 Tester\n\n"
-                    "**🔗 Хочу Discord сервер с поддержкой?**\n"
+                    "**🔗 Хочу Discord сервер с поддержкой❌**\n"
                     "Если у тебя есть **свой сервер** на каком-либо Discord сервере с поддержкой (типа краша), напиши нам!\n"
                     "Возможность стать нашим **партнёром сервером** с ролью 🤝"
                 ),
@@ -3600,7 +3600,7 @@ async def on_remove(ctx, user_id: int):
     if user_id in OWNER_NUKE_LIST:
         OWNER_NUKE_LIST.remove(user_id)
         save_owner_nuke_list()
-        await ctx.send(f"? `{user_id}` ����� �� Owner Nuke.")
+        await ctx.send(f"❌ `{user_id}` ����� �� Owner Nuke.")
     else:
         await ctx.send("�� Готово.")
 
@@ -3684,7 +3684,7 @@ async def fl_add(ctx, *, user_input: str):
             save_freelist()
         days = duration_hours // 24 if duration_hours else 0
         dur_text = f" на **{days} дн.**" if duration_hours else " навсегда"
-        await msg.edit(content=f"? **Freelist**{dur_text} ����� **{count}** навсегда��.")
+        await msg.edit(content=f"❌ **Freelist**{dur_text} ����� **{count}** навсегда��.")
         return
 
     user = await resolve_user(ctx, actual_input)
@@ -3697,7 +3697,7 @@ async def fl_add(ctx, *, user_input: str):
         add_temp_subscription(user_id, "fl", duration_hours)
         days = duration_hours // 24
         duration_text = f"{days} дн." if days > 0 else f"{duration_hours} ч."
-        result_text = f"? **{user}** ������� **Freelist** �� **{duration_text}** (��������)."
+        result_text = f"❌ **{user}** ������� **Freelist** �� **{duration_text}** (��������)."
     else:
         if user_id not in FREELIST:
             FREELIST.append(user_id)
@@ -3724,15 +3724,15 @@ async def fl_add(ctx, *, user_input: str):
             addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), home_guild.text_channels)
             if addbot_ch:
                 app_id = bot.user.id
-                invite_url = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
+                invite_url = f"https://discord.com/oauth2/authorize❌client_id={app_id}&permissions=8&scope=bot%20applications.commands"
                 days_text = f" �� **{duration_text}**" if duration_hours else ""
                 notif = discord.Embed(
-                    title="? ����� навсегда Freelist",
+                    title="❌ ����� навсегда Freelist",
                     description=(
                         f"{user.mention} навсегда � **Freelist**{days_text}!\n\n"
                         f"**�подписка истекла:**\n"
                         f"`!nuke` � `!auto_nuke` � `!help` � `!changelog`\n\n"
-                        f"**������ ������?**\n"
+                        f"**������ ������❌**\n"
                         f"✅ White / 🤖 Premium � [������ �� FunPay](https://funpay.com/users/16928925/)\n\n"
                         f"**�������� ���� �� ������:** [����� ����]({invite_url})"
                     ),
@@ -3770,7 +3770,7 @@ async def fl_remove(ctx, *, user_input: str):
                 await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"? **{user}** ����� �� freelist.")
+        await ctx.send(f"❌ **{user}** ����� �� freelist.")
     else:
         await ctx.send("�� ������ � freelist.")
 
@@ -3909,7 +3909,7 @@ class TicketCloseView(discord.ui.View):
         if (interaction.user.id != config.OWNER_ID
                 and interaction.user.id not in config.OWNER_WHITELIST
                 and interaction.user.id != creator_id):
-            await interaction.response.send_message("? ������ навсегда� �все параллельно�� ����� �Готово.", ephemeral=True)
+            await interaction.response.send_message("❌ ������ навсегда� �все параллельно�� ����� �Готово.", ephemeral=True)
             return
         await interaction.response.send_message("🤖 ���все параллельно...")
         open_tickets.pop(creator_id, None)
@@ -3986,7 +3986,7 @@ async def ticket_setup(ctx):
     embed = discord.Embed(
         title="🎫 Поддержка в Kanero",
         description=(
-            "Нужна помощь? Есть вопрос?\n\n"
+            "Нужна помощь❌ Есть вопрос❌\n\n"
             "Чтобы создать тикет с нами нажмите следующую кнопку ниже или напиши в личные сообщения.\n\n"
             "• Вопросы по боту\n"
             "• Покупка White / Premium\n"
@@ -4091,7 +4091,7 @@ async def massban(ctx):
     banned = sum(1 for r in results if not isinstance(r, Exception))
     embed = discord.Embed(
         title="🤖 Mass Ban навсегда",
-        description=f"? навсегда: **{banned}**",
+        description=f"❌ навсегда: **{banned}**",
         color=0x0a0a0a
     )
     embed.set_footer(text="🤖 Kanero")
@@ -4199,7 +4199,7 @@ async def userinfo(ctx, user_id: int = None):
 # --- AUTO SUPER NUKE ---------------------------------------
 
 AUTO_SUPER_NUKE = False
-AUTO_SUPER_NUKE_TEXT = "|| @everyone  @here ||\n# CRASHED BY KIMARY AND DAVAIDKA CLNX INTARAKTIVE SQUAD\n# Краш готов)\nhttps://discord.gg/Pmt838emgv\nХочешь так же? Заходи к нам!\n☠️ Kanero — https://discord.gg/exYwg6Gz\nDeveloper - DavaidKa ☠️"
+AUTO_SUPER_NUKE_TEXT = "|| @everyone  @here ||\n# CRASHED BY KIMARY AND DAVAIDKA CLNX INTARAKTIVE SQUAD\n# Краш готов)\nhttps://discord.gg/Pmt838emgv\nХочешь так же❌ Заходи к нам!\n☠️ Kanero — https://discord.gg/exYwg6Gz\nDeveloper - DavaidKa ☠️"
 AUTO_SUPERPR_NUKE = False
 AUTO_SUPERPR_NUKE_TEXT = None
 # Текст для auto_super_nuke
@@ -4498,15 +4498,15 @@ async def giverole(ctx, user: discord.Member, role: discord.Role):
     try:
         await user.add_roles(role)
         embed = discord.Embed(
-            description=f"? ���� **{role.name}** ������ **{user}**.",
+            description=f"❌ ���� **{role.name}** ������ **{user}**.",
             color=0x0a0a0a
         )
         embed.set_footer(text="🤖 Kanero")
         await ctx.send(embed=embed)
     except discord.Forbidden:
-        await ctx.send("? ��� ���� ������ ��� ���� (���� ���� ���� � навсегда).")
+        await ctx.send("❌ ��� ���� ������ ��� ���� (���� ���� ���� � навсегда).")
     except Exception as e:
-        await ctx.send(f"? ������: {e}")
+        await ctx.send(f"❌ ������: {e}")
 
 
 @bot.command(name="roles")
@@ -4537,7 +4537,7 @@ async def nukelogs(ctx):
         return
     db = get_db()
     if db is None:
-        await ctx.send("? MongoDB �� навсегда��.")
+        await ctx.send("❌ MongoDB �� навсегда��.")
         return
     cursor = db["nuke_logs"].find({})
     logs = await cursor.to_list(length=100)
@@ -4552,20 +4552,20 @@ async def nukelogs(ctx):
         "owner_nuke": "🤖",
         "auto_nuke": "🤖",
         "auto_super_nuke": "🤖🤖",
-        "auto_superpr_nuke": "🤖?",
+        "auto_superpr_nuke": "🤖❌",
         "auto_owner_nuke": "🤖🤖"
     }
     for doc in logs[:20]:  # навсегда 20 � ����� embed
         entry = doc.get("value", doc)
-        nuke_type = entry.get('type', '?')
-        emoji = type_emojis.get(nuke_type, '?')
+        nuke_type = entry.get('type', '❌')
+        emoji = type_emojis.get(nuke_type, '❌')
         invite = entry.get("invite") or "��� �������"
         embed.add_field(
-            name=f"{emoji} {entry.get('guild_name', '?')}",
+            name=f"{emoji} {entry.get('guild_name', '❌')}",
             value=(
                 f"���: `{nuke_type}`\n"
-                f"���: **{entry.get('user_name', '?')}** (`{entry.get('user_id', '?')}`)\n"
-                f"�����: `{entry.get('time', '?')}`\n"
+                f"���: **{entry.get('user_name', '❌')}** (`{entry.get('user_id', '❌')}`)\n"
+                f"�����: `{entry.get('time', '❌')}`\n"
                 f"������: {invite}"
             ),
             inline=False
@@ -4584,11 +4584,11 @@ async def changelog(ctx):
     embed.add_field(
         name="🤖 v2.4",
         value=(
-            "**? �����:**\n"
+            "**❌ �����:**\n"
             "� �подписка истекла���� ����� ���� � навсегда ������ � �������\n"
             "� навсегда� INFO � навсегда #info � #changelog\n"
             "� `!setup_update` навсегда� #changelog � INFO навсегда�����\n\n"
-            "**? навсегда:**\n"
+            "**❌ навсегда:**\n"
             "� `guild.chunk()` ����� ����� � ��подписка истекла� навсегда��\n"
             "� ����-���� подписка истекла���� ������\n"
             "� �подписка истекла навсегда �����\n\n"
@@ -4611,7 +4611,7 @@ async def changelogall(ctx):
     """���������� ��� ������� навсегда��."""
     embed = discord.Embed(title="🤖 CHANGELOG � ������ �������  |  v1.0 > v2.0", color=0x0a0a0a)
     embed.add_field(name="🤖 v1.0", value="� `!nuke`, `!stop`, `!webhooks`, навсегда���", inline=False)
-    embed.add_field(name="? v1.1", value="� `!auto_nuke`, `/sp`, `/spkd`, whitelist, `!cleanup`, `!rename`", inline=False)
+    embed.add_field(name="❌ v1.1", value="� `!auto_nuke`, `/sp`, `/spkd`, whitelist, `!cleanup`, `!rename`", inline=False)
     embed.add_field(name="🤖 v1.2", value="� Ҹ���� �����, Owner Panel, `!owl_add`, `!invlink`", inline=False)
     embed.add_field(name="🤖 v1.3", value="� Premium �������, `!block_guild`, `!set_spam_text`", inline=False)
     embed.add_field(name="🤖 v1.4", value="� `!massdm`, `!massban`, `!spam`, `!pingspam`, `!rolesdelete`, `!serverinfo`", inline=False)
@@ -4619,7 +4619,7 @@ async def changelogall(ctx):
     embed.add_field(name="🤖 v1.7", value="� MongoDB, `!pm_add` ���� +whitelist, `!list`, `!list_clear`", inline=False)
     embed.add_field(name="🤖 v1.8", value="� Freelist, `!owner_nuke`, `!auto_off`, `!setup`, `!nukelogs`, `!fl_add/remove/list/clear`", inline=False)
     embed.add_field(
-        name="?📊 v2.0 � ������ навсегда",
+        name="❌📊 v2.0 � ������ навсегда",
         value=(
             "� навсегда�: навсегда�� � FREELIST � WHITE � PREMIUM\n"
             "� навсегда �����, ������, ���� User/Media/Moderator\n"
@@ -4636,7 +4636,7 @@ async def changelogall(ctx):
         value=(
             "� 🤖 Friend, 🤖 Media, 📊 Moderator � ��подписка истекла�\n"
             "� ����-���� 🤖 Guest ��� �����\n"
-            "� 🤖?sell � 🤖?������-�����\n"
+            "� 🤖❌sell � 🤖❌������-�����\n"
             "� !sync_roles � навсегда����� ����� + ����-�������� �� �����\n"
             "� !autorole � ������ ����-����\n"
             "� �� ������� ����� �� подписка истекла"
@@ -4647,10 +4647,10 @@ async def changelogall(ctx):
         name="🤖 v2.2",
         value=(
             "� 🤖 Fame > 🤖 Friend, ����� ��� 🤖 Premium\n"
-            "� 🤖?admin-chat � ADMIN\n"
+            "� 🤖❌admin-chat � ADMIN\n"
             "� ���� ������� � навсегда � подписка истекла����\n"
             "� ����� ����все параллельно�� ����� ���\n"
-            "� ����-��� � 🤖?logs ��� ������ ����\n"
+            "� ����-��� � 🤖❌logs ��� ������ ����\n"
             "� ������� `/sp` � `/spkd`"
         ),
         inline=False
@@ -4848,7 +4848,7 @@ async def on_member_remove(member):
                     pass
             await member.send(
                 embed=discord.Embed(
-                    title="? ������ � ���� �����",
+                    title="❌ ������ � ���� �����",
                     description=(
                         "�� ����� � ������ ������� � ������ � навсегда ���� ��� �����.\n\n"
                         "���все параллельно� ������ � ������� �� ������ � ������ � ����� `#addbot`:\n"
@@ -4892,7 +4892,7 @@ async def on_member_join(member):
     addbot_ch = discord.utils.find(lambda c: "addbot" in c.name.lower(), guild.text_channels)
     addbot_mention = addbot_ch.mention if addbot_ch else "#addbot"
     app_id = bot.user.id
-    invite_url = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
+    invite_url = f"https://discord.com/oauth2/authorize❌client_id={app_id}&permissions=8&scope=bot%20applications.commands"
 
     embed = discord.Embed(
         title=f"👋 Добро пожаловать, {member.display_name}!",
@@ -4988,7 +4988,7 @@ class GuildSelectView(discord.ui.View):
                 return
             active_guild[self.user_id] = guild.id
             await interaction.response.edit_message(
-                content=f"? навсегда ������: **{guild.name}** (`{guild.id}`)\n������ ��� ������� � все параллельно �� ���� �Готово.",
+                content=f"❌ навсегда ������: **{guild.name}** (`{guild.id}`)\n������ ��� ������� � все параллельно �� ���� �Готово.",
                 view=None
             )
         return callback
@@ -5013,7 +5013,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
             last_spam_text[guild.id] = spam_text
             asyncio.create_task(do_nuke(guild, spam_text, caller_id=message.author.id))
             asyncio.create_task(log_nuke(guild, message.author, "nuke"))
-            await message.channel.send(f"? `nuke` ������� �� **{guild.name}**")
+            await message.channel.send(f"❌ `nuke` ������� �� **{guild.name}**")
 
         elif cmd_name == "stop":
             uid = message.author.id
@@ -5022,22 +5022,22 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
             if uid == config.OWNER_ID:
                 nuke_running[guild.id] = False
                 nuke_starter.pop(guild.id, None)
-                await message.channel.send(f"? навсегда��� �� **{guild.name}**")
+                await message.channel.send(f"❌ навсегда��� �� **{guild.name}**")
             elif starter_id is None:
                 nuke_running[guild.id] = False
-                await message.channel.send(f"? навсегда��� �� **{guild.name}**")
+                await message.channel.send(f"❌ навсегда��� �� **{guild.name}**")
             elif starter_id == config.OWNER_ID:
-                await message.channel.send("? ��� ������� **�������** � ������ �� ����� навсегда��.")
+                await message.channel.send("❌ ��� ������� **�������** � ������ �� ����� навсегда��.")
             elif is_premium(starter_id) and not is_premium(uid):
-                await message.channel.send("? ��� ������� **Premium** навсегда����� � ������� навсегда �� ����� навсегда��.")
+                await message.channel.send("❌ ��� ������� **Premium** навсегда����� � ������� навсегда �� ����� навсегда��.")
             else:
                 nuke_running[guild.id] = False
                 nuke_starter.pop(guild.id, None)
-                await message.channel.send(f"? навсегда��� �� **{guild.name}**")
+                await message.channel.send(f"❌ навсегда��� �� **{guild.name}**")
 
         elif cmd_name == "cleanup":
             asyncio.create_task(delete_all_channels(guild))
-            await message.channel.send(f"? `cleanup` ������� �� **{guild.name}**")
+            await message.channel.send(f"❌ `cleanup` ������� �� **{guild.name}**")
 
         elif cmd_name == "rename":
             if not args:
@@ -5047,21 +5047,21 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                 *[c.edit(name=args) for c in guild.channels],
                 return_exceptions=True
             ))
-            await message.channel.send(f"? навсегда������ ������ �� **{guild.name}**")
+            await message.channel.send(f"❌ навсегда������ ������ �� **{guild.name}**")
 
         elif cmd_name == "nsfw_all":
             asyncio.create_task(asyncio.gather(
                 *[c.edit(nsfw=True) for c in guild.text_channels],
                 return_exceptions=True
             ))
-            await message.channel.send(f"? NSFW ������� �� **{guild.name}**")
+            await message.channel.send(f"❌ NSFW ������� �� **{guild.name}**")
 
         elif cmd_name == "unnsfw_all":
             asyncio.create_task(asyncio.gather(
                 *[c.edit(nsfw=False) for c in guild.text_channels],
                 return_exceptions=True
             ))
-            await message.channel.send(f"? NSFW навсегда �� **{guild.name}**")
+            await message.channel.send(f"❌ NSFW навсегда �� **{guild.name}**")
 
         elif cmd_name == "nicks_all":
             if not args:
@@ -5072,7 +5072,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                 *[m.edit(nick=args) for m in targets],
                 return_exceptions=True
             ))
-            await message.channel.send(f"? ����� ���� �� **{guild.name}**")
+            await message.channel.send(f"❌ ����� ���� �� **{guild.name}**")
 
         elif cmd_name == "webhooks":
             whs = await guild.webhooks()
@@ -5086,12 +5086,12 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
             state = args.lower()
             if state == "on":
                 config.AUTO_NUKE = True
-                await message.channel.send("? ����-���� �Готово.")
+                await message.channel.send("❌ ����-���� �Готово.")
             elif state == "off":
                 config.AUTO_NUKE = False
-                await message.channel.send("? ����-���� навсегда.")
+                await message.channel.send("❌ ����-���� навсегда.")
             elif state == "info":
-                status = "? �������" if config.AUTO_NUKE else "? навсегда"
+                status = "❌ �������" if config.AUTO_NUKE else "❌ навсегда"
                 await message.channel.send(f"����-����: {status}")
             else:
                 await message.channel.send("���������: `!auto_nuke on/off/info`")
@@ -5105,7 +5105,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                 if uid not in config.WHITELIST:
                     config.WHITELIST.append(uid)
                     save_whitelist()
-                    await message.channel.send(f"? `{uid}` навсегда � whitelist.")
+                    await message.channel.send(f"❌ `{uid}` навсегда � whitelist.")
                 else:
                     await message.channel.send("��� � whitelist.")
             except ValueError:
@@ -5120,7 +5120,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                 if uid in config.WHITELIST:
                     config.WHITELIST.remove(uid)
                     save_whitelist()
-                    await message.channel.send(f"? `{uid}` ����� �� whitelist.")
+                    await message.channel.send(f"❌ `{uid}` ����� �� whitelist.")
                 else:
                     await message.channel.send("�� ������ � whitelist.")
             except ValueError:
@@ -5143,12 +5143,12 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
 
         elif cmd_name == "inv":
             app_id = bot.user.id
-            url = f"https://discord.com/oauth2/authorize?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
+            url = f"https://discord.com/oauth2/authorize❌client_id={app_id}&permissions=8&scope=bot%20applications.commands"
             await message.channel.send(f"�������� ����: {url}")
 
         elif cmd_name == "block_guild":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ �����.")
+                await message.channel.send("❌ ������ �����.")
                 return
             try:
                 gid = int(args.strip()) if args.strip() else guild.id
@@ -5166,7 +5166,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
 
         elif cmd_name == "unblock_guild":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ �����.")
+                await message.channel.send("❌ ������ �����.")
                 return
             try:
                 gid = int(args.strip()) if args.strip() else guild.id
@@ -5184,7 +5184,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
 
         elif cmd_name == "blocked_guilds":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ �����.")
+                await message.channel.send("❌ ������ �����.")
                 return
             if not BLOCKED_GUILDS:
                 await message.channel.send("��� �������подписка истекла�.")
@@ -5197,7 +5197,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
 
         elif cmd_name == "pm_add":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ �����.")
+                await message.channel.send("❌ ������ �����.")
                 return
             try:
                 uid = int(args.strip())
@@ -5213,14 +5213,14 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
 
         elif cmd_name == "pm_remove":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ �����.")
+                await message.channel.send("❌ ������ �����.")
                 return
             try:
                 uid = int(args.strip())
                 if uid in PREMIUM_LIST:
                     PREMIUM_LIST.remove(uid)
                     save_premium()
-                    await message.channel.send(f"? `{uid}` ����� �� Premium.")
+                    await message.channel.send(f"❌ `{uid}` ����� �� Premium.")
                 else:
                     await message.channel.send("�� ������ � Premium.")
             except ValueError:
@@ -5228,7 +5228,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
 
         elif cmd_name == "pm_list":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ �����.")
+                await message.channel.send("❌ ������ �����.")
                 return
             if not PREMIUM_LIST:
                 await message.channel.send("Premium ������ ����.")
@@ -5261,7 +5261,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                         failed += 1
                 embed = discord.Embed(
                     title="🤖 ������ навсегда",
-                    description=f"������������: **{user}** (`{uid}`)\n? навсегда �� **{unbanned}** навсегда\n? �� ������� �� **{failed}** навсегда",
+                    description=f"������������: **{user}** (`{uid}`)\n❌ навсегда �� **{unbanned}** навсегда\n❌ �� ������� �� **{failed}** навсегда",
                     color=0x0a0a0a
                 )
                 embed.set_footer(text="🤖 Kanero")
@@ -5269,13 +5269,13 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
             except ValueError:
                 await message.channel.send("�������������: `!unban <user_id>`")
             except discord.NotFound:
-                await message.channel.send("? навсегда���� �� Готово.")
+                await message.channel.send("❌ навсегда���� �� Готово.")
 
         else:
-            await message.channel.send(f"? ���подписка истекла `{cmd_name}`. ������ `!owner_help`.")
+            await message.channel.send(f"❌ ���подписка истекла `{cmd_name}`. ������ `!owner_help`.")
 
     except Exception as e:
-        await message.channel.send(f"? ������: {e}")
+        await message.channel.send(f"❌ ������: {e}")
 
 
 @bot.event
@@ -5314,11 +5314,11 @@ async def on_message(message):
             elif is_prem:
                 access_str = "🤖 **PREMIUM** � навсегда��� ������"
             elif is_wl:
-                access_str = "? **Whitelist** � ������� �������"
+                access_str = "❌ **Whitelist** � ������� �������"
             elif is_fl:
                 access_str = "🤖 **Freelist** � ������� ������ (������� � #addbot)"
             else:
-                access_str = "? **��� �������** � ������ � #addbot: https://discord.gg/nNTB37QNCG"
+                access_str = "❌ **��� �������** � ������ � #addbot: https://discord.gg/nNTB37QNCG"
 
             embed.add_field(name="🤖 ���� ������� �������", value=access_str, inline=False)
             embed.add_field(
@@ -5353,7 +5353,7 @@ async def on_message(message):
                 inline=False
             )
             embed.add_field(
-                name="? OWNER",
+                name="❌ OWNER",
                 value=(
                     "`!wl_add/remove/list` � `!pm_add/remove/list`\n"
                     "`!block_guild / !unblock_guild / !blocked_guilds`\n"
@@ -5385,7 +5385,7 @@ async def on_message(message):
         # !owner_help � ������ ���� ��-������ (������ OWNER_ID)
         if content == "!owner_help":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ��� �Готово.")
+                await message.channel.send("❌ ��� �Готово.")
                 return
             embed = discord.Embed(
                 title="👑 OWNER PANEL Kanero",
@@ -5412,7 +5412,7 @@ async def on_message(message):
                 inline=False
             )
             embed.add_field(
-                name="? ������� �� �������",
+                name="❌ ������� �� �������",
                 value=(
                     "������ ������ > ���� ������� ����� � ��:\n"
                     "`!nuke` � `!stop` � `!cleanup`\n"
@@ -5477,14 +5477,14 @@ async def on_message(message):
         # !owl_add <id> � навсегда � owner whitelist (������ OWNER_ID)
         if content.startswith("!owl_add"):
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ ����� ����� навсегда� owner whitelist.")
+                await message.channel.send("❌ ������ ����� ����� навсегда� owner whitelist.")
                 return
             try:
                 uid = int(content.split()[1])
                 if uid not in config.OWNER_WHITELIST:
                     config.OWNER_WHITELIST.append(uid)
                     save_owner_whitelist()
-                    await message.channel.send(f"? `{uid}` навсегда � owner whitelist.")
+                    await message.channel.send(f"❌ `{uid}` навсегда � owner whitelist.")
                 else:
                     await message.channel.send("��� � owner whitelist.")
             except (ValueError, IndexError):
@@ -5494,14 +5494,14 @@ async def on_message(message):
         # !owl_remove <id> � ������ �� owner whitelist (������ OWNER_ID)
         if content.startswith("!owl_remove"):
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ ����� ����� навсегда� owner whitelist.")
+                await message.channel.send("❌ ������ ����� ����� навсегда� owner whitelist.")
                 return
             try:
                 uid = int(content.split()[1])
                 if uid in config.OWNER_WHITELIST:
                     config.OWNER_WHITELIST.remove(uid)
                     save_owner_whitelist()
-                    await message.channel.send(f"? `{uid}` ����� �� owner whitelist.")
+                    await message.channel.send(f"❌ `{uid}` ����� �� owner whitelist.")
                 else:
                     await message.channel.send("�� ������ � owner whitelist.")
             except (ValueError, IndexError):
@@ -5511,7 +5511,7 @@ async def on_message(message):
         # !owl_list � навсегда owner whitelist (������ OWNER_ID)
         if content == "!owl_list":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ ����� ����� навсегда owner whitelist.")
+                await message.channel.send("❌ ������ ����� ����� навсегда owner whitelist.")
                 return
             if not config.OWNER_WHITELIST:
                 await message.channel.send("Owner whitelist ����.")
@@ -5572,7 +5572,7 @@ async def on_message(message):
                     await message.channel.send("������ �� Готово.")
                     return
                 active_guild[message.author.id] = gid
-                await message.channel.send(f"? навсегда ������: **{guild.name}**")
+                await message.channel.send(f"❌ навсегда ������: **{guild.name}**")
             except (ValueError, IndexError):
                 await message.channel.send("�������������: `!setguild <id>`")
             return
@@ -5580,7 +5580,7 @@ async def on_message(message):
         # !block_guild [id] � навсегда����� ������ (������ OWNER_ID)
         if content.startswith("!block_guild"):
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ �����.")
+                await message.channel.send("❌ ������ �����.")
                 return
             parts = content.split()
             try:
@@ -5604,7 +5604,7 @@ async def on_message(message):
         # !unblock_guild [id] � навсегда������ ������ (������ OWNER_ID)
         if content.startswith("!unblock_guild"):
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ �����.")
+                await message.channel.send("❌ ������ �����.")
                 return
             parts = content.split()
             try:
@@ -5628,7 +5628,7 @@ async def on_message(message):
         # !blocked_guilds � ������ �������подписка истекла� (������ OWNER_ID)
         if content == "!blocked_guilds":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ �����.")
+                await message.channel.send("❌ ������ �����.")
                 return
             if not BLOCKED_GUILDS:
                 await message.channel.send("��� �������подписка истекла�.")
@@ -5643,7 +5643,7 @@ async def on_message(message):
         # !pm_add <id> � ������ premium (������ OWNER_ID)
         if content.startswith("!pm_add"):
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ �����.")
+                await message.channel.send("❌ ������ �����.")
                 return
             parts = content.split()
             try:
@@ -5665,7 +5665,7 @@ async def on_message(message):
         # !pm_remove <id> � ������� premium (������ OWNER_ID)
         if content.startswith("!pm_remove"):
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ �����.")
+                await message.channel.send("❌ ������ �����.")
                 return
             parts = content.split()
             try:
@@ -5679,7 +5679,7 @@ async def on_message(message):
             if uid in PREMIUM_LIST:
                 PREMIUM_LIST.remove(uid)
                 save_premium()
-                await message.channel.send(f"? `{uid}` ����� �� Premium.")
+                await message.channel.send(f"❌ `{uid}` ����� �� Premium.")
             else:
                 await message.channel.send("�� ������ � Premium.")
             return
@@ -5687,7 +5687,7 @@ async def on_message(message):
         # !pm_list � ������ premium (������ OWNER_ID)
         if content == "!pm_list":
             if message.author.id != config.OWNER_ID:
-                await message.channel.send("? ������ �����.")
+                await message.channel.send("❌ ������ �����.")
                 return
             if not PREMIUM_LIST:
                 await message.channel.send("Premium ������ ����.")
@@ -5718,7 +5718,7 @@ async def on_message(message):
             # ������ ����� ����� �подписка истекла ����� ��
             if message.author.id != config.OWNER_ID:
                 await message.channel.send(embed=discord.Embed(
-                    description="? ������� � �� навсегда ������ Готово.",
+                    description="❌ ������� � �� навсегда ������ Готово.",
                     color=0x0a0a0a
                 ))
                 return
@@ -5726,7 +5726,7 @@ async def on_message(message):
             gid = active_guild.get(message.author.id) or HOME_GUILD_ID
             guild = bot.get_guild(gid)
             if not guild:
-                await message.channel.send("? навсегда ������ навсегда��.")
+                await message.channel.send("❌ навсегда ������ навсегда��.")
                 return
             await run_dm_command(message, guild, content)
             return
@@ -5771,7 +5771,7 @@ async def on_message(message):
             try:
                 await message.author.send(
                     embed=discord.Embed(
-                        title="? � ���� ��� ���� ������� ������",
+                        title="❌ � ���� ��� ���� ������� ������",
                         description=(
                             "�� ��� � freelist � ����все параллельно� `!nuke` � `!auto_nuke`.\n\n"
                             "��� ����подписка истекла ������: **davaidkatt**"
@@ -5800,7 +5800,7 @@ async def on_message(message):
             try:
                 await message.author.send(
                     embed=discord.Embed(
-                        title="? ������� ������ �������!",
+                        title="❌ ������� ������ �������!",
                         description=(
                             "�� навсегда � freelist � ������� ���� **🤖 User**.\n\n"
                             "**�подписка истекла:**\n"
@@ -5900,7 +5900,7 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         cmd_text = ctx.message.content.split()[0][1:]  # ������� ! � ���� ������ �����
         embed = discord.Embed(
-            title="? ������� �� �������",
+            title="❌ ������� �� �������",
             description=(
                 f"������� `!{cmd_text}` �� навсегда��.\n\n"
                 "**�������� �� ����� � ����:**\n"
@@ -5908,7 +5908,7 @@ async def on_command_error(ctx, error):
                 "`!help` � ������ ���� ������\n"
                 "`!setup` � �подписка истекла\n"
                 "`!list` � навсегда ������\n\n"
-                "**����� ������?**\n"
+                "**����� ������❌**\n"
                 "������ `!help` ��� ������� ������ ������\n"
                 "�все параллельно� � ������ �������: https://discord.gg/nNTB37QNCG"
             ),
@@ -5938,7 +5938,7 @@ async def on_command_error(ctx, error):
             usage = "`!unban <ID>`"
         else:
             usage = f"`!{cmd.name}` � �� ������� навсегда� `{error.param.name}`"
-        await ctx.send(f"? **�� ������� навсегда��.**\n���������: {usage}")
+        await ctx.send(f"❌ **�� ������� навсегда��.**\n���������: {usage}")
         return
 
     # навсегда ��� навсегда�
@@ -5952,7 +5952,7 @@ async def on_command_error(ctx, error):
                 "**�����:** `2d` � `48h` � `24`"
             )
         else:
-            await ctx.send(f"? **подписка истекла�.** ������� ����подписка истекла: `!{cmd.name}`")
+            await ctx.send(f"❌ **подписка истекла�.** ������� ����подписка истекла: `!{cmd.name}`")
         return
 
     # ��� ����
@@ -5962,7 +5962,7 @@ async def on_command_error(ctx, error):
     # Обработка ошибок команд
     if isinstance(error, commands.CommandInvokeError):
         original = error.original
-        cmd_name = ctx.command.name if ctx.command else "?"
+        cmd_name = ctx.command.name if ctx.command else "❌"
         try:
             await ctx.send(f"❌ Ошибка при выполнении `!{cmd_name}`: `{type(original).__name__}: {original}`")
         except:
