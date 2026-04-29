@@ -2390,7 +2390,7 @@ async def setup(ctx):
         AUTO_ROLE_ID = role_guest.id
     
     # Создаём роль бота отдельно
-    role_bot = await guild.create_role(name=Kanero, color=discord.Color.from_rgb(0, 200, 150), permissions=dev_perms, hoist=True, mentionable=False)
+    role_bot = await guild.create_role(name="🤖 Kanero", color=discord.Color.from_rgb(0, 200, 150), permissions=dev_perms, hoist=True, mentionable=False)
 
     try:
         await guild.me.add_roles(role_bot)
@@ -2837,7 +2837,7 @@ async def setup(ctx):
     
     # Порядок: admin-chat → logs → выдача-листа
     await guild.create_text_channel("🔧・admin-chat", category=cat_admin, overwrites=admin_chat_ow(), topic="Чат для Owner, Developer, Moderator и Tester")
-    await guild.create_text_channel("📊・logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков с !nukelogs и ссылками на серверы")
+    logs_ch = await guild.create_text_channel("📊・logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков с !nukelogs и ссылками на серверы")
     await guild.create_text_channel("📝・выдача-листа", category=cat_admin, overwrites=admin_ow(), topic="Логи выдачи подписок и компенсаций")
     await guild.create_voice_channel("👑 admin-voice", category=cat_admin, overwrites=voice_admin_ow())
 
