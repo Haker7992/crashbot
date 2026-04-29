@@ -1832,7 +1832,7 @@ async def sync_roles_cmd(ctx):
             if role_guest not in member.roles:
                 try:
                     await member.add_roles(role_guest, reason="sync_roles: ���� Guest")
-                    given.append(f"?? {member} > Guest")
+                    given.append(f"👤 {member} > Guest")
                 except Exception:
                     pass
 
@@ -1881,7 +1881,7 @@ async def sync_roles_cmd(ctx):
             if role_white and role_white not in member.roles:
                 try:
                     await member.add_roles(role_white, reason="sync_roles")
-                    given.append(f"? {member} >"✅ White")
+                    given.append(f"✅ {member} > White")
                 except Exception:
                     pass
         # Freelist
@@ -1915,7 +1915,7 @@ async def sync_roles_cmd(ctx):
         if role_white and role_white in member.roles and uid not in wl_ids and uid not in pm_ids and uid != config.OWNER_ID:
             try:
                 await member.remove_roles(role_white, reason="sync_roles: �� � whitelist")
-                removed.append(f"? {member} < ������"✅ White")
+                removed.append(f"✅ {member} < White")
             except Exception:
                 pass
 
