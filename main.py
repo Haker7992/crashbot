@@ -2607,7 +2607,7 @@ async def setup(ctx):
         try:
             await guild.me.add_roles(role_bot)
         except Exception:
-        pass
+            pass
 
     # Параллельное позиционирование ролей - порядок: Kanero → Developer → Owner → Tester → Moderator → Media → Friend → Premium → White → User → Guest
     try:
