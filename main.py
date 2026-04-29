@@ -2595,8 +2595,7 @@ async def setup(ctx):
                         guest_count += 1
                     except Exception:
                         pass
-            if guest_count > 0:
-                await ctx.send(f"✅ Выдана роль 👤 Guest **{guest_count}** участникам.")
+            # Не отправляем сообщение, т.к. каналы ещё не созданы
         except Exception as e:
             print(f"Ошибка при выдаче Guest: {e}")
 
@@ -2738,7 +2737,26 @@ async def setup(ctx):
         ),
         inline=False
     )
-    changelog_embed.set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd  |  Текущая версия: v2.5")
+    changelog_embed.add_field(
+        name="📋 v2.6 — Система управления листами",
+        value=(
+            "• Канал 📋・выдача-листа в категории ОСНОВНОЕ\n"
+            "• Команды !wl_add, !pm_add, !fl_add только в этом канале\n"
+            "• Команда !list_clear только в канале выдача-листа\n"
+            "• Команда !list доступна везде для всех\n"
+            "• Добавлены роли 🎬 Media и 🤝 Friend\n"
+            "• Канал 🎬・медиа с slowmode 5 минут\n"
+            "• Media может пинговать @everyone в медиа\n"
+            "• Moderator и Media могут вставлять ссылки\n"
+            "• Исправлено удаление всех ролей в !setup\n"
+            "• Роль бота поднимается на самый верх\n"
+            "• Убран rate limiting при удалении ролей\n"
+            "• Приветствие теперь пингует пользователя\n"
+            "• Правильный порядок ролей"
+        ),
+        inline=False
+    )
+    changelog_embed.set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd  |  Текущая версия: v2.6")
     changelog_embed.set_thumbnail(url="https://i.imgur.com/Ji3SJwH.jpg")
     await changelog_ch.send(embed=changelog_embed)
 
@@ -4818,25 +4836,27 @@ bot.remove_command("help")
 
 @bot.command(name="changelog")
 async def changelog(ctx):
-    """���������� ������ �подписка истекла���."""
-    embed = discord.Embed(title="🤖 CHANGELOG � v2.4  |  ����� �����, навсегда, INFO", color=0x0a0a0a)
+    """Показывает последние обновления бота."""
+    embed = discord.Embed(title="🤖 CHANGELOG — v2.6  |  Система управления листами", color=0x0a0a0a)
     embed.add_field(
-        name="🤖 v2.4",
+        name="🤖 v2.6 — Система управления листами и улучшения",
         value=(
-            "**❌ �����:**\n"
-            "� �подписка истекла���� ����� ���� � навсегда ������ � �������\n"
-            "� навсегда� INFO � навсегда #info � #changelog\n"
-            "� `!setup_update` навсегда� #changelog � INFO навсегда�����\n\n"
-            "**❌ навсегда:**\n"
-            "� `guild.chunk()` ����� ����� � ��подписка истекла� навсегда��\n"
-            "� ����-���� подписка истекла���� ������\n"
-            "� �подписка истекла навсегда �����\n\n"
-            "**📊 �������:**\n"
-            "� ������� `!owner_nuke` � `!auto_owner_nuke`\n"
-            "� ������ OWNER_NUKE_LIST\n\n"
-            "**🤖 навсегда��:**\n"
-            "� �подписка истекла� ������ � навсегда� ������ (��� Freelist)\n"
-            "� ������ � ��подписка истекла���� ����� `!setup_update`"
+            "**📋 Новый канал выдача-листа:**\n"
+            "• Канал 📋・выдача-листа в категории ОСНОВНОЕ\n"
+            "• Команды !wl_add, !pm_add, !fl_add работают только там\n"
+            "• Команда !list_clear только в канале выдача-листа\n"
+            "• Команда !list доступна везде для всех\n\n"
+            "**🎬 Новые роли и каналы:**\n"
+            "• Добавлены роли 🎬 Media и 🤝 Friend\n"
+            "• Канал 🎬・медиа с slowmode 5 минут\n"
+            "• Media может пинговать @everyone в медиа\n"
+            "• Moderator и Media могут вставлять ссылки\n\n"
+            "**🔧 Исправления:**\n"
+            "• Исправлено удаление всех ролей в !setup\n"
+            "• Роль бота поднимается на самый верх\n"
+            "• Убран rate limiting при удалении ролей\n"
+            "• Приветствие теперь пингует пользователя\n"
+            "• Исправлен порядок ролей (Kanero → Dev → Owner → Tester → Mod → Media → Friend → Premium → White → User → Guest)"
         ),
         inline=False
     )
@@ -4908,19 +4928,45 @@ async def changelogall(ctx):
         inline=False
     )
     embed.add_field(
-        name="🤖 v2.4 � �����, навсегда, INFO",
+        name="🤖 v2.4 — Тикеты, навсегда, INFO",
         value=(
-            "� ����� навсегда ����� ���� � ������� � навсегда�����\n"
-            "� навсегда� INFO � #info � #changelog\n"
-            "� `guild.chunk()` � ��подписка истекла� навсегда��\n"
-            "� ����-���� подписка истекла���� ������\n"
-            "� ������� `!owner_nuke` � `!auto_owner_nuke`\n"
-            "� �подписка истекла� � навсегда� ������\n"
-            "� `!setup_update` навсегда� #changelog � INFO"
+            "• Тикеты навсегда через кнопку в категории навсегда\n"
+            "• Категория INFO с #info и #changelog\n"
+            "• `guild.chunk()` в начале setup\n"
+            "• Авто-роль подписка истекла через кнопку\n"
+            "• Команды `!owner_nuke` и `!auto_owner_nuke`\n"
+            "• Подписка истекла в навсегда сервера\n"
+            "• `!setup_update` навсегда #changelog в INFO"
         ),
         inline=False
     )
-    embed.set_footer(text="🤖 Kanero  |  discord.gg/aud6wwYVRd  |  Текущая версия: v2.5")
+    embed.add_field(
+        name="🤖 v2.5 — Система Tester и оптимизация",
+        value=(
+            "• Создана роль 🧪 Tester с правами Premium\n"
+            "• Команды `!ts_add`, `!ts_remove` для управления\n"
+            "• Категория 🧪 TESTS с каналами для тестирования\n"
+            "• Tester получает доступ к тикетам и admin-chat\n"
+            "• Переименована категория ОБЩЕНИЕ → ОСНОВНОЕ\n"
+            "• Удалены лишние каналы для упрощения структуры\n"
+            "• Исправлены все кодировки русского текста"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="🤖 v2.6 — Система управления листами",
+        value=(
+            "• Канал 📋・выдача-листа в ОСНОВНОЕ\n"
+            "• Команды !wl/pm/fl_add работают только там\n"
+            "• Роли 🎬 Media и 🤝 Friend добавлены\n"
+            "• Канал 🎬・медиа с slowmode 5 минут\n"
+            "• Исправлено удаление всех ролей в !setup\n"
+            "• Приветствие пингует пользователя\n"
+            "• Правильный порядок ролей"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="🤖 Kanero  |  discord.gg/aud6wwYVRd  |  Текущая версия: v2.6")
     embed.set_thumbnail(url="https://i.imgur.com/Ji3SJwH.jpg")
     await ctx.send(embed=embed)
 
