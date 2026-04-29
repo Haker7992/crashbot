@@ -2318,46 +2318,62 @@ async def setup(ctx):
         embed.set_footer(text="☠️ Kanero")
         await ctx.send(embed=embed)
         return
+    
     guild = ctx.guild
-    msg = await ctx.send("⚙️ Начинается настройка сервера... (примерное время ~15-20 сек)")
-
-    # -- 1. Удаление всех каналов и ролей --
-    # Удаляем все каналы параллельно
-    channel_tasks = [ch.delete() for ch in guild.channels]
-    if channel_tasks:
-        await asyncio.gather(*channel_tasks, return_exceptions=True)
+    print(f"[SETUP] Начало setup на сервере {guild.name} ({guild.id})")
     
-    # Удаляем роли параллельно
-    bot_role = guild.me.top_role
-    roles_to_delete = [r for r in guild.roles if not r.is_default() and r != bot_role and r.id != guild.me.id]
-    role_tasks = [r.delete() for r in roles_to_delete]
-    if role_tasks:
-        await asyncio.gather(*role_tasks, return_exceptions=True)
-    
-    # Ждём чтобы Discord API обработал удаление
-    await asyncio.sleep(3)
+    try:
+        msg = await ctx.send("⚙️ Начинается настройка сервера... (примерное время ~15-20 сек)")
 
-    # -- 2. Параллельное создание ролей --
-    guest_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False)
-    user_perms    = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=False, speak=False, use_application_commands=False)
-    white_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=True, speak=True, use_voice_activation=True, stream=True, use_application_commands=False)
-    premium_perms = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, priority_speaker=True, use_application_commands=False)
-    owner_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, manage_channels=True, manage_roles=True, manage_webhooks=True, kick_members=True, ban_members=True, manage_nicknames=True, view_audit_log=True, mention_everyone=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, mute_members=True, deafen_members=True, priority_speaker=True)
-    dev_perms     = discord.Permissions(administrator=True)
+        # -- 1. Удаление всех каналов и ролей --
+        print("[SETUP] Удаление каналов...")
+        # Удаляем все каналы параллельно
+        channel_tasks = [ch.delete() for ch in guild.channels]
+        if channel_tasks:
+            await asyncio.gather(*channel_tasks, return_exceptions=True)
+        print(f"[SETUP] Удалено {len(channel_tasks)} каналов")
+        
+        print("[SETUP] Удаление ролей...")
+        # Удаляем роли параллельно
+        bot_role = guild.me.top_role
+        roles_to_delete = [r for r in guild.roles if not r.is_default() and r != bot_role and r.id != guild.me.id]
+        role_tasks = [r.delete() for r in roles_to_delete]
+        if role_tasks:
+            await asyncio.gather(*role_tasks, return_exceptions=True)
+        print(f"[SETUP] Удалено {len(role_tasks)} ролей")
+        
+        # Ждём чтобы Discord API обработал удаление
+        print("[SETUP] Ожидание 3 секунды...")
+        await asyncio.sleep(3)
 
-    # Создаем роли параллельно
-    role_guest, role_user, role_white, role_premium, role_tester, role_mod, role_media, role_friend, role_owner, role_dev = await asyncio.gather(
-        guild.create_role(name="👤 Guest", color=discord.Color.from_rgb(120, 120, 120), permissions=guest_perms, hoist=False, mentionable=False),
-        guild.create_role(name="👥 User", color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms, hoist=True, mentionable=False),
-        guild.create_role(name="✅ White", color=discord.Color.from_rgb(85, 170, 255), permissions=white_perms, hoist=True, mentionable=False),
-        guild.create_role(name="💎 Premium", color=discord.Color.from_rgb(180, 80, 255), permissions=premium_perms, hoist=True, mentionable=False),
-        guild.create_role(name="🧪 Tester", color=discord.Color.from_rgb(255, 165, 0), permissions=premium_perms, hoist=True, mentionable=False),
-        guild.create_role(name="🛡️ Moderator", color=discord.Color.from_rgb(255, 140, 0), permissions=premium_perms, hoist=True, mentionable=False),
-        guild.create_role(name="🎬 Media", color=discord.Color.from_rgb(255, 100, 200), permissions=premium_perms, hoist=True, mentionable=False),
-        guild.create_role(name="🤝 Friend", color=discord.Color.from_rgb(100, 200, 255), permissions=premium_perms, hoist=True, mentionable=False),
-        guild.create_role(name="👑 Owner", color=discord.Color.from_rgb(255, 200, 0), permissions=owner_perms, hoist=True, mentionable=False),
-        guild.create_role(name="🔧 Developer", color=discord.Color.from_rgb(255, 60, 60), permissions=dev_perms, hoist=True, mentionable=False)
-    )
+        # -- 2. Параллельное создание ролей --
+        print("[SETUP] Создание ролей...")
+        guest_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False)
+        user_perms    = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=False, speak=False, use_application_commands=False)
+        white_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, connect=True, speak=True, use_voice_activation=True, stream=True, use_application_commands=False)
+        premium_perms = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, priority_speaker=True, use_application_commands=False)
+        owner_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, manage_channels=True, manage_roles=True, manage_webhooks=True, kick_members=True, ban_members=True, manage_nicknames=True, view_audit_log=True, mention_everyone=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, mute_members=True, deafen_members=True, priority_speaker=True)
+        dev_perms     = discord.Permissions(administrator=True)
+
+        # Создаем роли параллельно
+        role_guest, role_user, role_white, role_premium, role_tester, role_mod, role_media, role_friend, role_owner, role_dev = await asyncio.gather(
+            guild.create_role(name="👤 Guest", color=discord.Color.from_rgb(120, 120, 120), permissions=guest_perms, hoist=False, mentionable=False),
+            guild.create_role(name="👥 User", color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms, hoist=True, mentionable=False),
+            guild.create_role(name="✅ White", color=discord.Color.from_rgb(85, 170, 255), permissions=white_perms, hoist=True, mentionable=False),
+            guild.create_role(name="💎 Premium", color=discord.Color.from_rgb(180, 80, 255), permissions=premium_perms, hoist=True, mentionable=False),
+            guild.create_role(name="🧪 Tester", color=discord.Color.from_rgb(255, 165, 0), permissions=premium_perms, hoist=True, mentionable=False),
+            guild.create_role(name="🛡️ Moderator", color=discord.Color.from_rgb(255, 140, 0), permissions=premium_perms, hoist=True, mentionable=False),
+            guild.create_role(name="🎬 Media", color=discord.Color.from_rgb(255, 100, 200), permissions=premium_perms, hoist=True, mentionable=False),
+            guild.create_role(name="🤝 Friend", color=discord.Color.from_rgb(100, 200, 255), permissions=premium_perms, hoist=True, mentionable=False),
+            guild.create_role(name="👑 Owner", color=discord.Color.from_rgb(255, 200, 0), permissions=owner_perms, hoist=True, mentionable=False),
+            guild.create_role(name="🔧 Developer", color=discord.Color.from_rgb(255, 60, 60), permissions=dev_perms, hoist=True, mentionable=False)
+        )
+        print("[SETUP] Роли созданы успешно")
+    except Exception as e:
+        print(f"[SETUP ERROR] Ошибка в начале setup: {e}")
+        import traceback
+        traceback.print_exc()
+        return
     
     # Устанавливаем глобальный ID роли Guest
     global AUTO_ROLE_ID
