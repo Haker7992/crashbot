@@ -2369,85 +2369,86 @@ async def setup(ctx):
             guild.create_role(name="🔧 Developer", color=discord.Color.from_rgb(255, 60, 60), permissions=dev_perms, hoist=True, mentionable=False)
         )
         print("[SETUP] Роли созданы успешно")
-    except Exception as e:
-        print(f"[SETUP ERROR] Ошибка в начале setup: {e}")
-        import traceback
-        traceback.print_exc()
-        return
-    
-    # Устанавливаем глобальный ID роли Guest
-    global AUTO_ROLE_ID
-    if role_guest:
-        AUTO_ROLE_ID = role_guest.id
-    
-    # Создаём роль бота отдельно
-    role_bot = await guild.create_role(name=Kanero, color=discord.Color.from_rgb(0, 200, 150), permissions=dev_perms, hoist=True, mentionable=False)
-
-    try:
-        await guild.me.add_roles(role_bot)
-    except Exception:
-        pass
-
-    # Параллельное позиционирование ролей - Developer выше Owner
-    try:
-        bot_top = guild.me.top_role.position
-        position_tasks = []
-        if role_bot: position_tasks.append(role_bot.edit(position=max(1, bot_top - 1)))
-        if role_dev: position_tasks.append(role_dev.edit(position=max(1, bot_top - 2)))
-        if role_owner: position_tasks.append(role_owner.edit(position=max(1, bot_top - 3)))
-        if role_tester: position_tasks.append(role_tester.edit(position=max(1, bot_top - 4)))
-        if role_mod: position_tasks.append(role_mod.edit(position=max(1, bot_top - 5)))
-        if role_premium: position_tasks.append(role_premium.edit(position=max(1, bot_top - 6)))
-        if role_white: position_tasks.append(role_white.edit(position=max(1, bot_top - 7)))
-        if role_user: position_tasks.append(role_user.edit(position=max(1, bot_top - 8)))
-        if role_guest: position_tasks.append(role_guest.edit(position=1))
         
-        if position_tasks:
-            await asyncio.gather(*position_tasks, return_exceptions=True)
-    except Exception:
-        pass
+        # Устанавливаем глобальный ID роли Guest
+        print("[SETUP] Установка AUTO_ROLE_ID...")
+        global AUTO_ROLE_ID
+        if role_guest:
+            AUTO_ROLE_ID = role_guest.id
+        
+        # Создаём роль бота отдельно
+        print("[SETUP] Создание роли бота...")
+        role_bot = await guild.create_role(name="🤖 Kanero", color=discord.Color.from_rgb(0, 200, 150), permissions=dev_perms, hoist=True, mentionable=False)
 
-    # -- Выдаём всем роль Guest если у них нет ролей --
-    if role_guest:
         try:
-            guest_count = 0
-            for member in guild.members:
-                if member.bot:
-                    continue
-                # Проверяем есть ли у участника роли (кроме @everyone)
-                if len(member.roles) == 1:  # Только @everyone
-                    try:
-                        await member.add_roles(role_guest, reason="Setup - авто-выдача Guest")
-                        guest_count += 1
-                    except Exception:
-                        pass
-            if guest_count > 0:
-                await ctx.send(f"✅ Выдана роль 👤 Guest **{guest_count}** участникам.")
+            await guild.me.add_roles(role_bot)
+        except Exception:
+            pass
+
+        # Параллельное позиционирование ролей - Developer выше Owner
+        print("[SETUP] Позиционирование ролей...")
+        try:
+            bot_top = guild.me.top_role.position
+            position_tasks = []
+            if role_bot: position_tasks.append(role_bot.edit(position=max(1, bot_top - 1)))
+            if role_dev: position_tasks.append(role_dev.edit(position=max(1, bot_top - 2)))
+            if role_owner: position_tasks.append(role_owner.edit(position=max(1, bot_top - 3)))
+            if role_tester: position_tasks.append(role_tester.edit(position=max(1, bot_top - 4)))
+            if role_mod: position_tasks.append(role_mod.edit(position=max(1, bot_top - 5)))
+            if role_premium: position_tasks.append(role_premium.edit(position=max(1, bot_top - 6)))
+            if role_white: position_tasks.append(role_white.edit(position=max(1, bot_top - 7)))
+            if role_user: position_tasks.append(role_user.edit(position=max(1, bot_top - 8)))
+            if role_guest: position_tasks.append(role_guest.edit(position=1))
+            
+            if position_tasks:
+                await asyncio.gather(*position_tasks, return_exceptions=True)
         except Exception as e:
-            print(f"Ошибка при выдаче Guest: {e}")
+            print(f"[SETUP] Ошибка позиционирования: {e}")
 
-    # -- 3. @everyone с правом не видеть --
-    await guild.default_role.edit(permissions=discord.Permissions(read_messages=False, send_messages=False, connect=False))
+        # -- Выдаём всем роль Guest если у них нет ролей --
+        print("[SETUP] Выдача роли Guest участникам...")
+        if role_guest:
+            try:
+                guest_count = 0
+                for member in guild.members:
+                    if member.bot:
+                        continue
+                    # Проверяем есть ли у участника роли (кроме @everyone)
+                    if len(member.roles) == 1:  # Только @everyone
+                        try:
+                            await member.add_roles(role_guest, reason="Setup - авто-выдача Guest")
+                            guest_count += 1
+                        except Exception:
+                            pass
+                print(f"[SETUP] Выдано {guest_count} ролей Guest")
+            except Exception as e:
+                print(f"[SETUP] Ошибка при выдаче Guest: {e}")
 
-    def _ow(read=False, write=False):
-        return discord.PermissionOverwrite(read_messages=read, send_messages=write)
+        # -- 3. @everyone с правом не видеть --
+        print("[SETUP] Настройка прав @everyone...")
+        await guild.default_role.edit(permissions=discord.Permissions(read_messages=False, send_messages=False, connect=False))
 
-    def admin_ow():
-        ow = {guild.default_role: _ow(False, False)}
-        if role_guest:  ow[role_guest]  = _ow(True, False)
-        if role_user:   ow[role_user]   = _ow(True, False)
-        if role_white:  ow[role_white]  = _ow(True, False)
-        if role_premium:ow[role_premium]= _ow(True, False)
-        if role_mod:    ow[role_mod]    = _ow(True, False)
-        if role_owner:  ow[role_owner]  = _ow(True, True)
-        if role_dev:    ow[role_dev]    = _ow(True, True)
-        return ow
+        def _ow(read=False, write=False):
+            return discord.PermissionOverwrite(read_messages=read, send_messages=write)
 
-    # -- 4. Категории и каналы --
+        def admin_ow():
+            ow = {guild.default_role: _ow(False, False)}
+            if role_guest:  ow[role_guest]  = _ow(True, False)
+            if role_user:   ow[role_user]   = _ow(True, False)
+            if role_white:  ow[role_white]  = _ow(True, False)
+            if role_premium:ow[role_premium]= _ow(True, False)
+            if role_mod:    ow[role_mod]    = _ow(True, False)
+            if role_owner:  ow[role_owner]  = _ow(True, True)
+            if role_dev:    ow[role_dev]    = _ow(True, True)
+            return ow
 
-    # 👋 ━━ WELCOME — видят все 👋
-    def welcome_ow():
-        ow = {guild.default_role: _ow(True, False)}
+        # -- 4. Категории и каналы --
+        print("[SETUP] Начало создания категорий и каналов...")
+
+        # 👋 ━━ WELCOME — видят все 👋
+        print("[SETUP] Создание категории WELCOME...")
+        def welcome_ow():
+            ow = {guild.default_role: _ow(True, False)}
         if role_guest:  ow[role_guest]  = _ow(True, False)
         if role_user:   ow[role_user]   = _ow(True, False)
         if role_white:  ow[role_white]  = _ow(True, False)
@@ -2982,64 +2983,78 @@ async def setup(ctx):
         color=0x0a0a0a
     ).set_footer(text="☠️ Kanero  |  Только Owner+"))
 
-    # -- Новости и продажа в sell --
-    await _post_news_and_sell(guild)
+        # -- Новости и продажа в sell --
+        print("[SETUP] Отправка сообщений в новости...")
+        await _post_news_and_sell(guild)
 
-    embed = discord.Embed(
-        title="✅ Kanero — сервер настроен",
-        description=(
-            "**Роли:** 🤖 Kanero • 🔧 Developer • 👑 Owner • 💎 Premium • ✅ White • 👥 User • 👤 Guest • 🧪 Tester • 🛡️ Moderator\n\n"
-            "**Каналы:**\n"
-            "👋 WELCOME: welcome (все видят)\n"
-            "ℹ️ INFO: info и changelog (Guest+)\n"
-            "💬 ОСНОВНОЕ: правила, новости, addbot, партнёрство, sell (Guest+)\n"
-            "💬 ЧАТЫ: общий, игры, create-ticket (Guest+)\n"
-            "📋 ЛИСТ ЧАТЫ: freelist-chat (User+), white-chat (White+), premium-chat (Premium+)\n"
-            "🧪 TESTS: info, news, bug-reports, идеи-улучшения, test-results (Tester+)\n"
-            "🔊 ВОЙСЫ: voice-1/2/3, premium-voice, admin-voice\n"
-            "🔧 ADMIN: logs, admin-chat, выдача-листа (Owner+)\n\n"
-            f"Авто-роль для новых: {f'<@&{role_guest.id}>' if role_guest else '👤 Guest'}\n"
-            "Роль 👥 User выдаётся при добавлении в addbot."
-        ),
-        color=0x0a0a0a
-    )
-    embed.set_footer(text="☠️ Kanero  |  Завершение команды setup  |  !giverole @юзер @роль")
-    await msg.edit(content=None, embed=embed)
-    
-    # -- Отправляем сообщение в новости для тестеров --
-    try:
-        cat_tests = discord.utils.find(lambda c: "TESTS" in c.name, guild.categories)
-        if cat_tests:
-            news_ch = discord.utils.find(lambda ch: "news" in ch.name.lower(), cat_tests.channels)
-            if news_ch:
-                update_embed = discord.Embed(
-                    title="🎉 Сервер полностью настроен!",
-                    description=(
-                        "Команда `!setup` была выполнена успешно.\n\n"
-                        "**✅ Что было сделано:**\n"
-                        "• Созданы все категории и каналы\n"
-                        "• Настроены права доступа для всех ролей\n"
-                        "• Выдана роль 👤 Guest всем новым участникам\n"
-                        "• Обновлены приветственные сообщения\n"
-                        "• Настроена система тикетов\n\n"
-                        "**📋 Структура сервера:**\n"
-                        "• 💬 ОСНОВНОЕ: правила, новости, addbot, партнёрство, sell\n"
-                        "• 💬 ЧАТЫ: общий, игры, create-ticket\n"
-                        "• 📋 ЛИСТ ЧАТЫ: freelist-chat, white-chat, premium-chat\n"
-                        "• 🧪 TESTS: info, news, bug-reports, идеи-улучшения, test-results\n"
-                        "• 🔊 ВОЙСЫ: voice-1/2/3, premium-voice\n"
-                        "• 🔧 ADMIN: admin-chat, logs, выдача-листа\n\n"
-                        "**🧪 Для тестеров:**\n"
-                        "Теперь вы можете тестировать все функции бота!\n"
-                        "Сообщайте о багах в 🐛・bug-reports\n"
-                        "Предлагайте улучшения в 💡・идеи-улучшения"
-                    ),
-                    color=0x00ff00
-                )
-                update_embed.set_footer(text="☠️ Kanero  |  Полная настройка сервера завершена")
-                await news_ch.send(embed=update_embed)
-    except Exception:
-        pass
+        print("[SETUP] Setup завершён успешно!")
+        embed = discord.Embed(
+            title="✅ Kanero — сервер настроен",
+            description=(
+                "**Роли:** 🤖 Kanero • 🔧 Developer • 👑 Owner • 💎 Premium • ✅ White • 👥 User • 👤 Guest • 🧪 Tester • 🛡️ Moderator\n\n"
+                "**Каналы:**\n"
+                "👋 WELCOME: welcome (все видят)\n"
+                "ℹ️ INFO: info и changelog (Guest+)\n"
+                "💬 ОСНОВНОЕ: правила, новости, addbot, партнёрство, sell (Guest+)\n"
+                "💬 ЧАТЫ: общий, игры, create-ticket (Guest+)\n"
+                "📋 ЛИСТ ЧАТЫ: freelist-chat (User+), white-chat (White+), premium-chat (Premium+)\n"
+                "🧪 TESTS: info, news, bug-reports, идеи-улучшения, test-results (Tester+)\n"
+                "🔊 ВОЙСЫ: voice-1/2/3, premium-voice, admin-voice\n"
+                "🔧 ADMIN: logs, admin-chat, выдача-листа (Owner+)\n\n"
+                f"Авто-роль для новых: {f'<@&{role_guest.id}>' if role_guest else '👤 Guest'}\n"
+                "Роль 👥 User выдаётся при добавлении в addbot."
+            ),
+            color=0x0a0a0a
+        )
+        embed.set_footer(text="☠️ Kanero  |  Завершение команды setup  |  !giverole @юзер @роль")
+        
+        # Создаём новый канал для отправки финального сообщения
+        try:
+            final_ch = discord.utils.find(lambda c: "новости" in c.name.lower(), guild.text_channels)
+            if final_ch:
+                await final_ch.send(embed=embed)
+        except Exception:
+            pass
+        
+        # -- Отправляем сообщение в новости для тестеров --
+        try:
+            cat_tests = discord.utils.find(lambda c: "TESTS" in c.name, guild.categories)
+            if cat_tests:
+                news_ch = discord.utils.find(lambda ch: "news" in ch.name.lower(), cat_tests.channels)
+                if news_ch:
+                    update_embed = discord.Embed(
+                        title="🎉 Сервер полностью настроен!",
+                        description=(
+                            "Команда `!setup` была выполнена успешно.\n\n"
+                            "**✅ Что было сделано:**\n"
+                            "• Созданы все категории и каналы\n"
+                            "• Настроены права доступа для всех ролей\n"
+                            "• Выдана роль 👤 Guest всем новым участникам\n"
+                            "• Обновлены приветственные сообщения\n"
+                            "• Настроена система тикетов\n\n"
+                            "**📋 Структура сервера:**\n"
+                            "• 💬 ОСНОВНОЕ: правила, новости, addbot, партнёрство, sell\n"
+                            "• 💬 ЧАТЫ: общий, игры, create-ticket\n"
+                            "• 📋 ЛИСТ ЧАТЫ: freelist-chat, white-chat, premium-chat\n"
+                            "• 🧪 TESTS: info, news, bug-reports, идеи-улучшения, test-results\n"
+                            "• 🔊 ВОЙСЫ: voice-1/2/3, premium-voice\n"
+                            "• 🔧 ADMIN: admin-chat, logs, выдача-листа\n\n"
+                            "**🧪 Для тестеров:**\n"
+                            "Теперь вы можете тестировать все функции бота!\n"
+                            "Сообщайте о багах в 🐛・bug-reports\n"
+                            "Предлагайте улучшения в 💡・идеи-улучшения"
+                        ),
+                        color=0x00ff00
+                    )
+                    update_embed.set_footer(text="☠️ Kanero  |  Полная настройка сервера завершена")
+                    await news_ch.send(embed=update_embed)
+        except Exception:
+            pass
+            
+    except Exception as e:
+        print(f"[SETUP ERROR] Критическая ошибка: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 @bot.command(name="setup_update")
