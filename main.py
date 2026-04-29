@@ -5897,9 +5897,7 @@ async def on_ready():
 
     bot.tree.clear_commands(guild=None)
 
-    print(f"��� ������� ��� {bot.user}")
-
-    print(f"��� ������� ��� {bot.user}")
+    print(f"🤖 Бот запущен как {bot.user}")
 
 
 @bot.event
