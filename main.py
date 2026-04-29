@@ -1760,7 +1760,17 @@ async def list_cmd(ctx):
         inline=False
     )
     embed.set_footer(text="☠️ Kanero")
-    await ctx.send(embed=embed)
+    
+    # Отправляем только одно сообщение
+    try:
+        await ctx.send(embed=embed)
+    except discord.HTTPException:
+        # Если embed слишком большой, отправляем без некоторых fields
+        embed.clear_fields()
+        embed.add_field(name=f"📋 Freelist ({len(grouped['Freelist'])})",  value=await fmt(grouped['Freelist'][:10]),  inline=False)
+        embed.add_field(name=f"✅ Whitelist ({len(grouped['Whitelist'])})", value=await fmt(grouped['Whitelist'][:10]), inline=False)
+        embed.add_field(name=f"💎 Premium ({len(grouped['Premium'])})",     value=await fmt(grouped['Premium'][:10]),   inline=False)
+        await ctx.send(embed=embed)
 
 
 @bot.command(name="list_remove")
