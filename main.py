@@ -2449,56 +2449,56 @@ async def setup(ctx):
         print("[SETUP] Создание категории WELCOME...")
         def welcome_ow():
             ow = {guild.default_role: _ow(True, False)}
-        if role_guest:  ow[role_guest]  = _ow(True, False)
-        if role_user:   ow[role_user]   = _ow(True, False)
-        if role_white:  ow[role_white]  = _ow(True, False)
-        if role_premium:ow[role_premium]= _ow(True, False)
-        if role_owner:  ow[role_owner]  = _ow(True, True)
-        if role_dev:    ow[role_dev]    = _ow(True, True)
-        return ow
-    
-    cat_welcome = await guild.create_category("━━━━ 👋 WELCOME ━━━━", overwrites=welcome_ow())
-    welcome_ch = await guild.create_text_channel("👋・welcome", category=cat_welcome, overwrites=welcome_ow(), topic="Приветствие новых участников и как стать юзер пользователем")
+            if role_guest:  ow[role_guest]  = _ow(True, False)
+            if role_user:   ow[role_user]   = _ow(True, False)
+            if role_white:  ow[role_white]  = _ow(True, False)
+            if role_premium:ow[role_premium]= _ow(True, False)
+            if role_owner:  ow[role_owner]  = _ow(True, True)
+            if role_dev:    ow[role_dev]    = _ow(True, True)
+            return ow
+        
+        cat_welcome = await guild.create_category("━━━━ 👋 WELCOME ━━━━", overwrites=welcome_ow())
+        welcome_ch = await guild.create_text_channel("👋・welcome", category=cat_welcome, overwrites=welcome_ow(), topic="Приветствие новых участников и как стать юзер пользователем")
 
-    # ℹ️ ━━ INFO — Guest+ читают, только Owner пишет ℹ️
-    def info_ow():
-        ow = {guild.default_role: _ow()}
-        if role_guest:  ow[role_guest]  = _ow(True, False)
-        if role_user:   ow[role_user]   = _ow(True, False)
-        if role_white:  ow[role_white]  = _ow(True, False)
-        if role_premium:ow[role_premium]= _ow(True, False)
-        if role_owner:  ow[role_owner]  = _ow(True, True)
-        if role_dev:    ow[role_dev]    = _ow(True, True)
-        return ow
-    
-    cat_info = await guild.create_category("━━━━ ℹ️ INFO ━━━━", overwrites=info_ow())
-    info_ch = await guild.create_text_channel("ℹ️・info", category=cat_info, overwrites=info_ow(), topic="Информация о сервере правила и прочее")
-    changelog_ch = await guild.create_text_channel("📋・changelog", category=cat_info, overwrites=info_ow(), topic="История обновлений с !changelogall")
+        # ℹ️ ━━ INFO — Guest+ читают, только Owner пишет ℹ️
+        def info_ow():
+            ow = {guild.default_role: _ow()}
+            if role_guest:  ow[role_guest]  = _ow(True, False)
+            if role_user:   ow[role_user]   = _ow(True, False)
+            if role_white:  ow[role_white]  = _ow(True, False)
+            if role_premium:ow[role_premium]= _ow(True, False)
+            if role_owner:  ow[role_owner]  = _ow(True, True)
+            if role_dev:    ow[role_dev]    = _ow(True, True)
+            return ow
+        
+        cat_info = await guild.create_category("━━━━ ℹ️ INFO ━━━━", overwrites=info_ow())
+        info_ch = await guild.create_text_channel("ℹ️・info", category=cat_info, overwrites=info_ow(), topic="Информация о сервере правила и прочее")
+        changelog_ch = await guild.create_text_channel("📋・changelog", category=cat_info, overwrites=info_ow(), topic="История обновлений с !changelogall")
 
-    # Отправляем список changelog в канал #changelog
-    changelog_embed = discord.Embed(title="📋 CHANGELOG — версии проекта  |  v1.0 > v2.0", color=0x0a0a0a)
-    changelog_embed.add_field(name="🔥 v1.0", value="• `!nuke`, `!stop`, `!webhooks`, автоудаление", inline=False)
-    changelog_embed.add_field(name="⚡ v1.1", value="• `!auto_nuke`, `/sp`, `/spkd`, whitelist, `!cleanup`, `!rename`", inline=False)
-    changelog_embed.add_field(name="👑 v1.2", value="• Тёмная панель, Owner Panel, `!owl_add`, `!invlink`", inline=False)
-    changelog_embed.add_field(name="💎 v1.3", value="• Premium функции, `!block_guild`, `!set_spam_text`", inline=False)
-    changelog_embed.add_field(name="🚀 v1.4", value="• `!massdm`, `!massban`, `!spam`, `!pingspam`, `!rolesdelete`, `!serverinfo`", inline=False)
-    changelog_embed.add_field(name="💥 v1.5-1.6", value="• `!super_nuke`, `!auto_super_nuke`, `!auto_superpr_nuke`", inline=False)
-    changelog_embed.add_field(name="📊 v1.7", value="• MongoDB, `!pm_add` лист +whitelist, `!list`, `!list_clear`", inline=False)
-    changelog_embed.add_field(name="🎯 v1.8", value="• Freelist, `!owner_nuke`, `!auto_off`, `!setup`, `!nukelogs`, `!fl_add/remove/list/clear`", inline=False)
-    changelog_embed.add_field(
-        name="🎉🎊 v2.0 — полный редизайн",
-        value=(
-            "• Категории: приветствие и FREELIST и WHITE и PREMIUM\n"
-            "• Новейшие роли, каналы, роли User/Media/Moderator\n"
-            "• !wl_add/pm_add/fl_add по username/@mention/ID\n"
-            "• !setup_update — обновить без удаления каналов\n"
-            "• !list_clear — очистка всех листов\n"
-            "• ADMIN — все права, только Owner видит\n"
-            "• Улучшенная производительность кода"
-        ),
-        inline=False
-    )
-    changelog_embed.add_field(
+        # Отправляем список changelog в канал #changelog
+        changelog_embed = discord.Embed(title="📋 CHANGELOG — версии проекта  |  v1.0 > v2.0", color=0x0a0a0a)
+        changelog_embed.add_field(name="🔥 v1.0", value="• `!nuke`, `!stop`, `!webhooks`, автоудаление", inline=False)
+        changelog_embed.add_field(name="⚡ v1.1", value="• `!auto_nuke`, `/sp`, `/spkd`, whitelist, `!cleanup`, `!rename`", inline=False)
+        changelog_embed.add_field(name="👑 v1.2", value="• Тёмная панель, Owner Panel, `!owl_add`, `!invlink`", inline=False)
+        changelog_embed.add_field(name="💎 v1.3", value="• Premium функции, `!block_guild`, `!set_spam_text`", inline=False)
+        changelog_embed.add_field(name="🚀 v1.4", value="• `!massdm`, `!massban`, `!spam`, `!pingspam`, `!rolesdelete`, `!serverinfo`", inline=False)
+        changelog_embed.add_field(name="💥 v1.5-1.6", value="• `!super_nuke`, `!auto_super_nuke`, `!auto_superpr_nuke`", inline=False)
+        changelog_embed.add_field(name="📊 v1.7", value="• MongoDB, `!pm_add` лист +whitelist, `!list`, `!list_clear`", inline=False)
+        changelog_embed.add_field(name="🎯 v1.8", value="• Freelist, `!owner_nuke`, `!auto_off`, `!setup`, `!nukelogs`, `!fl_add/remove/list/clear`", inline=False)
+        changelog_embed.add_field(
+            name="🎉🎊 v2.0 — полный редизайн",
+            value=(
+                "• Категории: приветствие и FREELIST и WHITE и PREMIUM\n"
+                "• Новейшие роли, каналы, роли User/Media/Moderator\n"
+                "• !wl_add/pm_add/fl_add по username/@mention/ID\n"
+                "• !setup_update — обновить без удаления каналов\n"
+                "• !list_clear — очистка всех листов\n"
+                "• ADMIN — все права, только Owner видит\n"
+                "• Улучшенная производительность кода"
+            ),
+            inline=False
+        )
+            changelog_embed.add_field(
         name="🎨 v2.1 — новые функции",
         value=(
             "• 🤝 Friend, 🎬 Media, 🛡️ Moderator — специальные роли\n"
@@ -2509,8 +2509,8 @@ async def setup(ctx):
             "• Не удаляет роли на домашнем сервере"
         ),
         inline=False
-    )
-    changelog_embed.add_field(
+            )
+            changelog_embed.add_field(
         name="🔧 v2.2",
         value=(
             "• 🤝 Fame > 🤝 Friend, права как 💎 Premium\n"
@@ -2521,8 +2521,8 @@ async def setup(ctx):
             "• Удалены `/sp` и `/spkd`"
         ),
         inline=False
-    )
-    changelog_embed.add_field(
+            )
+            changelog_embed.add_field(
         name="🛠️ v2.3 — фиксы",
         value=(
             "• Исправлена производительность при параллельном создании каналов\n"
@@ -2534,8 +2534,8 @@ async def setup(ctx):
             "• `!compensate` — команда компенсации за потерянные роли"
         ),
         inline=False
-    )
-    changelog_embed.add_field(
+            )
+            changelog_embed.add_field(
         name="📊 v2.4 — логи, категории, INFO",
         value=(
             "• Новая категория ролей лист с логами и статистикой\n"
@@ -2547,8 +2547,8 @@ async def setup(ctx):
             "• `!setup_update` обновляет #changelog в INFO"
         ),
         inline=False
-    )
-    changelog_embed.add_field(
+            )
+            changelog_embed.add_field(
         name="🧪 v2.5 — Система Tester и оптимизация",
         value=(
             "• Создана роль 🧪 Tester с правами Premium\n"
@@ -2564,13 +2564,54 @@ async def setup(ctx):
             "• Улучшена структура сервера"
         ),
         inline=False
-    )
-    changelog_embed.set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd  |  Текущая версия: v2.5")
-    changelog_embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
-    await changelog_ch.send(embed=changelog_embed)
+            )
+            changelog_embed.set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd  |  Текущая версия: v2.5")
+            changelog_embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+        await changelog_ch.send(embed=changelog_embed)
 
-    # 💬 ━━ ОСНОВНОЕ — Guest+ читают 💬
-    def main_ow():
+        # 💬 ━━ ОСНОВНОЕ — Guest+ читают 💬
+        def main_ow():
+            ow = {guild.default_role: _ow()}
+            if role_guest:  ow[role_guest]  = _ow(True, False)
+            if role_user:   ow[role_user]   = _ow(True, False)
+            if role_white:  ow[role_white]  = _ow(True, False)
+            if role_premium:ow[role_premium]= _ow(True, False)
+            if role_owner:  ow[role_owner]  = _ow(True, True)
+            if role_dev:    ow[role_dev]    = _ow(True, True)
+            return ow
+        
+        def readonly_ow():
+            return main_ow()
+        
+        cat_main = await guild.create_category("━━━━ 💬 ОСНОВНОЕ ━━━━", overwrites=main_ow())
+        def addbot_ow():
+            ow = {guild.default_role: _ow()}
+            if role_guest:  ow[role_guest]  = _ow(True, True)
+            if role_user:   ow[role_user]   = _ow(True, True)
+            if role_white:  ow[role_white]  = _ow(True, True)
+            if role_premium:ow[role_premium]= _ow(True, True)
+            if role_owner:  ow[role_owner]  = _ow(True, True)
+            if role_dev:    ow[role_dev]    = _ow(True, True)
+            return ow
+        
+        rules_ch  = await guild.create_text_channel("📜・правила",  category=cat_main, overwrites=readonly_ow(), topic="Правила сервера")
+        await guild.create_text_channel("📢・новости",              category=cat_main, overwrites=readonly_ow(), topic="Новости и обновления от администрации")
+        addbot_ch = await guild.create_text_channel("🤖・addbot",   category=cat_main, overwrites=addbot_ow(), topic="Добавь бота и получишь роль User и доступ к боту")
+        await guild.create_text_channel("🤝・партнёрство",          category=cat_main, overwrites=readonly_ow(), topic="Предложения о партнёрстве и сотрудничестве")
+        await guild.create_text_channel("💰・sell",                  category=cat_main, overwrites=readonly_ow(), topic="Покупка White/Premium и только только Owner")
+
+        # 💬 ━━ ЧАТЫ — Guest+ пишут 💬
+        def chat_ow():
+            ow = {guild.default_role: _ow()}
+            if role_guest:  ow[role_guest]  = _ow(True, True)
+            if role_user:   ow[role_user]   = _ow(True, True)
+            if role_white:  ow[role_white]  = _ow(True, True)
+            if role_premium:ow[role_premium]= _ow(True, True)
+            if role_owner:  ow[role_owner]  = _ow(True, True)
+        if role_dev:    ow[role_dev]    = _ow(True, True)
+        return ow
+    
+            def ticket_ow():
         ow = {guild.default_role: _ow()}
         if role_guest:  ow[role_guest]  = _ow(True, False)
         if role_user:   ow[role_user]   = _ow(True, False)
@@ -2580,55 +2621,14 @@ async def setup(ctx):
         if role_dev:    ow[role_dev]    = _ow(True, True)
         return ow
     
-    def readonly_ow():
-        return main_ow()
-    
-    cat_main = await guild.create_category("━━━━ 💬 ОСНОВНОЕ ━━━━", overwrites=main_ow())
-    def addbot_ow():
-        ow = {guild.default_role: _ow()}
-        if role_guest:  ow[role_guest]  = _ow(True, True)
-        if role_user:   ow[role_user]   = _ow(True, True)
-        if role_white:  ow[role_white]  = _ow(True, True)
-        if role_premium:ow[role_premium]= _ow(True, True)
-        if role_owner:  ow[role_owner]  = _ow(True, True)
-        if role_dev:    ow[role_dev]    = _ow(True, True)
-        return ow
-    
-    rules_ch  = await guild.create_text_channel("📜・правила",  category=cat_main, overwrites=readonly_ow(), topic="Правила сервера")
-    await guild.create_text_channel("📢・новости",              category=cat_main, overwrites=readonly_ow(), topic="Новости и обновления от администрации")
-    addbot_ch = await guild.create_text_channel("🤖・addbot",   category=cat_main, overwrites=addbot_ow(), topic="Добавь бота и получишь роль User и доступ к боту")
-    await guild.create_text_channel("🤝・партнёрство",          category=cat_main, overwrites=readonly_ow(), topic="Предложения о партнёрстве и сотрудничестве")
-    await guild.create_text_channel("💰・sell",                  category=cat_main, overwrites=readonly_ow(), topic="Покупка White/Premium и только только Owner")
-
-    # 💬 ━━ ЧАТЫ — Guest+ пишут 💬
-    def chat_ow():
-        ow = {guild.default_role: _ow()}
-        if role_guest:  ow[role_guest]  = _ow(True, True)
-        if role_user:   ow[role_user]   = _ow(True, True)
-        if role_white:  ow[role_white]  = _ow(True, True)
-        if role_premium:ow[role_premium]= _ow(True, True)
-        if role_owner:  ow[role_owner]  = _ow(True, True)
-        if role_dev:    ow[role_dev]    = _ow(True, True)
-        return ow
-    
-    def ticket_ow():
-        ow = {guild.default_role: _ow()}
-        if role_guest:  ow[role_guest]  = _ow(True, False)
-        if role_user:   ow[role_user]   = _ow(True, False)
-        if role_white:  ow[role_white]  = _ow(True, False)
-        if role_premium:ow[role_premium]= _ow(True, False)
-        if role_owner:  ow[role_owner]  = _ow(True, True)
-        if role_dev:    ow[role_dev]    = _ow(True, True)
-        return ow
-    
-    cat_chat = await guild.create_category("━━━━ 💬 ЧАТЫ ━━━━", overwrites=chat_ow())
-    await guild.create_text_channel("💬・общий", category=cat_chat, overwrites=chat_ow(), topic="Общий чат с общением для всех участников с ролью")
-    await guild.create_text_channel("🎮・игры", category=cat_chat, overwrites=chat_ow(), topic="Обсуждение и игры для совместной игры")
+            cat_chat = await guild.create_category("━━━━ 💬 ЧАТЫ ━━━━", overwrites=chat_ow())
+            await guild.create_text_channel("💬・общий", category=cat_chat, overwrites=chat_ow(), topic="Общий чат с общением для всех участников с ролью")
+            await guild.create_text_channel("🎮・игры", category=cat_chat, overwrites=chat_ow(), topic="Обсуждение и игры для совместной игры")
     # 🎫 create-ticket — видят все Guest+, только читают создавать тикет
-    ticket_ch = await guild.create_text_channel("🎫・create-ticket", category=cat_chat, overwrites=ticket_ow(), topic="Чтобы создать тикет нажмите кнопку ниже")
+            ticket_ch = await guild.create_text_channel("🎫・create-ticket", category=cat_chat, overwrites=ticket_ow(), topic="Чтобы создать тикет нажмите кнопку ниже")
 
     # 📋 ━━ ЛИСТ ЧАТЫ — User+ 📋
-    def list_chats_ow():
+            def list_chats_ow():
         ow = {guild.default_role: _ow()}
         if role_guest:  ow[role_guest]  = _ow()
         if role_user:   ow[role_user]   = _ow(True, True)
@@ -2638,7 +2638,7 @@ async def setup(ctx):
         if role_dev:    ow[role_dev]    = _ow(True, True)
         return ow
     
-    def white_chat_ow():
+            def white_chat_ow():
         ow = {guild.default_role: _ow()}
         if role_guest:  ow[role_guest]  = _ow()
         if role_user:   ow[role_user]   = _ow()
@@ -2648,7 +2648,7 @@ async def setup(ctx):
         if role_dev:    ow[role_dev]    = _ow(True, True)
         return ow
     
-    def premium_chat_ow():
+            def premium_chat_ow():
         ow = {guild.default_role: _ow()}
         if role_guest:  ow[role_guest]  = _ow()
         if role_user:   ow[role_user]   = _ow()
@@ -2658,13 +2658,13 @@ async def setup(ctx):
         if role_dev:    ow[role_dev]    = _ow(True, True)
         return ow
     
-    cat_lists = await guild.create_category("━━━━ 📋 ЛИСТ ЧАТЫ ━━━━", overwrites=list_chats_ow())
-    await guild.create_text_channel("📁・freelist-chat", category=cat_lists, overwrites=list_chats_ow(), topic="Чат для freelist с !nuke, !auto_nuke, !help, !changelog")
-    await guild.create_text_channel("✅・white-chat", category=cat_lists, overwrites=white_chat_ow(), topic="Чат для White с !nuke [канал], !stop, !cleanup, !rename, !nicks_all")
-    await guild.create_text_channel("💎・premium-chat", category=cat_lists, overwrites=premium_chat_ow(), topic="Чат для Premium пользователей с !super_nuke, !massban, !massdm")
+            cat_lists = await guild.create_category("━━━━ 📋 ЛИСТ ЧАТЫ ━━━━", overwrites=list_chats_ow())
+            await guild.create_text_channel("📁・freelist-chat", category=cat_lists, overwrites=list_chats_ow(), topic="Чат для freelist с !nuke, !auto_nuke, !help, !changelog")
+            await guild.create_text_channel("✅・white-chat", category=cat_lists, overwrites=white_chat_ow(), topic="Чат для White с !nuke [канал], !stop, !cleanup, !rename, !nicks_all")
+            await guild.create_text_channel("💎・premium-chat", category=cat_lists, overwrites=premium_chat_ow(), topic="Чат для Premium пользователей с !super_nuke, !massban, !massdm")
 
     # 🧪 ━━ TESTS — Tester+ 🧪
-    def tests_ow():
+            def tests_ow():
         ow = {guild.default_role: _ow()}
         if role_guest:  ow[role_guest]  = _ow()
         if role_user:   ow[role_user]   = _ow()
@@ -2675,7 +2675,7 @@ async def setup(ctx):
         if role_dev:    ow[role_dev]    = _ow(True, True)
         return ow
     
-    def tests_info_ow():
+            def tests_info_ow():
         ow = {guild.default_role: _ow()}
         if role_guest:  ow[role_guest]  = _ow()
         if role_user:   ow[role_user]   = _ow()
@@ -2686,23 +2686,23 @@ async def setup(ctx):
         if role_dev:    ow[role_dev]    = _ow(True, True)
         return ow
     
-    cat_tests = await guild.create_category("━━━━ 🧪 TESTS ━━━━", overwrites=tests_ow())
+            cat_tests = await guild.create_category("━━━━ 🧪 TESTS ━━━━", overwrites=tests_ow())
     
     # Канал #info в TESTS с инструкциями для тестеров
-    info_tests_ch = await guild.create_text_channel("ℹ️・info", category=cat_tests, overwrites=tests_info_ow(), topic="Инструкция для тестеров — как тестировать и что делать")
+            info_tests_ch = await guild.create_text_channel("ℹ️・info", category=cat_tests, overwrites=tests_info_ow(), topic="Инструкция для тестеров — как тестировать и что делать")
     
     # Отправляем инструкцию в #info
-    tests_info_embed = discord.Embed(
+            tests_info_embed = discord.Embed(
         title="🧪 Инструкция для тестеров",
         description="Добро пожаловать в команду тестеров Kanero! 🎉\n\nВаша задача — помогать находить баги и тестировать новые функции.",
         color=0xff9900
-    )
-    tests_info_embed.add_field(
+            )
+            tests_info_embed.add_field(
         name="📋 Как тестировать",
         value="1. **Читай описание** — в каждом канале есть инструкция\n2. **Тестируй функцию** — попробуй все возможные варианты\n3. **Ищи баги** — если что-то работает неправильно, напиши об этом\n4. **Пиши отчёт** — опиши что произошло и как это повторить",
         inline=False
-    )
-    tests_info_embed.add_field(
+            )
+            tests_info_embed.add_field(
         name="🐛 Как писать отчёт о баге",
         value=(
             "**Канал:** 🐛・bug-reports\n"
@@ -2716,8 +2716,8 @@ async def setup(ctx):
             "   • **Скриншоты:** если есть"
         ),
         inline=False
-    )
-    tests_info_embed.add_field(
+            )
+            tests_info_embed.add_field(
         name="✅ Как писать результат тестирования",
         value=(
             "**Канал:** ✅・test-results\n"
@@ -2727,25 +2727,25 @@ async def setup(ctx):
             "• ⚠️ Нужно улучшить (описание)"
         ),
         inline=False
-    )
-    tests_info_embed.add_field(
+            )
+            tests_info_embed.add_field(
         name="💡 Как предлагать улучшения",
         value="**Канал:** 💡・идеи-улучшения\n• Предлагать новые функции\n• Делиться идеями по улучшению\n• Обсуждать изменения\n• Задавать вопросы",
         inline=False
-    )
-    tests_info_embed.set_footer(text="☠️ Kanero  |  Спасибо за помощь в тестировании!")
-    await info_tests_ch.send(embed=tests_info_embed)
+            )
+            tests_info_embed.set_footer(text="☠️ Kanero  |  Спасибо за помощь в тестировании!")
+            await info_tests_ch.send(embed=tests_info_embed)
     
     # Канал новостей для тестеров
-    news_tests_ch = await guild.create_text_channel("📰・news", category=cat_tests, overwrites=tests_info_ow(), topic="📰 НОВОСТИ ДЛЯ ТЕСТЕРОВ | Обновления, новые функции для тестирования, важные объявления")
+            news_tests_ch = await guild.create_text_channel("📰・news", category=cat_tests, overwrites=tests_info_ow(), topic="📰 НОВОСТИ ДЛЯ ТЕСТЕРОВ | Обновления, новые функции для тестирования, важные объявления")
     
     # Отправляем приветственное сообщение в канал новостей
-    news_embed = discord.Embed(
+            news_embed = discord.Embed(
         title="📰 Новости для тестеров",
         description="Добро пожаловать в канал новостей! Здесь будут публиковаться важные обновления и новые функции для тестирования.",
         color=0x00ff00
-    )
-    news_embed.add_field(
+            )
+            news_embed.add_field(
         name="🔔 Что здесь публикуется",
         value=(
             "• **Новые функции** для тестирования\n"
@@ -2755,8 +2755,8 @@ async def setup(ctx):
             "• **Благодарности** активным тестерам"
         ),
         inline=False
-    )
-    news_embed.add_field(
+            )
+            news_embed.add_field(
         name="📋 Как быть в курсе",
         value=(
             "1. **Включи уведомления** для этого канала\n"
@@ -2765,16 +2765,16 @@ async def setup(ctx):
             "4. **Задавай вопросы** в 💡・идеи-улучшения"
         ),
         inline=False
-    )
-    news_embed.set_footer(text="☠️ Kanero  |  Следи за новостями!")
-    await news_tests_ch.send(embed=news_embed)
+            )
+            news_embed.set_footer(text="☠️ Kanero  |  Следи за новостями!")
+            await news_tests_ch.send(embed=news_embed)
     
-    await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=tests_ow(), topic="🐛 ОТЧЁТЫ О БАГАХ | Создай тред → Название бага → Шаги воспроизведения → Ожидаемый результат → Скриншоты")
-    await guild.create_text_channel("💡・идеи-улучшения", category=cat_tests, overwrites=tests_ow(), topic="💡 ИДЕИ И УЛУЧШЕНИЯ | Предлагай новые функции, делись идеями, обсуждай улучшения бота")
-    await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=tests_ow(), topic="✅ РЕЗУЛЬТАТЫ ТЕСТОВ | Создай тред для каждой функции → ✅ работает / ❌ баг / ⚠️ улучшить")
+            await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=tests_ow(), topic="🐛 ОТЧЁТЫ О БАГАХ | Создай тред → Название бага → Шаги воспроизведения → Ожидаемый результат → Скриншоты")
+            await guild.create_text_channel("💡・идеи-улучшения", category=cat_tests, overwrites=tests_ow(), topic="💡 ИДЕИ И УЛУЧШЕНИЯ | Предлагай новые функции, делись идеями, обсуждай улучшения бота")
+            await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=tests_ow(), topic="✅ РЕЗУЛЬТАТЫ ТЕСТОВ | Создай тред для каждой функции → ✅ работает / ❌ баг / ⚠️ улучшить")
 
     # 🔊 🎙 ВОЙСЫ — видимые каналы для голоса 🔊🎙
-    def voice_base_ow():
+            def voice_base_ow():
         ow = {guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False)}
         if role_guest:  ow[role_guest]  = discord.PermissionOverwrite(connect=False, view_channel=True)
         if role_user:   ow[role_user]   = discord.PermissionOverwrite(connect=False, view_channel=True)
@@ -2784,7 +2784,7 @@ async def setup(ctx):
         if role_dev:    ow[role_dev]    = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
         return ow
     
-    def voice_premium_ow():
+            def voice_premium_ow():
         ow = {guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False)}
         if role_guest:  ow[role_guest]  = discord.PermissionOverwrite(connect=False, view_channel=False)
         if role_user:   ow[role_user]   = discord.PermissionOverwrite(connect=False, view_channel=False)
@@ -2794,7 +2794,7 @@ async def setup(ctx):
         if role_dev:    ow[role_dev]    = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
         return ow
     
-    def voice_admin_ow():
+            def voice_admin_ow():
         ow = {guild.default_role: discord.PermissionOverwrite(connect=False, view_channel=False)}
         if role_guest:  ow[role_guest]  = discord.PermissionOverwrite(connect=False, view_channel=False)
         if role_user:   ow[role_user]   = discord.PermissionOverwrite(connect=False, view_channel=False)
@@ -2806,15 +2806,15 @@ async def setup(ctx):
         if role_dev:    ow[role_dev]    = discord.PermissionOverwrite(connect=True, speak=True, view_channel=True)
         return ow
     
-    cat_voice = await guild.create_category("━━━━ 🔊 ВОЙСЫ ━━━━", overwrites=voice_base_ow())
-    for i in range(1, 4):
+            cat_voice = await guild.create_category("━━━━ 🔊 ВОЙСЫ ━━━━", overwrites=voice_base_ow())
+            for i in range(1, 4):
         await guild.create_voice_channel(f"🔊 voice-{i}", category=cat_voice, user_limit=10)
-    await guild.create_voice_channel("💎 premium-voice", category=cat_voice, user_limit=20, overwrites=voice_premium_ow())
+            await guild.create_voice_channel("💎 premium-voice", category=cat_voice, user_limit=20, overwrites=voice_premium_ow())
 
     # 🔧 ━━ ADMIN — только Owner+ 🔧
-    cat_admin = await guild.create_category("━━━━ 🔧 ADMIN ━━━━", overwrites=admin_ow())
+            cat_admin = await guild.create_category("━━━━ 🔧 ADMIN ━━━━", overwrites=admin_ow())
     
-    def admin_chat_ow():
+            def admin_chat_ow():
         ow = {guild.default_role: _ow()}
         if role_guest:  ow[role_guest]  = _ow()
         if role_user:   ow[role_user]   = _ow()
@@ -2828,14 +2828,14 @@ async def setup(ctx):
         return ow
     
     # Порядок: admin-chat → logs → выдача-листа
-    await guild.create_text_channel("🔧・admin-chat", category=cat_admin, overwrites=admin_chat_ow(), topic="Чат для Owner, Developer, Moderator и Tester")
-    logs_ch = await guild.create_text_channel("📊・logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков с !nukelogs и ссылками на серверы")
-    await guild.create_text_channel("📝・выдача-листа", category=cat_admin, overwrites=admin_ow(), topic="Логи выдачи подписок и компенсаций")
-    await guild.create_voice_channel("👑 admin-voice", category=cat_admin, overwrites=voice_admin_ow())
+            await guild.create_text_channel("🔧・admin-chat", category=cat_admin, overwrites=admin_chat_ow(), topic="Чат для Owner, Developer, Moderator и Tester")
+            logs_ch = await guild.create_text_channel("📊・logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков с !nukelogs и ссылками на серверы")
+            await guild.create_text_channel("📝・выдача-листа", category=cat_admin, overwrites=admin_ow(), topic="Логи выдачи подписок и компенсаций")
+            await guild.create_voice_channel("👑 admin-voice", category=cat_admin, overwrites=voice_admin_ow())
 
     # -- 5. Правила и инфо --
 
-    await welcome_ch.send(embed=discord.Embed(
+            await welcome_ch.send(embed=discord.Embed(
         title="👋 Добро пожаловать на сервер Kanero!",
         description=(
             "Это официальный сервер бота для краша серверов.\n\n"
@@ -2847,10 +2847,10 @@ async def setup(ctx):
             "**Поддержка:** создай тикет в 🎫・create-ticket\n"
             "**Ссылка:** https://discord.gg/nNTB37QNCG"
         ), color=0x0a0a0a
-    ).set_footer(text="☠️ Kanero"))
+            ).set_footer(text="☠️ Kanero"))
 
-    r = discord.Embed(title="📜 Правила в Kanero", color=0x0a0a0a)
-    r.add_field(
+            r = discord.Embed(title="📜 Правила в Kanero", color=0x0a0a0a)
+            r.add_field(
         name="📜 Основные правила",
         value=(
             "**1.** Уважай участников сервера\n"
@@ -2863,8 +2863,8 @@ async def setup(ctx):
             "**8.** ⚠ **Нарушил правила — будешь наказан мгновенно**"
         ),
         inline=False
-    )
-    r.add_field(
+            )
+            r.add_field(
         name="🎭 Роли на сервере",
         value=(
             "🤖 Kanero • 🔧 Developer • 👑 Owner\n"
@@ -2872,8 +2872,8 @@ async def setup(ctx):
             "💎 Premium • ✅ White • 👥 User • 👤 Guest"
         ),
         inline=False
-    )
-    r.add_field(
+            )
+            r.add_field(
         name="🧪 Роль Tester",
         value=(
             "**Что делают тестеры:**\n"
@@ -2885,8 +2885,8 @@ async def setup(ctx):
             "Обратись к администрации через тикет"
         ),
         inline=False
-    )
-    r.add_field(
+            )
+            r.add_field(
         name="🚀 Как начать",
         value=(
             "**User (freelist):** зайди в 🤖・addbot\n"
@@ -2894,12 +2894,12 @@ async def setup(ctx):
             "**Поддержка:** создай тикет в 🎫・create-ticket"
         ),
         inline=False
-    )
-    r.set_footer(text="☠️ Kanero  |  Нарушение правил = бан")
-    await rules_ch.send(embed=r)
+            )
+            r.set_footer(text="☠️ Kanero  |  Нарушение правил = бан")
+            await rules_ch.send(embed=r)
 
     # Отправляем сообщение в #info
-    info_embed = discord.Embed(
+            info_embed = discord.Embed(
         title="ℹ️ Информация о Kanero",
         description=(
             "**🤖 Как добавить бота на свой сервер:**\n"
@@ -2946,19 +2946,19 @@ async def setup(ctx):
             "Заходи к нам в гости!"
         ),
         color=0x0a0a0a
-    )
-    info_embed.set_footer(text="☠️ Kanero  |  Нюки-бот для Discord")
-    await info_ch.send(embed=info_embed)
+            )
+            info_embed.set_footer(text="☠️ Kanero  |  Нюки-бот для Discord")
+            await info_ch.send(embed=info_embed)
 
-    a = discord.Embed(title="🤖 Добавить бота в Kanero", color=0x0a0a0a)
-    a.add_field(name="📁 Freelist (бесплатно)", value="Добавь **бота используя** бота\nПолучишь роль 👥 User:\n`!nuke` • `!auto_nuke` • `!help` • `!changelog`", inline=False)
-    a.add_field(name="✅ White", value="`!nuke [канал]` • `!stop` • `!cleanup`\n`!rename` • `!nicks_all` • `!webhooks`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
-    a.add_field(name="💎 Premium", value="`!super_nuke` • `!massban` • `!massdm`\n`!spam` • `!pingspam` • `!rolesdelete`\n`!auto_super_nuke` • `!auto_superpr_nuke`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
-    a.set_footer(text="☠️ Kanero  |  Лучший нюкер для-бота")
-    await addbot_ch.send(embed=a)
+            a = discord.Embed(title="🤖 Добавить бота в Kanero", color=0x0a0a0a)
+            a.add_field(name="📁 Freelist (бесплатно)", value="Добавь **бота используя** бота\nПолучишь роль 👥 User:\n`!nuke` • `!auto_nuke` • `!help` • `!changelog`", inline=False)
+            a.add_field(name="✅ White", value="`!nuke [канал]` • `!stop` • `!cleanup`\n`!rename` • `!nicks_all` • `!webhooks`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
+            a.add_field(name="💎 Premium", value="`!super_nuke` • `!massban` • `!massdm`\n`!spam` • `!pingspam` • `!rolesdelete`\n`!auto_super_nuke` • `!auto_superpr_nuke`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
+            a.set_footer(text="☠️ Kanero  |  Лучший нюкер для-бота")
+            await addbot_ch.send(embed=a)
 
     # Кнопка с созданием тикета в create-ticket
-    ticket_embed = discord.Embed(
+            ticket_embed = discord.Embed(
         title="🎫 Поддержка в Kanero",
         description=(
             "Нужна помощь? Есть вопрос?\n\n"
@@ -2973,15 +2973,15 @@ async def setup(ctx):
             "Возможность стать нашим **партнёром сервером** с ролью 🤝"
         ),
         color=0x0a0a0a
-    )
-    ticket_embed.set_footer(text="☠️ Kanero  |  Твоя помощь не заставится")
-    await ticket_ch.send(embed=ticket_embed, view=TicketOpenView())
+            )
+            ticket_embed.set_footer(text="☠️ Kanero  |  Твоя помощь не заставится")
+            await ticket_ch.send(embed=ticket_embed, view=TicketOpenView())
 
-    await logs_ch.send(embed=discord.Embed(
+            await logs_ch.send(embed=discord.Embed(
         title="📊 Логи в Kanero",
         description="`!nukelogs` — логи ролей\n`!list` — whitelist/premium\n`!fl_list` — freelist\n`!auto_info` — статус авто нюков",
         color=0x0a0a0a
-    ).set_footer(text="☠️ Kanero  |  Только Owner+"))
+            ).set_footer(text="☠️ Kanero  |  Только Owner+"))
 
         # -- Новости и продажа в sell --
         print("[SETUP] Отправка сообщений в новости...")
