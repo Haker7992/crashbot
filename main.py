@@ -2823,6 +2823,9 @@ async def setup(ctx):
     
     # Канал выдача-листа (только Owner может писать команды !fl, !pm, !wl, !list)
     list_issue_ch = await guild.create_text_channel("📋・выдача-листа", category=cat_main, overwrites=main_ow(), topic="Команды: !fl_add, !pm_add, !wl_add, !list (только для Owner)")
+    
+    # Канал компенсация (для команды !compensate - все могут видеть, Owner создаёт компенсации)
+    comp_ch = await guild.create_text_channel("🎁・компенсация", category=cat_main, overwrites=readonly_ow(), topic="Компенсации от администрации - нажми кнопку чтобы получить")
 
     # 💬 ━━ ЧАТЫ — Guest+ пишут 💬
     def chat_ow():
