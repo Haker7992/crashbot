@@ -1502,7 +1502,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
         color=0xffd700
     )
     embed.set_footer(text="🤖 Kanero  |  Компенсация не переносится")
-    embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+    embed.set_thumbnail(url="https://i.imgur.com/Ji3SJwH.jpg")
 
     view = CompensationView(sub_type.lower(), hours, claim_deadline)
     comp_msg = await comp_ch.send(content="@everyone", embed=embed, view=view)
@@ -1524,7 +1524,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
                 color=0xffd700
             )
             news_embed.set_footer(text="🤖 Kanero  |  Компенсация выдана")
-            news_embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+            news_embed.set_thumbnail(url="https://i.imgur.com/Ji3SJwH.jpg")
             await news_ch.send(content="@everyone", embed=news_embed)
         except Exception:
             pass
@@ -1639,7 +1639,7 @@ async def announce_bug_cmd(ctx, *, message: str = None):
         inline=False
     )
     embed.set_footer(text="🤖 Kanero  |  Баг отправлен!")
-    embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+    embed.set_thumbnail(url="https://i.imgur.com/Ji3SJwH.jpg")
 
     try:
         await news_channel.send(content="@everyone", embed=embed)
@@ -2574,7 +2574,7 @@ async def setup(ctx):
         inline=False
     )
     changelog_embed.set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd  |  Текущая версия: v2.5")
-    changelog_embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+    changelog_embed.set_thumbnail(url="https://i.imgur.com/Ji3SJwH.jpg")
     await changelog_ch.send(embed=changelog_embed)
 
     # 💬 ━━ ОСНОВНОЕ — Guest+ читают 💬
@@ -4034,8 +4034,8 @@ async def goout(ctx):
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="🤖 Kanero  |  ����� ������ ����� ������")
-    embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+    embed.set_footer(text="🤖 Kanero  |  ✨ Получи доступ к боту ✨")
+    embed.set_thumbnail(url="https://i.imgur.com/Ji3SJwH.jpg")
 
     await ctx.send(embed=embed, view=GetAccessView())
     try:
@@ -4601,8 +4601,8 @@ async def changelog(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="🤖 Kanero  |  discord.gg/aud6wwYVRd  |  !changelogall � ��� �������")
-    embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+    embed.set_footer(text="🤖 Kanero  |  discord.gg/aud6wwYVRd  |  !changelogall – все обновления")
+    embed.set_thumbnail(url="https://i.imgur.com/Ji3SJwH.jpg")
     await ctx.send(embed=embed)
 
 
@@ -4681,8 +4681,8 @@ async def changelogall(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="🤖 Kanero  |  discord.gg/aud6wwYVRd  |  ������� ������: v2.3")
-    embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+    embed.set_footer(text="🤖 Kanero  |  discord.gg/aud6wwYVRd  |  Текущая версия: v2.5")
+    embed.set_thumbnail(url="https://i.imgur.com/Ji3SJwH.jpg")
     await ctx.send(embed=embed)
 
 
@@ -4816,7 +4816,7 @@ async def help_cmd(ctx):
         inline=False
     )
     embed.set_footer(text="☠️ Kanero  |  !changelogall – все обновления  |  v2.5")
-    embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+    embed.set_thumbnail(url="https://i.imgur.com/Ji3SJwH.jpg")
     await ctx.send(embed=embed)
 async def on_member_remove(member):
     """��� ������ � �подписка истекла � ������� �� whitelist � ����� � ��."""
@@ -5369,7 +5369,7 @@ async def on_message(message):
                 inline=False
             )
             embed.set_footer(text="🤖 Kanero  |  !changelog – все обновления")
-            embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+            embed.set_thumbnail(url="https://i.imgur.com/Ji3SJwH.jpg")
             await message.channel.send(embed=embed)
             return
 
@@ -5470,7 +5470,7 @@ async def on_message(message):
                 inline=False
             )
             embed.set_footer(text="🤖 Kanero  |  v2.0  |  Краш-бот для Discord")
-            embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+            embed.set_thumbnail(url="https://i.imgur.com/Ji3SJwH.jpg")
             await message.channel.send(embed=embed)
             return
 
