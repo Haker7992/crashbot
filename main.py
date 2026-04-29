@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import discord
 from discord.ext import commands
 from discord import app_commands
