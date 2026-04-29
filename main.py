@@ -2322,25 +2322,20 @@ async def setup(ctx):
     msg = await ctx.send("⚙️ Начинается настройка сервера... (примерное время ~15-20 сек)")
 
     # -- 1. Удаление всех каналов и ролей --
-    # Сначала удаляем все каналы параллельно
+    # Удаляем все каналы параллельно
     channel_tasks = [ch.delete() for ch in guild.channels]
     if channel_tasks:
         await asyncio.gather(*channel_tasks, return_exceptions=True)
-        await asyncio.sleep(4)
     
-    # Затем удаляем роли ПОСЛЕДОВАТЕЛЬНО чтобы избежать rate limit
+    # Удаляем роли параллельно
     bot_role = guild.me.top_role
     roles_to_delete = [r for r in guild.roles if not r.is_default() and r != bot_role and r.id != guild.me.id]
+    role_tasks = [r.delete() for r in roles_to_delete]
+    if role_tasks:
+        await asyncio.gather(*role_tasks, return_exceptions=True)
     
-    for role in roles_to_delete:
-        try:
-            await role.delete()
-            await asyncio.sleep(1.0)  # Увеличена задержка между удалением ролей
-        except Exception:
-            pass
-    
-    # Дополнительная задержка перед созданием новых
-    await asyncio.sleep(5)
+    # Ждём чтобы Discord API обработал удаление
+    await asyncio.sleep(3)
 
     # -- 2. Параллельное создание ролей --
     guest_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False)
@@ -2350,27 +2345,19 @@ async def setup(ctx):
     owner_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=True, embed_links=True, attach_files=True, add_reactions=True, use_external_emojis=True, manage_messages=True, manage_channels=True, manage_roles=True, manage_webhooks=True, kick_members=True, ban_members=True, manage_nicknames=True, view_audit_log=True, mention_everyone=True, connect=True, speak=True, use_voice_activation=True, stream=True, move_members=True, mute_members=True, deafen_members=True, priority_speaker=True)
     dev_perms     = discord.Permissions(administrator=True)
 
-    # Создаем роли последовательно с задержками
-    role_guest = await guild.create_role(name="👤 Guest", color=discord.Color.from_rgb(120, 120, 120), permissions=guest_perms, hoist=False, mentionable=False)
-    await asyncio.sleep(0.5)
-    role_user = await guild.create_role(name="👥 User", color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms, hoist=True, mentionable=False)
-    await asyncio.sleep(0.5)
-    role_white = await guild.create_role(name="✅ White", color=discord.Color.from_rgb(85, 170, 255), permissions=white_perms, hoist=True, mentionable=False)
-    await asyncio.sleep(0.5)
-    role_premium = await guild.create_role(name="💎 Premium", color=discord.Color.from_rgb(180, 80, 255), permissions=premium_perms, hoist=True, mentionable=False)
-    await asyncio.sleep(0.5)
-    role_tester = await guild.create_role(name="🧪 Tester", color=discord.Color.from_rgb(255, 165, 0), permissions=premium_perms, hoist=True, mentionable=False)
-    await asyncio.sleep(0.5)
-    role_mod = await guild.create_role(name="🛡️ Moderator", color=discord.Color.from_rgb(255, 140, 0), permissions=premium_perms, hoist=True, mentionable=False)
-    await asyncio.sleep(0.5)
-    role_media = await guild.create_role(name="🎬 Media", color=discord.Color.from_rgb(255, 100, 200), permissions=premium_perms, hoist=True, mentionable=False)
-    await asyncio.sleep(0.5)
-    role_friend = await guild.create_role(name="🤝 Friend", color=discord.Color.from_rgb(100, 200, 255), permissions=premium_perms, hoist=True, mentionable=False)
-    await asyncio.sleep(0.5)
-    role_owner = await guild.create_role(name="👑 Owner", color=discord.Color.from_rgb(255, 200, 0), permissions=owner_perms, hoist=True, mentionable=False)
-    await asyncio.sleep(0.5)
-    role_dev = await guild.create_role(name="🔧 Developer", color=discord.Color.from_rgb(255, 60, 60), permissions=dev_perms, hoist=True, mentionable=False)
-    await asyncio.sleep(1.0)
+    # Создаем роли параллельно
+    role_guest, role_user, role_white, role_premium, role_tester, role_mod, role_media, role_friend, role_owner, role_dev = await asyncio.gather(
+        guild.create_role(name="👤 Guest", color=discord.Color.from_rgb(120, 120, 120), permissions=guest_perms, hoist=False, mentionable=False),
+        guild.create_role(name="👥 User", color=discord.Color.from_rgb(180, 180, 180), permissions=user_perms, hoist=True, mentionable=False),
+        guild.create_role(name="✅ White", color=discord.Color.from_rgb(85, 170, 255), permissions=white_perms, hoist=True, mentionable=False),
+        guild.create_role(name="💎 Premium", color=discord.Color.from_rgb(180, 80, 255), permissions=premium_perms, hoist=True, mentionable=False),
+        guild.create_role(name="🧪 Tester", color=discord.Color.from_rgb(255, 165, 0), permissions=premium_perms, hoist=True, mentionable=False),
+        guild.create_role(name="🛡️ Moderator", color=discord.Color.from_rgb(255, 140, 0), permissions=premium_perms, hoist=True, mentionable=False),
+        guild.create_role(name="🎬 Media", color=discord.Color.from_rgb(255, 100, 200), permissions=premium_perms, hoist=True, mentionable=False),
+        guild.create_role(name="🤝 Friend", color=discord.Color.from_rgb(100, 200, 255), permissions=premium_perms, hoist=True, mentionable=False),
+        guild.create_role(name="👑 Owner", color=discord.Color.from_rgb(255, 200, 0), permissions=owner_perms, hoist=True, mentionable=False),
+        guild.create_role(name="🔧 Developer", color=discord.Color.from_rgb(255, 60, 60), permissions=dev_perms, hoist=True, mentionable=False)
+    )
     
     # Устанавливаем глобальный ID роли Guest
     global AUTO_ROLE_ID
@@ -2454,9 +2441,7 @@ async def setup(ctx):
         return ow
     
     cat_welcome = await guild.create_category("━━━━ 👋 WELCOME ━━━━", overwrites=welcome_ow())
-    await asyncio.sleep(1.5)  # Задержка после создания категории
     welcome_ch = await guild.create_text_channel("👋・welcome", category=cat_welcome, overwrites=welcome_ow(), topic="Приветствие новых участников и как стать юзер пользователем")
-    await asyncio.sleep(1.0)  # Задержка для Discord API
 
     # ℹ️ ━━ INFO — Guest+ читают, только Owner пишет ℹ️
     def info_ow():
@@ -2470,11 +2455,8 @@ async def setup(ctx):
         return ow
     
     cat_info = await guild.create_category("━━━━ ℹ️ INFO ━━━━", overwrites=info_ow())
-    await asyncio.sleep(1.5)  # Задержка после создания категории
     info_ch = await guild.create_text_channel("ℹ️・info", category=cat_info, overwrites=info_ow(), topic="Информация о сервере правила и прочее")
-    await asyncio.sleep(0.5)
     changelog_ch = await guild.create_text_channel("📋・changelog", category=cat_info, overwrites=info_ow(), topic="История обновлений с !changelogall")
-    await asyncio.sleep(1.0)  # Задержка для Discord API
 
     # Отправляем список changelog в канал #changelog
     changelog_embed = discord.Embed(title="📋 CHANGELOG — версии проекта  |  v1.0 > v2.0", color=0x0a0a0a)
@@ -2585,7 +2567,6 @@ async def setup(ctx):
         return main_ow()
     
     cat_main = await guild.create_category("━━━━ 💬 ОСНОВНОЕ ━━━━", overwrites=main_ow())
-    await asyncio.sleep(1.5)  # Задержка после создания категории
     def addbot_ow():
         ow = {guild.default_role: _ow()}
         if role_guest:  ow[role_guest]  = _ow(True, True)
@@ -2597,15 +2578,10 @@ async def setup(ctx):
         return ow
     
     rules_ch  = await guild.create_text_channel("📜・правила",  category=cat_main, overwrites=readonly_ow(), topic="Правила сервера")
-    await asyncio.sleep(0.5)
     await guild.create_text_channel("📢・новости",              category=cat_main, overwrites=readonly_ow(), topic="Новости и обновления от администрации")
-    await asyncio.sleep(0.5)
     addbot_ch = await guild.create_text_channel("🤖・addbot",   category=cat_main, overwrites=addbot_ow(), topic="Добавь бота и получишь роль User и доступ к боту")
-    await asyncio.sleep(0.5)
     await guild.create_text_channel("🤝・партнёрство",          category=cat_main, overwrites=readonly_ow(), topic="Предложения о партнёрстве и сотрудничестве")
-    await asyncio.sleep(0.5)
     await guild.create_text_channel("💰・sell",                  category=cat_main, overwrites=readonly_ow(), topic="Покупка White/Premium и только только Owner")
-    await asyncio.sleep(1.0)  # Задержка для Discord API
 
     # 💬 ━━ ЧАТЫ — Guest+ пишут 💬
     def chat_ow():
@@ -2629,14 +2605,10 @@ async def setup(ctx):
         return ow
     
     cat_chat = await guild.create_category("━━━━ 💬 ЧАТЫ ━━━━", overwrites=chat_ow())
-    await asyncio.sleep(1.5)  # Задержка после создания категории
     await guild.create_text_channel("💬・общий", category=cat_chat, overwrites=chat_ow(), topic="Общий чат с общением для всех участников с ролью")
-    await asyncio.sleep(0.5)
     await guild.create_text_channel("🎮・игры", category=cat_chat, overwrites=chat_ow(), topic="Обсуждение и игры для совместной игры")
-    await asyncio.sleep(0.5)
     # 🎫 create-ticket — видят все Guest+, только читают создавать тикет
     ticket_ch = await guild.create_text_channel("🎫・create-ticket", category=cat_chat, overwrites=ticket_ow(), topic="Чтобы создать тикет нажмите кнопку ниже")
-    await asyncio.sleep(1.0)  # Задержка для Discord API
 
     # 📋 ━━ ЛИСТ ЧАТЫ — User+ 📋
     def list_chats_ow():
@@ -2670,13 +2642,9 @@ async def setup(ctx):
         return ow
     
     cat_lists = await guild.create_category("━━━━ 📋 ЛИСТ ЧАТЫ ━━━━", overwrites=list_chats_ow())
-    await asyncio.sleep(1.5)  # Задержка после создания категории
     await guild.create_text_channel("📁・freelist-chat", category=cat_lists, overwrites=list_chats_ow(), topic="Чат для freelist с !nuke, !auto_nuke, !help, !changelog")
-    await asyncio.sleep(0.5)
     await guild.create_text_channel("✅・white-chat", category=cat_lists, overwrites=white_chat_ow(), topic="Чат для White с !nuke [канал], !stop, !cleanup, !rename, !nicks_all")
-    await asyncio.sleep(0.5)
     await guild.create_text_channel("💎・premium-chat", category=cat_lists, overwrites=premium_chat_ow(), topic="Чат для Premium пользователей с !super_nuke, !massban, !massdm")
-    await asyncio.sleep(1.0)  # Задержка для Discord API
 
     # 🧪 ━━ TESTS — Tester+ 🧪
     def tests_ow():
@@ -2702,11 +2670,9 @@ async def setup(ctx):
         return ow
     
     cat_tests = await guild.create_category("━━━━ 🧪 TESTS ━━━━", overwrites=tests_ow())
-    await asyncio.sleep(1.5)  # Задержка после создания категории
     
     # Канал #info в TESTS с инструкциями для тестеров
     info_tests_ch = await guild.create_text_channel("ℹ️・info", category=cat_tests, overwrites=tests_info_ow(), topic="Инструкция для тестеров — как тестировать и что делать")
-    await asyncio.sleep(0.5)
     
     # Отправляем инструкцию в #info
     tests_info_embed = discord.Embed(
@@ -2755,7 +2721,6 @@ async def setup(ctx):
     
     # Канал новостей для тестеров
     news_tests_ch = await guild.create_text_channel("📰・news", category=cat_tests, overwrites=tests_info_ow(), topic="📰 НОВОСТИ ДЛЯ ТЕСТЕРОВ | Обновления, новые функции для тестирования, важные объявления")
-    await asyncio.sleep(0.5)
     
     # Отправляем приветственное сообщение в канал новостей
     news_embed = discord.Embed(
@@ -2788,11 +2753,8 @@ async def setup(ctx):
     await news_tests_ch.send(embed=news_embed)
     
     await guild.create_text_channel("🐛・bug-reports", category=cat_tests, overwrites=tests_ow(), topic="🐛 ОТЧЁТЫ О БАГАХ | Создай тред → Название бага → Шаги воспроизведения → Ожидаемый результат → Скриншоты")
-    await asyncio.sleep(0.5)
     await guild.create_text_channel("💡・идеи-улучшения", category=cat_tests, overwrites=tests_ow(), topic="💡 ИДЕИ И УЛУЧШЕНИЯ | Предлагай новые функции, делись идеями, обсуждай улучшения бота")
-    await asyncio.sleep(0.5)
     await guild.create_text_channel("✅・test-results", category=cat_tests, overwrites=tests_ow(), topic="✅ РЕЗУЛЬТАТЫ ТЕСТОВ | Создай тред для каждой функции → ✅ работает / ❌ баг / ⚠️ улучшить")
-    await asyncio.sleep(1.0)  # Задержка для Discord API
 
     # 🔊 🎙 ВОЙСЫ — видимые каналы для голоса 🔊🎙
     def voice_base_ow():
@@ -2828,16 +2790,12 @@ async def setup(ctx):
         return ow
     
     cat_voice = await guild.create_category("━━━━ 🔊 ВОЙСЫ ━━━━", overwrites=voice_base_ow())
-    await asyncio.sleep(1.5)  # Задержка после создания категории
     for i in range(1, 4):
         await guild.create_voice_channel(f"🔊 voice-{i}", category=cat_voice, user_limit=10)
-        await asyncio.sleep(0.5)
     await guild.create_voice_channel("💎 premium-voice", category=cat_voice, user_limit=20, overwrites=voice_premium_ow())
-    await asyncio.sleep(1.0)  # Задержка для Discord API
 
     # 🔧 ━━ ADMIN — только Owner+ 🔧
     cat_admin = await guild.create_category("━━━━ 🔧 ADMIN ━━━━", overwrites=admin_ow())
-    await asyncio.sleep(1.5)  # Задержка после создания категории
     
     def admin_chat_ow():
         ow = {guild.default_role: _ow()}
@@ -2854,13 +2812,9 @@ async def setup(ctx):
     
     # Порядок: admin-chat → logs → выдача-листа
     await guild.create_text_channel("🔧・admin-chat", category=cat_admin, overwrites=admin_chat_ow(), topic="Чат для Owner, Developer, Moderator и Tester")
-    await asyncio.sleep(0.5)
     logs_ch = await guild.create_text_channel("📊・logs", category=cat_admin, overwrites=admin_ow(), topic="Логи нюков с !nukelogs и ссылками на серверы")
-    await asyncio.sleep(0.5)
     await guild.create_text_channel("📝・выдача-листа", category=cat_admin, overwrites=admin_ow(), topic="Логи выдачи подписок и компенсаций")
-    await asyncio.sleep(0.5)
     await guild.create_voice_channel("👑 admin-voice", category=cat_admin, overwrites=voice_admin_ow())
-    await asyncio.sleep(1.0)  # Задержка для Discord API
 
     # -- 5. Правила и инфо --
 
