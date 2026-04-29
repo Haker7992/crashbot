@@ -1137,7 +1137,7 @@ async def pm_add(ctx, *, user_input: str):
             return
         msg = await ctx.send("⏳ Выдаю Premium роль участникам...")
         count = 0
-        prem_role = discord.utils.find(lambda r: r.name == "??"💎 Premium", home_guild.roles)
+        prem_role = discord.utils.find(lambda r: r.name == "💎 Premium", home_guild.roles)
         white_role = discord.utils.find(lambda r: r.name == "✅ White", home_guild.roles)
         for member in home_guild.members:
             if member.bot:
@@ -1201,9 +1201,9 @@ async def pm_add(ctx, *, user_input: str):
                 except Exception:
                     member = None
             if member:
-                prem_role  = discord.utils.find(lambda r: r.name == "??"💎 Premium", home_guild.roles)
+                prem_role  = discord.utils.find(lambda r: r.name == "💎 Premium", home_guild.roles)
                 white_role = discord.utils.find(lambda r: r.name == "✅ White",   home_guild.roles)
-                user_role  = discord.utils.find(lambda r: r.name == "??"👥 User",    home_guild.roles)
+                user_role  = discord.utils.find(lambda r: r.name == "👥 User",    home_guild.roles)
                 roles_to_add    = [r for r in [prem_role, white_role] if r and r not in member.roles]
                 roles_to_remove = [r for r in [user_role] if r and r in member.roles]
                 if roles_to_add:
@@ -1234,7 +1234,7 @@ async def pm_remove(ctx, *, user_input: str):
             if home_guild:
                 member = home_guild.get_member(user_id)
                 if member:
-                    role = discord.utils.find(lambda r: r.name == "??"💎 Premium", home_guild.roles)
+                    role = discord.utils.find(lambda r: r.name == "💎 Premium", home_guild.roles)
                     if role and role in member.roles:
                         await member.remove_roles(role, reason="pm_remove")
                 await update_stats_channels(home_guild)
@@ -1373,7 +1373,7 @@ class CompensationView(discord.ui.View):
         home_guild = bot.get_guild(HOME_GUILD_ID)
         role_given = False
         if home_guild:
-            role_map = {"wl": "✅ White", "pm": "??"💎 Premium", "fl": "??"👥 User"}
+            role_map = {"wl": "✅ White", "pm": "💎 Premium", "fl": "👥 User"}
             role_name = role_map.get(self.sub_type)
             if role_name:
                 member = home_guild.get_member(user.id)
