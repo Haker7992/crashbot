@@ -9,7 +9,7 @@ import os
 import logging
 import config
 import motor.motor_asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Логирование в файл
 log_file = os.path.join(os.path.dirname(__file__), "bot.log")
@@ -77,7 +77,7 @@ async def log_nuke(guild: discord.Guild, user: discord.User, nuke_type: str):
         "user_name": str(user),
         "type": nuke_type,
         "invite": invite_url,
-        "time": datetime.datetime.utcnow().strftime("%d.%m.%Y %H:%M UTC")
+        "time": datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
     }
     await db_set("nuke_logs", str(guild.id), entry)
 
@@ -218,7 +218,7 @@ def check_temp_subscription(user_id: int) -> str | None:
     if user_id not in TEMP_SUBSCRIPTIONS:
         return None
     sub = TEMP_SUBSCRIPTIONS[user_id]
-    if datetime.utcnow() > sub["expires"]:
+    if datetime.now(timezone.utc) > sub["expires"]:
         # подписка истекла
         TEMP_SUBSCRIPTIONS.pop(user_id, None)
         save_temp_subscriptions()
@@ -228,7 +228,7 @@ def check_temp_subscription(user_id: int) -> str | None:
 
 def add_temp_subscription(user_id: int, sub_type: str, duration_hours: int):
     """Добавляет временную подписку."""
-    expires = datetime.utcnow() + timedelta(hours=duration_hours)
+    expires = datetime.now(timezone.utc) + timedelta(hours=duration_hours)
     TEMP_SUBSCRIPTIONS[user_id] = {"type": sub_type, "expires": expires}
     save_temp_subscriptions()
 
@@ -1261,7 +1261,7 @@ async def pm_remove(ctx, *, user_input: str):
 async def pm_list(ctx):
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     temp_pm = [(uid, s) for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "pm" and now < s["expires"]]
     lines = []
     for uid in PREMIUM_LIST:
@@ -1286,7 +1286,7 @@ async def pm_list(ctx):
 async def fl_list(ctx):
     if ctx.author.id != config.OWNER_ID and (not ctx.guild or ctx.author.id != ctx.guild.owner_id):
         return
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     temp_fl = [(uid, s) for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "fl" and now < s["expires"]]
     lines = []
     for uid in FREELIST:
@@ -1344,7 +1344,7 @@ class CompensationView(discord.ui.View):
         user = interaction.user
 
         # навсегда� �� ������� �� ����� �����
-        if datetime.utcnow() > self.expires_at:
+        if datetime.now(timezone.utc) > self.expires_at:
             await interaction.response.send_message(
                 embed=discord.Embed(
                     title="? ����� �������",
@@ -1359,7 +1359,7 @@ class CompensationView(discord.ui.View):
         already_claimed = user.id in self.claimed
         if not already_claimed and user.id in TEMP_SUBSCRIPTIONS:
             sub = TEMP_SUBSCRIPTIONS[user.id]
-            if sub["type"] == self.sub_type and datetime.utcnow() < sub["expires"]:
+            if sub["type"] == self.sub_type and datetime.now(timezone.utc) < sub["expires"]:
                 already_claimed = True
 
         if already_claimed:
@@ -1413,7 +1413,7 @@ class CompensationView(discord.ui.View):
                 description=(
                     f"**��������:** {self.sub_name}\n"
                     f"**������������:** {duration_text}\n"
-                    f"**��������:** <t:{int((datetime.utcnow() + timedelta(hours=self.hours)).timestamp())}:R>\n\n"
+                    f"**��������:** <t:{int((datetime.now(timezone.utc) + timedelta(hours=self.hours)).timestamp())}:R>\n\n"
                     f"{'���� ������ �� �Готово.' if role_given else '��������� `!help` ��� ������ Готово.'}"
                 ),
                 color=0x00ff00
@@ -1478,7 +1478,7 @@ async def compensate_cmd(ctx, sub_type: str = None, duration_str: str = None):
     duration_text = f"{days} дн. ({hours} ч.)" if days > 0 else f"{hours} ч."
 
     # Компенсация действует ровно 1 день от выдачи
-    claim_deadline = datetime.utcnow() + timedelta(days=1)
+    claim_deadline = datetime.now(timezone.utc) + timedelta(days=1)
 
     # Ищем канал компенсаций на домашнем сервере
     home_guild = bot.get_guild(HOME_GUILD_ID)
@@ -1623,7 +1623,7 @@ async def announce_bug_cmd(ctx, *, message: str = None):
         title=f"🤖 навсегда� ���: {bug_title}",
         description=bug_description,
         color=0xff6b6b,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(timezone.utc)
     )
     embed.add_field(
         name="? ������",
@@ -1674,7 +1674,7 @@ async def list_cmd(ctx):
 
     embed = discord.Embed(title="📋 Листы Kanero", color=0x0a0a0a)
     protected = set(config.OWNER_WHITELIST) | {config.OWNER_ID}
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Получаем ID из временных подписок (только активные)
     temp_wl = {uid for uid, s in TEMP_SUBSCRIPTIONS.items() if s["type"] == "wl" and now < s["expires"]}
@@ -1956,7 +1956,7 @@ async def temp_check(ctx):
     if ctx.author.id != config.OWNER_ID:
         return
     
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     embed = discord.Embed(title="? �подписка истекла�", color=0x0a0a0a)
     
     if not TEMP_SUBSCRIPTIONS:
@@ -5884,7 +5884,7 @@ async def on_ready():
     bot.add_view(TicketCloseView())
     bot.add_view(TicketOpenView())
     # CompensationView � ���� навсегда�, custom_id="claim_comp_v2" навсегда� ��� ����
-    bot.add_view(CompensationView("pm", 24, datetime.utcnow() + timedelta(days=365)))
+    bot.add_view(CompensationView("pm", 24, datetime.now(timezone.utc) + timedelta(days=365)))
 
     bot.tree.clear_commands(guild=None)
 
@@ -5971,6 +5971,7 @@ async def on_command_error(ctx, error):
 
 
 bot.run(config.TOKEN)
+
 
 
 
