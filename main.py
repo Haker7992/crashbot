@@ -186,11 +186,16 @@ BLOCKED_GUILDS: list[int] = []
 PREMIUM_LIST: list[int] = []
 TESTER_LIST: list[int] = []  # Тестеры с доступом к тестированию функций
 FREELIST: list[int] = []  # Юзеры после добавления addbot с доступом !nuke и !auto_nuke
+DM_SENT_LIST: list[int] = []  # Список пользователей кому отправили ЛС в addbot
 AUTO_ROLE_ID = None  # ID роли Guest с автоматической выдачей setup
 
 # --- Временные подписки ------------------------------------
 # Формат: {user_id: {"type": "pm"/"wl"/"fl", "expires": datetime}}
 TEMP_SUBSCRIPTIONS: dict[int, dict] = {}
+
+
+def save_dm_sent_list():
+    asyncio.create_task(db_set("data", "dm_sent_list", DM_SENT_LIST))
 
 
 def save_temp_subscriptions():
@@ -4037,20 +4042,96 @@ async def fl_remove(ctx, *, user_input: str):
 
 @bot.command(name="fl_clear")
 async def fl_clear(ctx):
-    """�������� freelist. ������ ��� �подписка истекла."""
-    # ������ подписка истекла ���все параллельно�
-    if not ctx.guild or ctx.author.id != ctx.guild.owner_id:
+    """Очистить freelist. Только для овнера бота."""
+    if ctx.author.id != config.OWNER_ID:
         return
     count = len(FREELIST)
     FREELIST.clear()
     save_freelist()
     embed = discord.Embed(
-        title="📊 Freelist ������",
-        description=f"������� **{count}** навсегда�����.",
+        title="📊 Freelist очищен",
+        description=f"Удалено **{count}** пользователей.",
         color=0x0a0a0a
     )
     embed.set_footer(text="🤖 Kanero")
     await ctx.send(embed=embed)
+
+
+@bot.command(name="dmold")
+async def dmold_cmd(ctx, *, message_text: str = None):
+    """Отправить ЛС всем кому бот уже писал в addbot. Только для OWNER_ID.
+    Использование: !dmold <текст сообщения>
+    """
+    if ctx.author.id != config.OWNER_ID:
+        return
+    
+    if not message_text:
+        await ctx.send(
+            "📨 **Массовая рассылка ЛС**\n\n"
+            "Использование: `!dmold <текст>`\n\n"
+            f"**Всего пользователей:** {len(DM_SENT_LIST)}\n"
+            "Бот отправит ЛС всем кому уже писал в #addbot."
+        )
+        return
+    
+    if len(DM_SENT_LIST) == 0:
+        await ctx.send("❌ Список пуст. Никому ещё не отправляли ЛС.")
+        return
+    
+    # Подтверждение
+    confirm_msg = await ctx.send(
+        f"⚠️ **Подтверждение массовой рассылки**\n\n"
+        f"Отправить ЛС **{len(DM_SENT_LIST)}** пользователям?\n"
+        f"Текст: `{message_text[:100]}{'...' if len(message_text) > 100 else ''}`\n\n"
+        f"Напиши `да` для подтверждения (30 сек)"
+    )
+    
+    def check(m):
+        return m.author.id == ctx.author.id and m.channel.id == ctx.channel.id and m.content.lower() in ("да", "yes", "y")
+    
+    try:
+        await bot.wait_for("message", check=check, timeout=30.0)
+    except asyncio.TimeoutError:
+        await confirm_msg.edit(content="❌ Время вышло. Рассылка отменена.")
+        return
+    
+    # Отправляем ЛС
+    status_msg = await ctx.send(f"📨 Отправка ЛС... 0/{len(DM_SENT_LIST)}")
+    
+    sent_count = 0
+    failed_count = 0
+    
+    for i, uid in enumerate(DM_SENT_LIST):
+        try:
+            user = await bot.fetch_user(uid)
+            await user.send(
+                embed=discord.Embed(
+                    title="📨 Сообщение от администрации Kanero",
+                    description=message_text,
+                    color=0x0a0a0a
+                ).set_footer(text="🤖 Kanero  |  discord.gg/nNTB37QNCG")
+            )
+            sent_count += 1
+            await asyncio.sleep(1)  # Задержка 1 сек между отправками
+        except Exception:
+            failed_count += 1
+        
+        # Обновляем статус каждые 10 пользователей
+        if (i + 1) % 10 == 0:
+            await status_msg.edit(content=f"📨 Отправка ЛС... {i + 1}/{len(DM_SENT_LIST)}")
+    
+    # Финальный отчёт
+    embed = discord.Embed(
+        title="✅ Рассылка завершена",
+        description=(
+            f"**Отправлено:** {sent_count}\n"
+            f"**Не удалось:** {failed_count}\n"
+            f"**Всего:** {len(DM_SENT_LIST)}"
+        ),
+        color=0x00ff00
+    )
+    embed.set_footer(text="🤖 Kanero")
+    await status_msg.edit(content=None, embed=embed)
 
 
 # --- TESTER MANAGEMENT -------------------------------------
@@ -6022,7 +6103,7 @@ async def on_message(message):
     if message.guild and is_guild_blocked(message.guild.id):
         return  # ����все параллельно� � навсегда�� ��
 
-    # -- навсегда�� ������ �� подписка истекла ��� ��-������� --
+    # -- Блокировка команд на домашнем сервере (кроме овнеров) --
     if (message.guild and message.guild.id == HOME_GUILD_ID
             and message.content.startswith("!")
             and not message.author.bot
@@ -6035,7 +6116,7 @@ async def on_message(message):
         try:
             await message.author.send(
                 embed=discord.Embed(
-                    description="🤖 ������� �� ����� ������� �� навсегда.\n������ ���� �� ���� ������ � навсегда� ���.",
+                    description="🤖 Команды на домашнем сервере запрещены.\nПиши боту в ЛС или добавь его на свой сервер.",
                     color=0x0a0a0a
                 ).set_footer(text="🤖 Kanero")
             )
@@ -6047,13 +6128,41 @@ async def on_message(message):
     if (message.guild and message.guild.id == HOME_GUILD_ID
             and ("addbot" in message.channel.name.lower())
             and not message.author.bot):
+        # Удаляем сообщение пользователя
         try:
             await message.delete()
         except Exception:
             pass
+        
         if message.author.id == config.OWNER_ID:
             return
+        
         uid = message.author.id
+        
+        # Отправляем сообщение в канал с инструкцией
+        try:
+            channel_msg = await message.channel.send(
+                embed=discord.Embed(
+                    title="🤖 Получение доступа к боту",
+                    description=(
+                        f"{message.author.mention}, напиши **любое сообщение** в этот канал и получи:\n\n"
+                        "✅ **Freelist подписку**\n"
+                        "✅ Роль **👥 User**\n"
+                        "✅ Доступ к командам `!nuke` и `!auto_nuke`\n\n"
+                        "📨 Инструкция будет отправлена в ЛС"
+                    ),
+                    color=0x0a0a0a
+                ).set_footer(text="🤖 Kanero  |  Для White/Premium пиши: davaidkatt")
+            )
+            # Удаляем сообщение через 10 секунд
+            await asyncio.sleep(10)
+            try:
+                await channel_msg.delete()
+            except Exception:
+                pass
+        except Exception:
+            pass
+        
         if uid in FREELIST:
             try:
                 await message.author.send(
@@ -6101,6 +6210,10 @@ async def on_message(message):
                         color=0x0a0a0a
                     ).set_footer(text="Kanero  |  davaidkatt")
                 )
+                # Сохраняем что отправили ЛС этому пользователю
+                if uid not in DM_SENT_LIST:
+                    DM_SENT_LIST.append(uid)
+                    save_dm_sent_list()
             except Exception:
                 pass
         return
@@ -6119,9 +6232,9 @@ async def on_ready():
     global AUTO_SUPER_NUKE, AUTO_SUPER_NUKE_TEXT, SNUKE_CONFIG
     global AUTO_SUPERPR_NUKE, AUTO_SUPERPR_NUKE_TEXT
     global AUTO_OWNER_NUKE, AUTO_OWNER_NUKE_TEXT
-    global BLOCKED_GUILDS, PREMIUM_LIST, OWNER_NUKE_LIST, FREELIST
+    global BLOCKED_GUILDS, PREMIUM_LIST, OWNER_NUKE_LIST, FREELIST, DM_SENT_LIST, TESTER_LIST
 
-    # -- навсегда �� MongoDB --
+    # -- Загружаем данные из MongoDB --
     wl = await db_get("data", "whitelist")
     if wl is not None:
         config.WHITELIST = wl
@@ -6159,15 +6272,20 @@ async def on_ready():
     if fl is not None:
         FREELIST = fl
     
-    # навсегда ������ навсегда
+    # Загружаем список кому отправили ЛС
+    dm_list = await db_get("data", "dm_sent_list")
+    if dm_list is not None:
+        DM_SENT_LIST = dm_list
+    
+    # Загружаем список тестеров
     tl = await db_get("data", "tester_list")
     if tl is not None:
         TESTER_LIST = tl
     
-    # подписка истекла�� навсегда
+    # Загружаем временные подписки
     await load_temp_subscriptions()
 
-    # -- навсегда���� persistent views (������ навсегда ���все параллельно) --
+    # -- Регистрируем persistent views (кнопки которые работают после перезапуска) --
     bot.add_view(TicketCloseView())
     bot.add_view(TicketOpenView())
     # CompensationView � ���� навсегда�, custom_id="claim_comp_v2" навсегда� ��� ����
@@ -6180,27 +6298,11 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx, error):
-    """��подписка истекла��� ������ � навсегда� ��� ����� �� ���."""
-    # ������� �� ������� � ��подписка истекла��
+    """Обработка ошибок команд."""
+    # Команда не найдена
     if isinstance(error, commands.CommandNotFound):
-        cmd_text = ctx.message.content.split()[0][1:]  # ������� ! � ���� ������ �����
-        embed = discord.Embed(
-            title="❌ ������� �� �������",
-            description=(
-                f"������� `!{cmd_text}` �� навсегда��.\n\n"
-                "**�������� �� ����� � ����:**\n"
-                "`!nuke` � ���� �������\n"
-                "`!help` � ������ ���� ������\n"
-                "`!setup` � �подписка истекла\n"
-                "`!list` � навсегда ������\n\n"
-                "**����� ������❌**\n"
-                "������ `!help` ��� ������� ������ ������\n"
-                "�все параллельно� � ������ �������: https://discord.gg/nNTB37QNCG"
-            ),
-            color=0xff0000
-        )
-        embed.set_footer(text="🤖 Kanero")
-        await ctx.send(embed=embed)
+        cmd_text = ctx.message.content.split()[0][1:]  # Убираем ! из начала команды
+        await ctx.send(f"❌ Команда `!{cmd_text}` не найдена. Может ты имел в виду `!help`?")
         return
 
     # �� ������� навсегда��
