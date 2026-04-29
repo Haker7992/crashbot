@@ -2498,75 +2498,75 @@ async def setup(ctx):
             ),
             inline=False
         )
-            changelog_embed.add_field(
-        name="🎨 v2.1 — новые функции",
-        value=(
-            "• 🤝 Friend, 🎬 Media, 🛡️ Moderator — специальные роли\n"
-            "• Авто-роль 👤 Guest всем новым\n"
-            "• 💰・sell и 🔧・панель-бота\n"
-            "• !sync_roles — синхронизация ролей + авто-удаление из листа\n"
-            "• !autorole — смотри авто-роль\n"
-            "• Не удаляет роли на домашнем сервере"
-        ),
-        inline=False
-            )
-            changelog_embed.add_field(
-        name="🔧 v2.2",
-        value=(
-            "• 🤝 Fame > 🤝 Friend, права как 💎 Premium\n"
-            "• 🔧・admin-chat в ADMIN\n"
-            "• Роли удаляет с сервера и удаляет с соответствующих\n"
-            "• Новая логика синхронизации ролей лист\n"
-            "• Авто-лог в 📊・logs для каждой роли\n"
-            "• Удалены `/sp` и `/spkd`"
-        ),
-        inline=False
-            )
-            changelog_embed.add_field(
-        name="🛠️ v2.3 — фиксы",
-        value=(
-            "• Исправлена производительность при параллельном создании каналов\n"
-            "• Удалён не авто-нюков на домашнем сервере\n"
-            "• Переименованы роли после нюков (auto_nuke, auto_super_nuke, auto_owner_nuke)\n"
-            "• Только с OWNER_ID и домашнего сервера\n"
-            "• `!help` и `!changelog` доступны для всех на любом сервере\n"
-            "• `!setup` и `!setup_update` автоматически выдают роль 👤 Guest\n"
-            "• `!compensate` — команда компенсации за потерянные роли"
-        ),
-        inline=False
-            )
-            changelog_embed.add_field(
-        name="📊 v2.4 — логи, категории, INFO",
-        value=(
-            "• Новая категория ролей лист с логами и статистикой\n"
-            "• Категория INFO с #info и #changelog\n"
-            "• `guild.chunk()` с кешированием всех участников\n"
-            "• Авто-роль выдается автоматически новым\n"
-            "• Удалены `!owner_nuke` и `!auto_owner_nuke`\n"
-            "• Улучшенная скорость и параллельная работа\n"
-            "• `!setup_update` обновляет #changelog в INFO"
-        ),
-        inline=False
-            )
-            changelog_embed.add_field(
-        name="🧪 v2.5 — Система Tester и оптимизация",
-        value=(
-            "• Создана роль 🧪 Tester с правами Premium\n"
-            "• Команды `!ts_add`, `!ts_remove` (упрощённые)\n"
-            "• Категория 🧪 TESTS с каналами для тестирования\n"
-            "• Tester получает доступ к тикетам\n"
-            "• Переименована категория ОБЩЕНИЕ → ОСНОВНОЕ\n"
-            "• Удалены каналы: панель-бота, команды, статистика, медиа, объявления\n"
-            "• Удалены каналы: бонусы (FREELIST), утилиты (WHITE), premium-tools (PREMIUM)\n"
-            "• Канал 📝・выдача-листа добавлен в ADMIN\n"
-            "• Исправлены все кодировки русского текста\n"
-            "• Обновлены правила с информацией о тестерах\n"
-            "• Улучшена структура сервера"
-        ),
-        inline=False
-            )
-            changelog_embed.set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd  |  Текущая версия: v2.5")
-            changelog_embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
+        changelog_embed.add_field(
+            name="🎨 v2.1 — новые функции",
+            value=(
+                "• 🤝 Friend, 🎬 Media, 🛡️ Moderator — специальные роли\n"
+                "• Авто-роль 👤 Guest всем новым\n"
+                "• 💰・sell и 🔧・панель-бота\n"
+                "• !sync_roles — синхронизация ролей + авто-удаление из листа\n"
+                "• !autorole — смотри авто-роль\n"
+                "• Не удаляет роли на домашнем сервере"
+            ),
+            inline=False
+        )
+        changelog_embed.add_field(
+            name="🔧 v2.2",
+            value=(
+                "• 🤝 Fame > 🤝 Friend, права как 💎 Premium\n"
+                "• 🔧・admin-chat в ADMIN\n"
+                "• Роли удаляет с сервера и удаляет с соответствующих\n"
+                "• Новая логика синхронизации ролей лист\n"
+                "• Авто-лог в 📊・logs для каждой роли\n"
+                "• Удалены `/sp` и `/spkd`"
+            ),
+            inline=False
+        )
+        changelog_embed.add_field(
+            name="🛠️ v2.3 — фиксы",
+            value=(
+                "• Исправлена производительность при параллельном создании каналов\n"
+                "• Удалён не авто-нюков на домашнем сервере\n"
+                "• Переименованы роли после нюков (auto_nuke, auto_super_nuke, auto_owner_nuke)\n"
+                "• Только с OWNER_ID и домашнего сервера\n"
+                "• `!help` и `!changelog` доступны для всех на любом сервере\n"
+                "• `!setup` и `!setup_update` автоматически выдают роль 👤 Guest\n"
+                "• `!compensate` — команда компенсации за потерянные роли"
+            ),
+            inline=False
+        )
+        changelog_embed.add_field(
+            name="📊 v2.4 — логи, категории, INFO",
+            value=(
+                "• Новая категория ролей лист с логами и статистикой\n"
+                "• Категория INFO с #info и #changelog\n"
+                "• `guild.chunk()` с кешированием всех участников\n"
+                "• Авто-роль выдается автоматически новым\n"
+                "• Удалены `!owner_nuke` и `!auto_owner_nuke`\n"
+                "• Улучшенная скорость и параллельная работа\n"
+                "• `!setup_update` обновляет #changelog в INFO"
+            ),
+            inline=False
+        )
+        changelog_embed.add_field(
+            name="🧪 v2.5 — Система Tester и оптимизация",
+            value=(
+                "• Создана роль 🧪 Tester с правами Premium\n"
+                "• Команды `!ts_add`, `!ts_remove` (упрощённые)\n"
+                "• Категория 🧪 TESTS с каналами для тестирования\n"
+                "• Tester получает доступ к тикетам\n"
+                "• Переименована категория ОБЩЕНИЕ → ОСНОВНОЕ\n"
+                "• Удалены каналы: панель-бота, команды, статистика, медиа, объявления\n"
+                "• Удалены каналы: бонусы (FREELIST), утилиты (WHITE), premium-tools (PREMIUM)\n"
+                "• Канал 📝・выдача-листа добавлен в ADMIN\n"
+                "• Исправлены все кодировки русского текста\n"
+                "• Обновлены правила с информацией о тестерах\n"
+                "• Улучшена структура сервера"
+            ),
+            inline=False
+        )
+        changelog_embed.set_footer(text="☠️ Kanero  |  discord.gg/aud6wwYVRd  |  Текущая версия: v2.5")
+        changelog_embed.set_thumbnail(url="https://i.imgur.com/4q1H47x.jpg")
         await changelog_ch.send(embed=changelog_embed)
 
         # 💬 ━━ ОСНОВНОЕ — Guest+ читают 💬
