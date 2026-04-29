@@ -1811,9 +1811,9 @@ async def sync_roles_cmd(ctx):
     msg = await ctx.send("?? навсегда����� ����...")
 
     role_white   = discord.utils.find(lambda r: r.name == "✅ White",   guild.roles)
-    role_premium = discord.utils.find(lambda r: r.name == "??"💎 Premium", guild.roles)
-    role_user    = discord.utils.find(lambda r: r.name == "??"👥 User",    guild.roles)
-    role_guest   = discord.utils.find(lambda r: r.name == "?? Guest",   guild.roles)
+    role_premium = discord.utils.find(lambda r: r.name == "💎 Premium", guild.roles)
+    role_user    = discord.utils.find(lambda r: r.name == "👥 User",    guild.roles)
+    role_guest   = discord.utils.find(lambda r: r.name == "👤 Guest",   guild.roles)
     role_tester  = discord.utils.find(lambda r: r.name == "🧪 Tester",  guild.roles)
 
     given = []
@@ -1857,7 +1857,7 @@ async def sync_roles_cmd(ctx):
                 if uid in PREMIUM_LIST:
                     PREMIUM_LIST.remove(uid)
                     save_premium()
-                    kicked_from.append("??"💎 Premium")
+                    kicked_from.append("💎 Premium")
                 if uid in FREELIST:
                     FREELIST.remove(uid)
                     save_freelist()
@@ -1873,7 +1873,7 @@ async def sync_roles_cmd(ctx):
             if role_premium and role_premium not in member.roles:
                 try:
                     await member.add_roles(role_premium, reason="sync_roles")
-                    given.append(f"?? {member} >"💎 Premium")
+                    given.append(f"💎 {member} > Premium")
                 except Exception:
                     pass
         # Whitelist (�� premium)
@@ -1889,7 +1889,7 @@ async def sync_roles_cmd(ctx):
             if role_user and role_user not in member.roles:
                 try:
                     await member.add_roles(role_user, reason="sync_roles")
-                    given.append(f"?? {member} >"👥 User")
+                    given.append(f"👥 {member} > User")
                 except Exception:
                     pass
         # Tester
@@ -1909,7 +1909,7 @@ async def sync_roles_cmd(ctx):
         if role_premium and role_premium in member.roles and uid not in pm_ids and uid != config.OWNER_ID:
             try:
                 await member.remove_roles(role_premium, reason="sync_roles: �� � premium �����")
-                removed.append(f"?? {member} < ������"💎 Premium")
+                removed.append(f"💎 {member} < Premium")
             except Exception:
                 pass
         if role_white and role_white in member.roles and uid not in wl_ids and uid not in pm_ids and uid != config.OWNER_ID:
@@ -1957,7 +1957,7 @@ async def temp_check(ctx):
         for uid, sub in temp_copy.items():
             expires_ts = int(sub["expires"].timestamp())
             status = "? �������" if now < sub["expires"] else "? �������"
-            sub_names = {"wl": "✅ White", "pm": "??"💎 Premium", "fl": "?? Freelist"}
+            sub_names = {"wl": "✅ White", "pm": "💎 Premium", "fl": "📁 Freelist"}
             sub_name = sub_names.get(sub["type"], sub["type"])
             
             try:
@@ -1988,11 +1988,11 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
         await ctx.send("? ������� навсегда ������ �� подписка истекла.")
         return
 
-    # ������� ����
+    # Ищем роли
     role_white   = discord.utils.find(lambda r: r.name == "✅ White",   guild.roles)
-    role_premium = discord.utils.find(lambda r: r.name == "??"💎 Premium", guild.roles)
-    role_user    = discord.utils.find(lambda r: r.name == "??"👥 User",    guild.roles)
-    role_guest   = discord.utils.find(lambda r: r.name == "?? Guest",   guild.roles)
+    role_premium = discord.utils.find(lambda r: r.name == "💎 Premium", guild.roles)
+    role_user    = discord.utils.find(lambda r: r.name == "👥 User",    guild.roles)
+    role_guest   = discord.utils.find(lambda r: r.name == "👤 Guest",   guild.roles)
 
     uid = user.id
     changes = []
@@ -2080,7 +2080,7 @@ async def fix_role_cmd(ctx, user: discord.Member = None):
     if status_lines:
         embed.add_field(name="?? ������ � �������", value="\n".join(status_lines), inline=True)
     
-    current_roles = [role.name for role in user.roles if role.name in ["??"💎 Premium", "✅ White", "??"👥 User", "?? Guest"]]
+    current_roles = [role.name for role in user.roles if role.name in ["💎 Premium", "✅ White", "👥 User", "👤 Guest"]]
     if current_roles:
         embed.add_field(name="?? ������� ����", value="\n".join(current_roles), inline=True)
     
